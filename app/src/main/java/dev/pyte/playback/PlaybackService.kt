@@ -24,6 +24,13 @@ import com.google.common.util.concurrent.ListenableFuture
 import dev.pyte.data.remote.StreamResolver
 import dev.pyte.data.remote.StreamUnavailableException
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.cancel
+import dev.pyte.data.repository.LibraryRepository
 import okhttp3.OkHttpClient
 import javax.inject.Inject
 import java.io.IOException
@@ -39,10 +46,13 @@ class PlaybackService : MediaSessionService() {
     @Inject lateinit var resolver: StreamResolver
     @Inject lateinit var okHttp: OkHttpClient
     @Inject lateinit var diagnostics: PlaybackDiagnostics
+    @Inject lateinit var library: LibraryRepository
 
     private var session: MediaSession? = null
     private var player: ExoPlayer? = null
     private var retriesForItem = 0
+    private val historyScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var lastRecordedMediaId: String? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -84,6 +94,7 @@ class PlaybackService : MediaSessionService() {
         exo.addListener(object : Player.Listener {
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 retriesForItem = 0
+                lastRecordedMediaId = null
                 diagnostics.clear()
             }
 
@@ -91,7 +102,12 @@ class PlaybackService : MediaSessionService() {
                 if (playbackState == Player.STATE_READY) {
                     retriesForItem = 0
                     diagnostics.clear()
+                    if (exo.isPlaying) recordCurrentTrack(exo)
                 }
+            }
+
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                if (isPlaying) recordCurrentTrack(exo)
             }
 
             override fun onPlayerError(error: PlaybackException) {
@@ -119,6 +135,7 @@ class PlaybackService : MediaSessionService() {
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = session
 
     override fun onDestroy() {
+        historyScope.cancel()
         session?.run {
             release()
         }
@@ -126,6 +143,21 @@ class PlaybackService : MediaSessionService() {
         player?.release()
         player = null
         super.onDestroy()
+    }
+
+    private fun recordCurrentTrack(exo: ExoPlayer) {
+        val item = exo.currentMediaItem ?: return
+        if (lastRecordedMediaId == item.mediaId) return
+        lastRecordedMediaId = item.mediaId
+        historyScope.launch {
+            try {
+                library.recordPlayed(item.toTrack())
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Could not save local playback history", e)
+            }
+        }
     }
 
     /**
