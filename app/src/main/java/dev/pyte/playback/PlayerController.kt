@@ -1,0 +1,159 @@
+package dev.pyte.playback
+
+import android.content.ComponentName
+import android.content.Context
+import androidx.core.content.ContextCompat
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
+import androidx.media3.common.Player
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dev.pyte.domain.Track
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import javax.inject.Inject
+import javax.inject.Singleton
+
+data class PlayerUiState(
+    val current: Track? = null,
+    val queue: List<Track> = emptyList(),
+    val currentIndex: Int = -1,
+    val isPlaying: Boolean = false,
+    val isBuffering: Boolean = false,
+    val positionMs: Long = 0L,
+    val durationMs: Long = 0L,
+    val shuffle: Boolean = false,
+    val repeat: Int = Player.REPEAT_MODE_OFF,
+) {
+    val hasItems: Boolean get() = queue.isNotEmpty()
+}
+
+/**
+ * UI-side handle to [PlaybackService]. The UI never owns the player; it only sends
+ * commands through a MediaController and mirrors the state it reports.
+ */
+@Singleton
+class PlayerController @Inject constructor(
+    @ApplicationContext private val context: Context,
+) {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val _state = MutableStateFlow(PlayerUiState())
+    val state: StateFlow<PlayerUiState> = _state.asStateFlow()
+
+    private var controller: MediaController? = null
+    private var pendingAction: ((MediaController) -> Unit)? = null
+
+    private val listener = object : Player.Listener {
+        override fun onEvents(player: Player, events: Player.Events) {
+            refresh(player)
+        }
+    }
+
+    init {
+        val token = SessionToken(context, ComponentName(context, PlaybackService::class.java))
+        val future = MediaController.Builder(context, token).buildAsync()
+        future.addListener({
+            val c = future.get()
+            controller = c
+            c.addListener(listener)
+            pendingAction?.invoke(c)
+            pendingAction = null
+            refresh(c)
+        }, ContextCompat.getMainExecutor(context))
+
+        scope.launch {
+            while (true) {
+                delay(POSITION_TICK_MS)
+                controller?.takeIf { it.isPlaying }?.let { c ->
+                    _state.value = _state.value.copy(positionMs = c.currentPosition, durationMs = c.duration.coerceAtLeast(0))
+                }
+            }
+        }
+    }
+
+    fun playQueue(tracks: List<Track>, startIndex: Int = 0) {
+        if (tracks.isEmpty()) return
+        act { c ->
+            c.setMediaItems(tracks.map { it.toMediaItem() }, startIndex.coerceIn(0, tracks.lastIndex), 0L)
+            c.shuffleModeEnabled = _state.value.shuffle
+            c.prepare()
+            c.play()
+        }
+    }
+
+    fun togglePlayPause() = act { c ->
+        if (c.isPlaying) c.pause() else {
+            if (c.playbackState == Player.STATE_ENDED) c.seekToDefaultPosition()
+            c.play()
+        }
+    }
+
+    fun next() = act { it.seekToNext() }
+    fun previous() = act { it.seekToPrevious() }
+    fun seekTo(positionMs: Long) = act { it.seekTo(positionMs) }
+    fun playIndex(index: Int) = act { it.seekToDefaultPosition(index); it.play() }
+
+    fun toggleShuffle() = act { c -> c.shuffleModeEnabled = !c.shuffleModeEnabled }
+
+    fun cycleRepeat() = act { c ->
+        c.repeatMode = when (c.repeatMode) {
+            Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+            Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+            else -> Player.REPEAT_MODE_OFF
+        }
+    }
+
+    private fun act(block: (MediaController) -> Unit) {
+        val c = controller
+        if (c != null) block(c) else pendingAction = block
+    }
+
+    private fun refresh(player: Player) {
+        val items = (0 until player.mediaItemCount).map { player.getMediaItemAt(it).toTrack() }
+        val index = player.currentMediaItemIndex
+        _state.value = PlayerUiState(
+            current = items.getOrNull(index),
+            queue = items,
+            currentIndex = index,
+            isPlaying = player.isPlaying,
+            isBuffering = player.playbackState == Player.STATE_BUFFERING,
+            positionMs = player.currentPosition.coerceAtLeast(0),
+            durationMs = player.duration.coerceAtLeast(0),
+            shuffle = player.shuffleModeEnabled,
+            repeat = player.repeatMode,
+        )
+    }
+
+    private companion object {
+        const val POSITION_TICK_MS = 500L
+    }
+}
+
+private const val STREAM_SCHEME = "pyte://stream/"
+
+internal fun Track.toMediaItem(): MediaItem = MediaItem.Builder()
+    .setMediaId(videoId)
+    .setUri("$STREAM_SCHEME$videoId")
+    .setMediaMetadata(
+        MediaMetadata.Builder()
+            .setTitle(title)
+            .setArtist(artist)
+            .setArtworkUri(thumbnailUrl?.let(android.net.Uri::parse))
+            .build(),
+    )
+    .build()
+
+internal fun MediaItem.toTrack(): Track = Track(
+    videoId = mediaId,
+    title = mediaMetadata.title?.toString().orEmpty(),
+    artist = mediaMetadata.artist?.toString().orEmpty(),
+    durationMs = 0L,
+    thumbnailUrl = mediaMetadata.artworkUri?.toString(),
+)
