@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- Fix the reported 120×120 cover for “Nur ein Wort” (Noah Kraus & Wir sind Helden): handle
+  `yt3.googleusercontent.com` resizing and verify real decoded image dimensions. Upgrade old
+  offline covers instead of permanently preferring low-resolution files; do not redownload audio.
+- Derive animated, contrast-checked player/Lyrics/mini-player colors from the current cover.
+  Keep the library violet and provide a persisted toggle with safe missing-artwork fallback.
+- Add a native, session-scoped equalizer with actual device bands, Neutral/Bass/Voices/Warm/
+  Electronic presets, up to 12 named editable profiles, reset, bypass and conservative boost
+  headroom. Restore saved settings after audio-session/output changes and release effects
+  when playback service stops. Explain unavailable effects rather than displaying fake bands.
+
 ## 0.2.0-alpha.4
 
 **Installation warning:** this release uses a different debug signing key from earlier

@@ -30,6 +30,16 @@ A local-first Android music player for public YouTube Music playlists.
   title, artist and duration to LRCLIB; the app identifies itself and respects rate limiting.
 - Artwork requests size-appropriate high-resolution variants with original-image fallback,
   including songs already stored in the library. Image disk cache is capped at 96 MB.
+- Cover resizing includes YouTube Music's `yt3.googleusercontent.com` host. Offline covers
+  are checked by decoded dimensions and upgraded on unmetered Wi-Fi without downloading
+  audio again. Failed/low-resolution upgrades are rate-limited to one check per day per song.
+- Dynamic cover colors animate across Now Playing, Lyrics and the mini-player. Settings can
+  turn this off; the library retains its violet theme. Palette sampling is local, bounded and
+  uses pinned artwork offline, with a violet fallback for missing/grayscale art.
+- A session-scoped native equalizer is available from the player, Lyrics and Settings. It uses
+  the output's supported bands, five presets, and up to 12 named local sound profiles. Curves
+  are adapted by frequency when the audio session/output changes. Boosts reserve volume
+  headroom (not a clipping limiter); unsupported effects/outputs are shown explicitly.
 
 Android cloud backup and automatic device transfer are disabled. Keep the app installed when
 updating APKs: uninstalling or clearing app storage removes your local library and downloads.

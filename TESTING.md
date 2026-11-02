@@ -1,5 +1,28 @@
 # Playback verification
 
+## Cover-quality correction, dynamic themes and equalizer
+
+- Reproduced the reported song's artwork source through live YouTube Music search:
+  `7y0c6q5QoWA` uses `yt3.googleusercontent.com`, which the previous host allowlist missed.
+  Actual decoded responses are 120×120 for the old URL and 1200×1200 for the corrected URL.
+  The larger source image was visually inspected; this is not a device UI screenshot check.
+- Opt-in regression: `PYTE_LIVE_ARTWORK=true ./gradlew :app:testDebugUnitTest`. Native-graphics
+  Robolectric tests verify decoded image bounds, rejection of invalid/downgraded covers and
+  replacement of a small pinned cover without requesting audio again.
+- Palette tests check cover-dependent accents, grayscale/transparent fallback and text contrast.
+- Equalizer fixtures test logarithmic frequency mapping, bounded gains, portable saved profiles,
+  session recreation, control loss, bypass/headroom, unsupported-device recovery and resource
+  release. Session 0 (global output) is never used.
+- New `EqualizerUiTest` cases cover unavailable controls and confirmed profile deletion. These
+  instrumentation tests require a connected device/emulator; compiling them is not running them.
+
+Manual checks still required: audible EQ changes on a physical phone with wired/Bluetooth
+outputs, rapid output switches and competing system EQs; theme transitions on small screens
+and with reduced motion; offline cover upgrades on the installed app. No phone/emulator was
+attached for these changes. The native EQ can differ by manufacturer and headroom is not a
+limiter. Cover upgrades respect existing Wi-Fi/download pause/storage rules and can wait up
+to the next maintenance run; failed or insufficient upgrades retry at most once per day.
+
 ## Offline playlists, lyrics and artwork
 
 Local validation: debug APK, instrumentation APK and Android lint build successfully;
