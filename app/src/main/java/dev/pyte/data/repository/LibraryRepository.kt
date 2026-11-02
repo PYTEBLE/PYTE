@@ -6,15 +6,19 @@ import dev.pyte.data.local.PlaylistEntity
 import dev.pyte.data.local.PlaylistTrackEntity
 import dev.pyte.data.local.PyteDatabase
 import dev.pyte.data.local.TrackEntity
+import dev.pyte.data.local.HistoryEntity
+import dev.pyte.data.local.searchQuery
 import dev.pyte.data.remote.ImportException
 import dev.pyte.data.remote.ListIdParser
 import dev.pyte.data.remote.ListIdResult
 import dev.pyte.data.remote.PlaylistImporter
+import dev.pyte.data.remote.ImportedPlaylist
 import dev.pyte.domain.PlaylistSummary
 import dev.pyte.domain.Track
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flowOf
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -41,8 +45,30 @@ class LibraryRepository @Inject constructor(
     fun observeFavoriteIds(): Flow<Set<String>> =
         favorites.observeFavoriteIds().map { it.toSet() }
 
-    fun search(query: String): Flow<List<Track>> =
-        tracks.search(query.trim()).map { rows -> rows.map(TrackEntity::toDomain) }
+    fun search(query: String): Flow<List<Track>> {
+        val match = searchQuery(query) ?: return flowOf(emptyList())
+        return tracks.search(match).map { rows -> rows.map(TrackEntity::toDomain) }
+    }
+
+    fun observeHistory(): Flow<List<Track>> =
+        tracks.observeHistory().map { rows -> rows.map(TrackEntity::toDomain) }
+
+    suspend fun recordPlayed(track: Track) {
+        db.withTransaction {
+            if (tracks.getTrack(track.videoId) == null) tracks.upsertTracks(listOf(track.toEntity()))
+            tracks.recordHistory(HistoryEntity(track.videoId, System.currentTimeMillis()))
+        }
+    }
+
+    suspend fun renamePlaylist(id: String, title: String) {
+        val trimmed = title.trim()
+        require(trimmed.isNotEmpty() && trimmed.length <= 100) { "Use a name between 1 and 100 characters" }
+        playlists.renamePlaylist(id, trimmed)
+    }
+
+    suspend fun refreshPlaylist(id: String) {
+        saveImported(importer.import(id), requireExisting = true)
+    }
 
     suspend fun setFavorite(track: Track, favorite: Boolean) {
         db.withTransaction {
@@ -69,9 +95,16 @@ class LibraryRepository @Inject constructor(
             is ListIdResult.Invalid -> throw ImportException(parsed.reason)
         }
         val imported = importer.import(listId)
+        saveImported(imported)
+        return imported.id
+    }
+
+    internal suspend fun saveImported(imported: ImportedPlaylist, requireExisting: Boolean = false) {
         if (imported.tracks.isEmpty()) throw ImportException("This playlist has no tracks")
 
         db.withTransaction {
+            val previous = playlists.getPlaylist(imported.id)
+            if (requireExisting && previous == null) throw ImportException("Playlist was deleted")
             playlists.upsertPlaylist(
                 PlaylistEntity(
                     id = imported.id,
@@ -80,7 +113,8 @@ class LibraryRepository @Inject constructor(
                     thumbnailUrl = imported.thumbnailUrl,
                     sourceUrl = "https://music.youtube.com/playlist?list=${imported.id}",
                     trackCount = imported.tracks.size,
-                    importedAt = System.currentTimeMillis(),
+                    importedAt = previous?.importedAt ?: System.currentTimeMillis(),
+                    localTitle = previous?.localTitle,
                 ),
             )
             tracks.upsertTracks(imported.tracks.map { it.toEntity() }.distinctBy { it.videoId })
@@ -91,12 +125,11 @@ class LibraryRepository @Inject constructor(
                 },
             )
         }
-        return imported.id
     }
 
     private fun PlaylistEntity.toSummary() = PlaylistSummary(
         id = id,
-        title = title,
+        title = localTitle ?: title,
         owner = owner,
         thumbnailUrl = thumbnailUrl,
         trackCount = trackCount,

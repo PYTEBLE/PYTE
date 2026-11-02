@@ -4,6 +4,8 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import androidx.room.Fts4
+import androidx.room.FtsOptions
 
 @Entity(tableName = "playlists")
 data class PlaylistEntity(
@@ -14,6 +16,7 @@ data class PlaylistEntity(
     val sourceUrl: String,
     val trackCount: Int,
     val importedAt: Long,
+    val localTitle: String? = null,
 )
 
 @Entity(tableName = "tracks")
@@ -41,3 +44,10 @@ data class FavoriteEntity(
     @PrimaryKey val videoId: String,
     val addedAt: Long,
 )
+
+@Entity(tableName = "history")
+data class HistoryEntity(@PrimaryKey val videoId: String, val lastPlayedAt: Long)
+
+@Fts4(tokenizer = FtsOptions.TOKENIZER_UNICODE61, notIndexed = ["videoId"])
+@Entity(tableName = "tracks_fts")
+data class TrackFtsEntity(val videoId: String, val title: String, val artist: String)

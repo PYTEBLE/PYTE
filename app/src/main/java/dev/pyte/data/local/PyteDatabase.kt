@@ -2,6 +2,10 @@ package dev.pyte.data.local
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.Room
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+import android.content.Context
 
 @Database(
     entities = [
@@ -9,12 +13,44 @@ import androidx.room.RoomDatabase
         TrackEntity::class,
         PlaylistTrackEntity::class,
         FavoriteEntity::class,
+        HistoryEntity::class,
+        TrackFtsEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = false,
 )
 abstract class PyteDatabase : RoomDatabase() {
     abstract fun playlistDao(): PlaylistDao
     abstract fun favoriteDao(): FavoriteDao
     abstract fun trackDao(): TrackDao
+
+    companion object {
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE playlists ADD COLUMN localTitle TEXT")
+                db.execSQL("CREATE TABLE IF NOT EXISTS history (videoId TEXT NOT NULL PRIMARY KEY, lastPlayedAt INTEGER NOT NULL)")
+                db.execSQL("CREATE VIRTUAL TABLE IF NOT EXISTS tracks_fts USING FTS4(videoId TEXT NOT NULL, title TEXT NOT NULL, artist TEXT NOT NULL, notindexed=`videoId`, tokenize=unicode61)")
+                db.execSQL("INSERT INTO tracks_fts(rowid, videoId, title, artist) SELECT rowid, videoId, title, artist FROM tracks")
+                installSearchTriggers(db)
+            }
+        }
+
+        fun open(context: Context, name: String = "pyte.db"): PyteDatabase =
+            Room.databaseBuilder(context, PyteDatabase::class.java, name)
+                .addMigrations(MIGRATION_1_2)
+                .addCallback(object : Callback() {
+                    override fun onCreate(db: SupportSQLiteDatabase) = installSearchTriggers(db)
+                })
+                .build()
+
+        private fun installSearchTriggers(db: SupportSQLiteDatabase) {
+            db.execSQL("""CREATE TRIGGER IF NOT EXISTS tracks_search_insert AFTER INSERT ON tracks BEGIN
+                INSERT INTO tracks_fts(rowid, videoId, title, artist) VALUES (new.rowid, new.videoId, new.title, new.artist); END""")
+            db.execSQL("""CREATE TRIGGER IF NOT EXISTS tracks_search_update AFTER UPDATE ON tracks BEGIN
+                DELETE FROM tracks_fts WHERE rowid = old.rowid;
+                INSERT INTO tracks_fts(rowid, videoId, title, artist) VALUES (new.rowid, new.videoId, new.title, new.artist); END""")
+            db.execSQL("""CREATE TRIGGER IF NOT EXISTS tracks_search_delete AFTER DELETE ON tracks BEGIN
+                DELETE FROM tracks_fts WHERE rowid = old.rowid; END""")
+        }
+    }
 }

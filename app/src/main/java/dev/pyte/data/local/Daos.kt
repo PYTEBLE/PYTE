@@ -15,6 +15,12 @@ interface PlaylistDao {
     @Query("SELECT * FROM playlists WHERE id = :id")
     fun observePlaylist(id: String): Flow<PlaylistEntity?>
 
+    @Query("SELECT * FROM playlists WHERE id = :id")
+    suspend fun getPlaylist(id: String): PlaylistEntity?
+
+    @Query("UPDATE playlists SET localTitle = :title WHERE id = :id")
+    suspend fun renamePlaylist(id: String, title: String)
+
     @Query(
         """
         SELECT t.* FROM tracks t
@@ -64,16 +70,28 @@ interface FavoriteDao {
 
 @Dao
 interface TrackDao {
+    @Query("SELECT * FROM tracks WHERE videoId = :videoId")
+    suspend fun getTrack(videoId: String): TrackEntity?
+
     @Upsert
     suspend fun upsertTracks(tracks: List<TrackEntity>)
 
     @Query(
         """
-        SELECT * FROM tracks
-        WHERE title LIKE '%' || :query || '%' OR artist LIKE '%' || :query || '%'
-        ORDER BY title COLLATE NOCASE
+        SELECT t.* FROM tracks t JOIN tracks_fts ON tracks_fts.videoId = t.videoId
+        WHERE tracks_fts MATCH :query AND (
+            EXISTS (SELECT 1 FROM playlist_tracks p WHERE p.videoId = t.videoId) OR
+            EXISTS (SELECT 1 FROM favorites f WHERE f.videoId = t.videoId) OR
+            EXISTS (SELECT 1 FROM history h WHERE h.videoId = t.videoId))
+        ORDER BY t.title COLLATE NOCASE
         LIMIT 200
         """
     )
     fun search(query: String): Flow<List<TrackEntity>>
+
+    @Upsert
+    suspend fun recordHistory(history: HistoryEntity)
+
+    @Query("SELECT t.* FROM tracks t JOIN history h ON h.videoId = t.videoId ORDER BY h.lastPlayedAt DESC LIMIT 20")
+    fun observeHistory(): Flow<List<TrackEntity>>
 }

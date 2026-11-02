@@ -3,7 +3,6 @@
 package dev.pyte.di
 
 import android.content.Context
-import androidx.room.Room
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
@@ -45,7 +44,7 @@ object AppModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): PyteDatabase =
-        Room.databaseBuilder(context, PyteDatabase::class.java, "pyte.db").build()
+        PyteDatabase.open(context)
 
     @Provides
     fun providePlaylistDao(db: PyteDatabase): PlaylistDao = db.playlistDao()
