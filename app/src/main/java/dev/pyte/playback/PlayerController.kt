@@ -2,6 +2,7 @@ package dev.pyte.playback
 
 import android.content.ComponentName
 import android.content.Context
+import android.os.Bundle
 import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -93,11 +94,11 @@ class PlayerController @Inject constructor(
         }
     }
 
-    fun playQueue(tracks: List<Track>, startIndex: Int = 0) {
+    fun playQueue(tracks: List<Track>, startIndex: Int = 0, shuffle: Boolean = false) {
         if (tracks.isEmpty()) return
         act { c ->
             c.setMediaItems(tracks.map { it.toMediaItem() }, startIndex.coerceIn(0, tracks.lastIndex), 0L)
-            c.shuffleModeEnabled = _state.value.shuffle
+            c.shuffleModeEnabled = shuffle
             c.prepare()
             c.play()
         }
@@ -114,7 +115,13 @@ class PlayerController @Inject constructor(
     fun next() = act { it.seekToNext() }
     fun previous() = act { it.seekToPrevious() }
     fun seekTo(positionMs: Long) = act { it.seekTo(positionMs) }
-    fun playIndex(index: Int) = act { it.seekToDefaultPosition(index); it.play() }
+    fun playIndex(index: Int) = act {
+        if (index in 0 until it.mediaItemCount) { it.seekToDefaultPosition(index); it.play() }
+    }
+    fun enqueueNext(track: Track) = act { it.enqueue(track.toMediaItem(), next = true) }
+    fun enqueueLater(track: Track) = act { it.enqueue(track.toMediaItem(), next = false) }
+    fun moveQueueItem(from: Int, to: Int) = act { it.moveQueuedItem(from, to) }
+    fun removeQueueItem(index: Int) = act { it.removeQueuedItem(index) }
 
     fun toggleShuffle() = act { c -> c.shuffleModeEnabled = !c.shuffleModeEnabled }
 
@@ -163,6 +170,7 @@ internal fun Track.toMediaItem(): MediaItem = MediaItem.Builder()
         MediaMetadata.Builder()
             .setTitle(title)
             .setArtist(artist)
+            .setExtras(Bundle().apply { putLong("durationMs", durationMs) })
             .setArtworkUri(thumbnailUrl?.let(android.net.Uri::parse))
             .build(),
     )
@@ -172,6 +180,6 @@ internal fun MediaItem.toTrack(): Track = Track(
     videoId = mediaId,
     title = mediaMetadata.title?.toString().orEmpty(),
     artist = mediaMetadata.artist?.toString().orEmpty(),
-    durationMs = 0L,
+    durationMs = mediaMetadata.extras?.getLong("durationMs", 0L) ?: 0L,
     thumbnailUrl = mediaMetadata.artworkUri?.toString(),
 )
