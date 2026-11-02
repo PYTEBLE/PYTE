@@ -1,6 +1,7 @@
 package dev.pyte.playback
 
 import android.util.Log
+import androidx.media3.common.MediaItem
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.PlaybackException
@@ -15,6 +16,8 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import dagger.hilt.android.AndroidEntryPoint
+import com.google.common.util.concurrent.Futures
+import com.google.common.util.concurrent.ListenableFuture
 import dev.pyte.data.remote.StreamResolver
 import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
@@ -77,7 +80,19 @@ class PlaybackService : MediaSessionService() {
         })
 
         player = exo
-        session = MediaSession.Builder(this, exo).build()
+        session = MediaSession.Builder(this, exo)
+            .setCallback(object : MediaSession.Callback {
+                override fun onAddMediaItems(
+                    mediaSession: MediaSession,
+                    controller: MediaSession.ControllerInfo,
+                    mediaItems: List<MediaItem>,
+                ): ListenableFuture<List<MediaItem>> = try {
+                    Futures.immediateFuture(mediaItems.map(::resolvePlaybackItem))
+                } catch (e: IllegalArgumentException) {
+                    Futures.immediateFailedFuture(e)
+                }
+            })
+            .build()
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = session
