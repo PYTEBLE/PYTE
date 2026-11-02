@@ -62,10 +62,11 @@ import kotlinx.coroutines.withContext
 import coil3.request.ImageRequest
 import androidx.compose.ui.platform.LocalContext
 import java.io.File
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.graphics.graphicsLayer
 import dev.pyte.domain.Track
 import dev.pyte.domain.PlaylistSummary
-import dev.pyte.ui.theme.PyteAccent
-import dev.pyte.ui.theme.PyteOnAccent
 import dev.pyte.R
 
 @Composable
@@ -74,6 +75,8 @@ fun Artwork(
     modifier: Modifier = Modifier,
     shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(10.dp),
     videoId: String? = null,
+    requestedPixels: Int? = null,
+    placeholderUrl: String? = null,
 ) {
     val context = LocalContext.current
     val local = videoId?.takeIf { it.matches(Regex("[A-Za-z0-9_-]{11}")) }
@@ -85,7 +88,7 @@ fun Artwork(
         contentAlignment = Alignment.Center,
     ) {
         if (url != null || local != null) {
-            val pixels = with(LocalDensity.current) { maxWidth.roundToPx() }.coerceIn(96, 1600)
+            val pixels = (requestedPixels ?: with(LocalDensity.current) { maxWidth.roundToPx() }).coerceIn(96, 1600)
             val sized = ArtworkUrls.sized(url, pixels)
             val revision = local?.let { "${it.lastModified()}:${it.length()}" }
             val localSize by produceState<dev.pyte.data.remote.ArtworkSize?>(null, local?.path, revision) {
@@ -94,20 +97,29 @@ fun Artwork(
             val preferLocal = local != null && (url == null || (localSize?.shortEdge ?: 0) >= pixels.coerceAtMost(1200))
             var failed by remember(url, sized, revision) { mutableStateOf(false) }
             val data = if (preferLocal || failed && local != null) local else if (failed) url else sized
+            var loading by remember(data) { mutableStateOf(true) }
             AsyncImage(
                 model = ImageRequest.Builder(context).data(data)
                     .memoryCacheKey(if (data is File) "offline-cover:${data.path}:$revision" else data?.toString())
+                    .apply {
+                        if (requestedPixels != null) size(pixels, pixels)
+                        if (placeholderUrl != null) placeholderMemoryCacheKey(
+                            if (data is File) "offline-cover:${data.path}:$revision" else placeholderUrl)
+                    }
                     .build(),
-                onError = { failed = true },
+                onLoading = { loading = true },
+                onSuccess = { loading = false },
+                onError = { loading = false; failed = true },
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
+            if (loading) ShimmerPlaceholder(Modifier.fillMaxSize())
         } else {
             Icon(
                 imageVector = Icons.Default.MusicNote,
                 contentDescription = null,
-                tint = PyteAccent,
+                tint = MaterialTheme.colorScheme.primary,
             )
         }
     }
@@ -144,7 +156,7 @@ fun TrackRow(
                 text = track.title,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium,
-                color = if (isCurrent) PyteAccent else MaterialTheme.colorScheme.onSurface,
+                color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -157,7 +169,7 @@ fun TrackRow(
             )
         }
         if (isDownloaded) {
-            Icon(Icons.Default.DownloadDone, "Available offline", tint = PyteAccent,
+            Icon(Icons.Default.DownloadDone, "Available offline", tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(end = 8.dp).size(18.dp))
         }
         if (track.durationMs > 0) {
@@ -167,13 +179,7 @@ fun TrackRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        IconButton(onClick = onFavoriteClick) {
-            Icon(
-                imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
-                tint = if (isFavorite) PyteAccent else MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        FavoriteButton(isFavorite, onFavoriteClick, key = track.videoId)
         if (onPlayNext != null || onAddToQueue != null || onAddToPlaylist != null) {
             Box {
                 IconButton(onClick = { menuOpen = true }) {
@@ -242,6 +248,8 @@ fun MiniPlayer(
     modifier: Modifier = Modifier,
     videoId: String? = null,
 ) {
+    val morph = LocalPlayerMorph.current
+    val miniTrack = Track(videoId ?: "mini", title, artist, 0, artworkUrl)
     Surface(
         modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
         shape = RoundedCornerShape(22.dp),
@@ -263,34 +271,11 @@ fun MiniPlayer(
                     .padding(start = 12.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Artwork(url = artworkUrl, modifier = Modifier.size(44.dp), videoId = videoId)
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 12.dp),
-                ) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = artist,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                FilledIconButton(onClick = onToggle,
-                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)) {
-                    Icon(
-                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (isPlaying) "Pause" else "Play",
-                    )
-                }
+                Artwork(url = artworkUrl, modifier = Modifier.size(44.dp)
+                    .onGloballyPositioned { coordinates -> videoId?.let { morph?.miniBounds(it, coordinates.boundsInWindow()) } }
+                    .graphicsLayer { alpha = if (videoId != null && morph?.hiddenId == videoId) 0f else 1f }, videoId = videoId)
+                SongMetadata(miniTrack, 1, Modifier.weight(1f).padding(horizontal = 12.dp), compact = true)
+                LivingPlayButton(isPlaying, onToggle, size = 42.dp)
                 IconButton(onClick = onNext) {
                     Icon(Icons.Default.SkipNext, contentDescription = "Next")
                 }

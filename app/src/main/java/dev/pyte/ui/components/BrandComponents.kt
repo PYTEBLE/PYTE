@@ -37,9 +37,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.pyte.R
-import dev.pyte.ui.theme.PyteAccent
-import dev.pyte.ui.theme.PyteBrandGradient
-import dev.pyte.ui.theme.PyteOnBrand
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.interaction.MutableInteractionSource
 
 @Composable
 fun ScreenHeading(title: String, subtitle: String, modifier: Modifier = Modifier) {
@@ -51,9 +51,9 @@ fun ScreenHeading(title: String, subtitle: String, modifier: Modifier = Modifier
             Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = RoundedCornerShape(50)) {
                 Row(Modifier.padding(horizontal = 10.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                    Icon(Icons.Default.Lock, null, Modifier.size(12.dp), tint = PyteAccent)
+                    Icon(Icons.Default.Lock, null, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.primary)
                     Text("ON DEVICE", style = MaterialTheme.typography.labelSmall,
-                        color = PyteAccent, letterSpacing = 1.sp)
+                        color = MaterialTheme.colorScheme.primary, letterSpacing = 1.sp)
                 }
             }
         }
@@ -67,11 +67,13 @@ fun ScreenHeading(title: String, subtitle: String, modifier: Modifier = Modifier
 @Composable
 fun BrandButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, icon: ImageVector? = null) {
     val shape = RoundedCornerShape(18.dp)
-    Button(onClick = onClick, enabled = enabled,
-        modifier = modifier.alpha(if (enabled) 1f else 0.45f).background(PyteBrandGradient, shape),
+    val interaction = remember { MutableInteractionSource() }
+    Button(onClick = onClick, enabled = enabled, interactionSource = interaction,
+        modifier = modifier.pressMotion(interaction).alpha(if (enabled) 1f else 0.45f).background(Brush.linearGradient(listOf(
+            MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary)), shape),
         shape = shape,
-        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = PyteOnBrand,
-            disabledContainerColor = Color.Transparent, disabledContentColor = PyteOnBrand),
+        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = MaterialTheme.colorScheme.onPrimary,
+            disabledContainerColor = Color.Transparent, disabledContentColor = MaterialTheme.colorScheme.onPrimary),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 24.dp, vertical = 17.dp)) {
         icon?.let { Icon(it, null, Modifier.size(22.dp)); Spacer(Modifier.width(8.dp)) }
         Text(text, style = MaterialTheme.typography.labelLarge)
@@ -94,6 +96,6 @@ fun LibraryWelcome(onImport: () -> Unit, modifier: Modifier = Modifier) {
         BrandButton("Import a playlist", onImport, Modifier.fillMaxWidth(), icon = Icons.Default.Add)
         Spacer(Modifier.height(18.dp))
         Text("NO ACCOUNT  ·  NO ADS  ·  JUST MUSIC", style = MaterialTheme.typography.labelSmall,
-            color = PyteAccent, letterSpacing = 1.sp, textAlign = TextAlign.Center)
+            color = MaterialTheme.colorScheme.primary, letterSpacing = 1.sp, textAlign = TextAlign.Center)
     }
 }
