@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
@@ -42,12 +43,14 @@ import dev.pyte.ui.screens.HomeScreen
 import dev.pyte.ui.screens.NowPlayingScreen
 import dev.pyte.ui.screens.PlaylistScreen
 import dev.pyte.ui.screens.SearchScreen
+import dev.pyte.ui.screens.SettingsScreen
 import dev.pyte.ui.viewmodels.PlayerViewModel
 
 private object Routes {
     const val HOME = "home"
     const val SEARCH = "search"
     const val FAVORITES = "favorites"
+    const val SETTINGS = "settings"
     const val PLAYLIST = "playlist/{playlistId}"
     const val NOW_PLAYING = "now_playing"
 
@@ -60,6 +63,7 @@ private val tabs = listOf(
     Tab(Routes.HOME, "Library", Icons.Default.LibraryMusic),
     Tab(Routes.SEARCH, "Search", Icons.Default.Search),
     Tab(Routes.FAVORITES, "Favorites", Icons.Default.Favorite),
+    Tab(Routes.SETTINGS, "Settings", Icons.Default.Settings),
 )
 
 @Composable
@@ -160,6 +164,9 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel()) {
             }
             composable(Routes.FAVORITES) {
                 FavoritesScreen(contentPadding = padding)
+            }
+            composable(Routes.SETTINGS) {
+                SettingsScreen(contentPadding = padding)
             }
             composable(
                 route = Routes.PLAYLIST,
