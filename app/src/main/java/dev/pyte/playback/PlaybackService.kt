@@ -66,10 +66,10 @@ class PlaybackService : MediaSessionService() {
     private var lastRecordedMediaId: String? = null
     private val audioDevices = object : AudioDeviceCallback() {
         override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>) {
-            if (player != null) equalizer.retry()
+            if (player != null && addedDevices.any { it.isSink }) equalizer.retry()
         }
         override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>) {
-            if (player != null) equalizer.retry()
+            if (player != null && removedDevices.any { it.isSink }) equalizer.retry()
         }
     }
 

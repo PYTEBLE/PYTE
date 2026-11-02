@@ -80,4 +80,19 @@ class EqualizerControllerTest {
         assertEquals(EqualizerCurves.flat, EqualizerCurves.normalize(listOf(EqPoint(-2, 0))))
         assertEquals(1f, EqualizerCurves.headroom(listOf(-400, 0)))
     }
+
+    @Test fun `effect failures release native resources and restore bypass volume`() {
+        val device = Device()
+        val controller = EqualizerController {
+            object : EqualizerDevice by device {
+                override fun level(band: Int, gainMb: Int) { throw IllegalStateException("Effect rejected band") }
+            }
+        }
+        controller.apply(EqualizerSettings(enabled = true))
+        controller.attach(5)
+        assertTrue(device.released)
+        assertFalse(device.active)
+        assertFalse(controller.state.value.available)
+        assertEquals(1f, controller.state.value.headroom)
+    }
 }
