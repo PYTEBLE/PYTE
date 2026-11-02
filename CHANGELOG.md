@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- Opt individual library playlists into durable offline downloads on unmetered Wi-Fi. Reuse
+  shared songs, resume validated partial files, and play completed audio without online URL resolution.
+- Show download progress and per-song availability, plus pause/resume, usage and configurable
+  storage limits in Settings. Removing an offline playlist cleans files no other selection needs.
+- Add LRCLIB lyrics with synchronized highlighting, automatic scrolling, tap-to-seek, a dark
+  cover backdrop and animated violet waves. Cache available lyrics with downloaded tracks;
+  explicitly handle plain/instrumental/missing lyrics and provider rate limits.
+- Request higher-resolution cover variants with original-image fallback for existing and new
+  tracks; bound the artwork disk cache to 96 MB. Migrate Room v1/v2/v3 libraries to v4.
+
 ## 0.2.0-alpha.3
 
 - Search songs on YouTube Music without an account, load additional result pages, and play

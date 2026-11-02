@@ -18,10 +18,22 @@ A local-first Android music player for public YouTube Music playlists.
 - Recently played songs are recorded locally only after playback starts.
 - Settings: skip silence, enable/disable history recording, clear history with confirmation,
   and view app/privacy information. Preferences are stored locally with DataStore.
+- Mark individual library playlists **Available offline**. Downloads run only on unmetered Wi-Fi,
+  are resumable when the server supplies a validator, and are shared across selected playlists.
+  Completed audio plays locally without resolving a YouTube URL, even after restarting offline.
+- Settings show offline storage usage, a configurable limit (2 GB initially), and pause/resume.
+  Reaching the limit pauses downloads; it never evicts selected songs. Deselecting/deleting a
+  playlist releases files only when no other offline playlist needs them.
+- Now Playing → **Lyrics**: synchronized LRCLIB lyrics with tap-to-seek, animated highlighting,
+  cover backdrop and subtle waves. Plain text/instrumental/missing lyrics have explicit states.
+  Available lyrics and cover artwork are pinned alongside offline audio. Lyrics requests send
+  title, artist and duration to LRCLIB; the app identifies itself and respects rate limiting.
+- Artwork requests size-appropriate high-resolution variants with original-image fallback,
+  including songs already stored in the library. Image disk cache is capped at 96 MB.
 
 Android cloud backup and automatic device transfer are disabled. Keep the app installed when
-updating APKs: uninstalling or clearing app storage removes your local library. Explicit offline
-downloads and manual library export are not implemented yet.
+updating APKs: uninstalling or clearing app storage removes your local library and downloads.
+Manual library export is not implemented yet.
 
 > Personal use only. Extracting streams is against YouTube's Terms of Service. Do not publish this app to the Play Store or run it as a public service.
 
@@ -45,6 +57,8 @@ Signed release builds: copy `keystore.properties.example` to `keystore.propertie
 | Extraction | `data/remote/` | Anonymous visitor bootstrap + `VISIONOS` player, with `ANDROID_VR` / `IOS` fallbacks. `WEB_REMIX` playlist browsing and song search with continuation tokens. |
 | Storage | `data/local/` | Room: playlists, tracks, playlist order, favorites, history, FTS4 search |
 | Cache | `di/AppModule.kt` | Media3 `SimpleCache`, LRU, 1.5 GB |
+| Offline | `data/offline/` | WorkManager, Wi-Fi-only, atomic app-private files; Room selection and progress |
+| Lyrics | `data/lyrics/` | LRCLIB, bounded cache + pinned offline lyrics, LRC parser |
 
 Stream URLs are resolved lazily, when the player requests bytes, and cached until shortly before their `expire` time. A one-byte range probe checks audio access before selecting a client; if it fails, the resolver tries the next client. Each stream uses its originating client's User-Agent. Late HTTP 403/410 responses temporarily exclude that client during recovery. Audio cache keys include the format ID so fallback cannot mix different encodings.
 
@@ -61,7 +75,9 @@ Phase 4 adds library management, a local FTS4 index, history, and queue editing 
 accessible move buttons (not drag-and-drop). Settings, online song search, and local playlist
 additions extend that baseline. The database migrates from versions 1/2 to 3 without
 destructive fallback; tests cover pre-existing playlists, order, favorites, history and local additions.
-Phase 5 remains offline downloads, cache management, and longer-running device resilience checks.
+Offline playlist downloads, storage controls, high-resolution artwork and animated lyrics extend
+this baseline. Longer-running device resilience checks remain necessary. The database migrates
+from versions 1/2/3 to 4 without destructive fallback.
 
 To add a song: **Search → YouTube Music → enter a title/artist → press Search → song menu
 → Add to local playlist**. Choose an existing playlist or enter a new local playlist name.

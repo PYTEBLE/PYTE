@@ -1,5 +1,36 @@
 # Playback verification
 
+## Offline playlists, lyrics and artwork
+
+Local validation: debug APK, instrumentation APK and Android lint build successfully;
+78 unit tests ran with 77 passed and one opt-in live-network test skipped. No device/emulator
+visual check, long-running background download test, or live LRCLIB/YouTube download test was
+performed for these changes. The initial lint analyzer crash did not recur after the constructor
+refactoring; the complete lint task subsequently passed without disabling checks.
+
+New automated checks cover LRC parsing/timestamps/seek positions, high-resolution URL handling,
+bounded response bodies, v3 → v4 migration, playlist-only download selection and shared songs.
+Offline-store fixtures exercise atomic completion, persisted audio, validator-protected range
+resume after a broken response, Wi-Fi/pause restrictions, storage limits and offline cleanup.
+A Media3 data-source test verifies local ranged reads without invoking the stream resolver.
+LRCLIB fixtures verify metadata matching, offline pinned text, cached misses and Retry-After.
+
+Manual device checklist (not implied by unit-test success):
+
+1. Select a playlist for offline use on Wi-Fi; inspect progress and storage usage.
+2. Pause/resume; interrupt Wi-Fi; restart the app and let downloads recover.
+3. Enable airplane mode, force-stop/reopen, then play and seek downloaded songs; check covers
+   and available lyrics. Non-downloaded songs are not guaranteed to play offline.
+4. Share a song between two selected playlists; deselect/delete one, then the other, and check
+   that files are retained only while needed. Refresh/add tracks to an offline playlist.
+5. Lower the storage limit; confirm new writes stop without deleting completed songs. Raise
+   it and retry; test real low-storage failures too.
+6. Check synchronized/unsynchronized/instrumental/missing lyrics, backward seek, manual scroll,
+   follow button, song changes and accessibility animation/font settings on a small screen.
+7. Compare existing/new cover artwork in lists and full-screen; test missing max-resolution
+   variants and provider/network errors. Android versions below 31 do not support Compose's
+   background blur and display the darkened cover without that effect.
+
 ## Local checks
 
 ```bash
