@@ -89,7 +89,7 @@ class InnerTubeClient @Inject constructor(
             http.newCall(request).execute().use { response ->
                 val text = response.body?.string().orEmpty()
                 if (!response.isSuccessful) {
-                    throw InnerTubeException("HTTP ${response.code} from InnerTube")
+                    throw InnerTubeException("HTTP ${response.code} from InnerTube", response.code)
                 }
                 json.parseToJsonElement(text) as? JsonObject
                     ?: throw InnerTubeException("Unexpected InnerTube response")
@@ -121,4 +121,4 @@ class InnerTubeClient @Inject constructor(
     }
 }
 
-class InnerTubeException(message: String) : Exception(message)
+class InnerTubeException(message: String, val statusCode: Int? = null) : Exception(message)

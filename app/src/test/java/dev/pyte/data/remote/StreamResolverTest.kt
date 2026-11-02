@@ -59,6 +59,35 @@ class StreamResolverTest {
         } catch (e: StreamUnavailableException) {
             assertTrue(e.message!!.contains("HTTP 403"))
             assertFalse(e.message!!.contains("https://"))
+            assertEquals(listOf("ANDROID_VR", "IOS"), e.attempts.map { it.client })
+            assertEquals(listOf("audio-probe", "audio-probe"), e.attempts.map { it.stage })
+            assertTrue(e.attempts.all { it.reason == "HTTP 403" })
+        }
+    }
+
+    @Test
+    fun `player rejection preserves status separately from audio probe errors`() = runBlocking {
+        val resolver = StreamResolver({ _, _ ->
+            Json.parseToJsonElement("""{"playabilityStatus":{"status":"LOGIN_REQUIRED"}}""") as JsonObject
+        }, http { _, _ -> fail("Probe must not run"); 500 }, { 0L })
+        try {
+            resolver.resolve(videoId)
+            fail("Expected player rejection")
+        } catch (e: StreamUnavailableException) {
+            assertEquals(2, e.attempts.size)
+            assertTrue(e.attempts.all { it.stage == "audio-format" && it.reason == "LOGIN_REQUIRED" })
+        }
+    }
+
+    @Test
+    fun `player API HTTP errors retain stage and status`() = runBlocking {
+        val resolver = StreamResolver({ _, _ -> throw InnerTubeException("denied", 429) },
+            http { _, _ -> 206 }, { 0L })
+        try {
+            resolver.resolve(videoId)
+            fail("Expected API failure")
+        } catch (e: StreamUnavailableException) {
+            assertTrue(e.attempts.all { it.stage == "player-api" && it.reason == "HTTP 429" })
         }
     }
 
