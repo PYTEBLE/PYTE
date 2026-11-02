@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.0-alpha.6
+
+Install as an update over alpha.5 (same signing certificate, versionCode 10).
+
+- Living UI: the whole app takes on colors from the current cover with smooth transitions.
+  Without artwork PYTE stays violet.
+- Aurora background: soft color fields that move only while music plays and settle on pause.
+- Cover morph between the mini-player and the full player, reversible on close. Song changes,
+  lyrics navigation or a missing anchor fall back to a clean fade.
+- Animated play/pause morph, favorite burst with optional haptics, animated song changes,
+  shimmer placeholders while artwork loads, animated queue reordering and an offline progress ring.
+- New “Dezent / Lebendig / Intensiv” effect setting. System reduced motion, battery saver and
+  background state always take priority.
+- Fixes: a larger cover is used when available; closing a morph cannot leave the cover hidden;
+  duplicate songs in the queue keep separate identities.
+
 ## 0.2.0-alpha.5
 
 Install as an update over alpha.4: the signing certificate is unchanged and versionCode is 9.

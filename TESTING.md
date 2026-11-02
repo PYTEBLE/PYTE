@@ -1,5 +1,15 @@
 # Playback verification
 
+## Living UI (0.2.0-alpha.6)
+
+- Unit tests cover the reduced-motion/battery-saver/background policy, cover-color contrast at
+  intermediate animation frames, morph geometry (open, close, interruption, resize, missing or
+  mismatched anchors), song direction, stable duplicate queue identities and queue metadata.
+- `LivingUiTest` (instrumentation) checks that play and favorite controls dispatch exactly once with
+  reduced motion, and that rapid song changes show only the latest metadata.
+- Not verified on a device: smoothness of cover morphs, scrolling performance, battery use while
+  playing, haptics, and the visual balance of the Intensiv setting on small screens.
+
 ## Cover-quality correction, dynamic themes and equalizer
 
 Final validation: all 91 unit tests passed, none skipped, with `PYTE_LIVE_ARTWORK=true` and
