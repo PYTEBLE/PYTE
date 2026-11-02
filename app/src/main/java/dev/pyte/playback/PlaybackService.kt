@@ -9,6 +9,8 @@ import androidx.media3.common.C
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.datasource.DataSpec
+import androidx.media3.datasource.DefaultDataSource
+import dev.pyte.data.offline.OfflineStore
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.cache.CacheDataSource
@@ -50,6 +52,7 @@ class PlaybackService : MediaSessionService() {
     @Inject lateinit var diagnostics: PlaybackDiagnostics
     @Inject lateinit var library: LibraryRepository
     @Inject lateinit var settings: SettingsRepository
+    @Inject lateinit var offline: OfflineStore
 
     private var session: MediaSession? = null
     private var player: ExoPlayer? = null
@@ -66,19 +69,13 @@ class PlaybackService : MediaSessionService() {
             .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
 
         val resolvingSource = ResolvingDataSource.Factory(
-            cachedSource,
+            DefaultDataSource.Factory(this, cachedSource),
         ) { spec: DataSpec ->
-            val videoId = spec.uri.lastPathSegment ?: throw IllegalArgumentException("Bad stream uri")
-            val stream = try {
-                runBlocking { resolver.resolve(videoId) }
+            try {
+                resolveAudioSpec(spec, offline::audio) { videoId -> runBlocking { resolver.resolve(videoId) } }
             } catch (e: Exception) {
-                throw IOException(e.message ?: "Could not resolve track $videoId", e)
+                throw IOException(e.message ?: "Could not resolve track", e)
             }
-            spec.buildUpon()
-                .setUri(stream.url)
-                .setKey(stream.cacheKey(videoId))
-                .setHttpRequestHeaders(spec.httpRequestHeaders + ("User-Agent" to stream.userAgent))
-                .build()
         }
 
         val exo = ExoPlayer.Builder(this)
