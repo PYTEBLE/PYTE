@@ -16,4 +16,6 @@ data class PlaylistSummary(
     val trackCount: Int,
     val sourceUrl: String,
     val importedAt: Long,
-)
+) {
+    val isLocal: Boolean get() = id.startsWith("local:")
+}

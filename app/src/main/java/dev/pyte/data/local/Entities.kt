@@ -37,6 +37,7 @@ data class PlaylistTrackEntity(
     val playlistId: String,
     @ColumnInfo(name = "position") val position: Int,
     val videoId: String,
+    @ColumnInfo(defaultValue = "0") val locallyAdded: Boolean = false,
 )
 
 @Entity(tableName = "favorites")

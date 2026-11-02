@@ -16,7 +16,7 @@ import android.content.Context
         HistoryEntity::class,
         TrackFtsEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = false,
 )
 abstract class PyteDatabase : RoomDatabase() {
@@ -25,6 +25,11 @@ abstract class PyteDatabase : RoomDatabase() {
     abstract fun trackDao(): TrackDao
 
     companion object {
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE playlist_tracks ADD COLUMN locallyAdded INTEGER NOT NULL DEFAULT 0")
+            }
+        }
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE playlists ADD COLUMN localTitle TEXT")
@@ -37,7 +42,7 @@ abstract class PyteDatabase : RoomDatabase() {
 
         fun open(context: Context, name: String = "pyte.db"): PyteDatabase =
             Room.databaseBuilder(context, PyteDatabase::class.java, name)
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) = installSearchTriggers(db)
                 })

@@ -104,6 +104,41 @@ class LibraryDatabaseTest {
     }
 
     @Test
+    fun `local additions are ordered deduplicated and retained through repeated refreshes`() = databaseTest { db ->
+        val library = repo(db)
+        val extra = song.copy(videoId = "dQw4w9WgXcQ", title = "Local addition")
+        library.saveImported(playlist(song))
+        assertTrue(library.addToPlaylist("PLtest", extra))
+        assertFalse(library.addToPlaylist("PLtest", extra))
+        library.renamePlaylist("PLtest", "My mix")
+        library.saveImported(playlist(song, extra))
+        library.saveImported(playlist(song))
+        val detail = library.observePlaylist("PLtest").first()!!
+        assertEquals(listOf(song.videoId, extra.videoId), detail.second.map { it.videoId })
+        assertEquals(2, detail.first.trackCount)
+        assertEquals("My mix", detail.first.title)
+        assertEquals(extra.videoId, library.search("addition").first().single().videoId)
+        assertTrue(db.playlistDao().getPlaylistLinks("PLtest").last().locallyAdded)
+    }
+
+    @Test
+    fun `new playlists are local and adding to deleted playlists does not resurrect them`() = databaseTest { db ->
+        val library = repo(db)
+        val id = library.createPlaylist(" New mix ", song)
+        val detail = library.observePlaylist(id).first()!!
+        assertTrue(detail.first.isLocal)
+        assertEquals("New mix", detail.first.title)
+        assertEquals("", detail.first.sourceUrl)
+        assertEquals(1, detail.first.trackCount)
+        try { library.refreshPlaylist(id); fail("Local playlists must never refresh from YouTube") }
+        catch (_: IllegalArgumentException) { }
+        library.deletePlaylist(id)
+        try { library.addToPlaylist(id, song); fail("Deleted playlist must stay deleted") }
+        catch (_: IllegalStateException) { }
+        assertNull(library.observePlaylist(id).first())
+    }
+
+    @Test
     fun `empty refresh leaves saved playlist intact`() = databaseTest { db ->
         val library = repo(db)
         library.saveImported(playlist(song))
@@ -112,7 +147,12 @@ class LibraryDatabaseTest {
     }
 
     @Test
-    fun `version one data migrates without losing playlists favorites or order`() = runBlocking {
+    fun `version one data migrates without losing playlists favorites or order`() = migrationTest(1)
+
+    @Test
+    fun `version two data migrates without losing playlists favorites or order`() = migrationTest(2)
+
+    private fun migrationTest(version: Int) = runBlocking {
         withContext(Dispatchers.IO) {
             val name = "migration-${UUID.randomUUID()}.db"
             val file = context.getDatabasePath(name).also { it.parentFile!!.mkdirs() }
@@ -126,12 +166,23 @@ class LibraryDatabaseTest {
                 old.execSQL("INSERT INTO tracks VALUES('YGr2G2fc48U', 'schönhauser', 'Gustav', 155000, NULL)")
                 old.execSQL("INSERT INTO playlist_tracks VALUES('PLtest', 0, 'YGr2G2fc48U')")
                 old.execSQL("INSERT INTO favorites VALUES('YGr2G2fc48U', 200)")
-                old.version = 1
+                if (version == 2) {
+                    old.execSQL("ALTER TABLE playlists ADD COLUMN localTitle TEXT")
+                    old.execSQL("UPDATE playlists SET localTitle = 'My old name'")
+                    old.execSQL("CREATE TABLE history(videoId TEXT NOT NULL PRIMARY KEY, lastPlayedAt INTEGER NOT NULL)")
+                    old.execSQL("INSERT INTO history VALUES('YGr2G2fc48U', 300)")
+                    old.execSQL("CREATE VIRTUAL TABLE tracks_fts USING FTS4(videoId TEXT NOT NULL, title TEXT NOT NULL, artist TEXT NOT NULL, notindexed=`videoId`, tokenize=unicode61)")
+                    old.execSQL("INSERT INTO tracks_fts(rowid, videoId, title, artist) SELECT rowid, videoId, title, artist FROM tracks")
+                    old.execSQL("CREATE TRIGGER tracks_search_update AFTER UPDATE ON tracks BEGIN DELETE FROM tracks_fts WHERE rowid = old.rowid; INSERT INTO tracks_fts(rowid, videoId, title, artist) VALUES(new.rowid, new.videoId, new.title, new.artist); END")
+                }
+                old.version = version
             }
             val db = PyteDatabase.open(context, name)
             try {
                 val library = repo(db)
-                assertEquals("Old library", library.observePlaylist("PLtest").first()!!.first.title)
+                assertEquals(if (version == 2) "My old name" else "Old library", library.observePlaylist("PLtest").first()!!.first.title)
+                assertFalse(db.playlistDao().getPlaylistLinks("PLtest").single().locallyAdded)
+                if (version == 2) assertEquals(song.videoId, library.observeHistory().first().single().videoId)
                 assertEquals(song.videoId, library.observeFavorites().first().single().videoId)
                 assertEquals(song.videoId, library.search("schon").first().single().videoId)
                 library.saveImported(playlist(song.copy(title = "Updated")))

@@ -25,6 +25,7 @@ import kotlinx.coroutines.sync.withLock
 import dev.pyte.data.settings.SettingsRepository
 import javax.inject.Inject
 import javax.inject.Singleton
+import java.util.UUID
 
 @Singleton
 class LibraryRepository @Inject constructor(
@@ -80,7 +81,31 @@ class LibraryRepository @Inject constructor(
     }
 
     suspend fun refreshPlaylist(id: String) {
+        require(!id.startsWith("local:")) { "This playlist is stored only on this device" }
         saveImported(importer.import(id), requireExisting = true)
+    }
+
+    /** Adds metadata and an ordered link only; never writes to a YouTube account. */
+    suspend fun addToPlaylist(id: String, track: Track): Boolean = db.withTransaction {
+        val playlist = playlists.getPlaylist(id) ?: error("Playlist was deleted")
+        val links = playlists.getPlaylistLinks(id)
+        if (links.any { it.videoId == track.videoId }) return@withTransaction false
+        tracks.upsertTracks(listOf(track.toEntity()))
+        playlists.insertPlaylistTracks(listOf(PlaylistTrackEntity(id,
+            (links.maxOfOrNull { it.position } ?: -1) + 1, track.videoId, locallyAdded = true)))
+        playlists.upsertPlaylist(playlist.copy(trackCount = links.size + 1,
+            thumbnailUrl = playlist.thumbnailUrl ?: track.thumbnailUrl))
+        true
+    }
+
+    suspend fun createPlaylist(title: String, firstTrack: Track): String = db.withTransaction {
+        val name = title.trim()
+        require(name.isNotEmpty() && name.length <= 100) { "Use a name between 1 and 100 characters" }
+        val id = "local:${UUID.randomUUID()}"
+        playlists.upsertPlaylist(PlaylistEntity(id, name, "On this device", firstTrack.thumbnailUrl,
+            "", 0, System.currentTimeMillis()))
+        addToPlaylist(id, firstTrack)
+        id
     }
 
     suspend fun setFavorite(track: Track, favorite: Boolean) {
@@ -118,6 +143,10 @@ class LibraryRepository @Inject constructor(
         db.withTransaction {
             val previous = playlists.getPlaylist(imported.id)
             if (requireExisting && previous == null) throw ImportException("Playlist was deleted")
+            val additions = playlists.getPlaylistLinks(imported.id).filter { it.locallyAdded }
+            val additionIds = additions.map { it.videoId }.toSet()
+            val remoteLinks = imported.tracks.filterNot { it.videoId in additionIds }.map { it.videoId }
+            val merged = remoteLinks + additions.map { it.videoId }
             playlists.upsertPlaylist(
                 PlaylistEntity(
                     id = imported.id,
@@ -125,7 +154,7 @@ class LibraryRepository @Inject constructor(
                     owner = imported.owner,
                     thumbnailUrl = imported.thumbnailUrl,
                     sourceUrl = "https://music.youtube.com/playlist?list=${imported.id}",
-                    trackCount = imported.tracks.size,
+                    trackCount = merged.size,
                     importedAt = previous?.importedAt ?: System.currentTimeMillis(),
                     localTitle = previous?.localTitle,
                 ),
@@ -133,8 +162,8 @@ class LibraryRepository @Inject constructor(
             tracks.upsertTracks(imported.tracks.map { it.toEntity() }.distinctBy { it.videoId })
             playlists.clearPlaylistTracks(imported.id)
             playlists.insertPlaylistTracks(
-                imported.tracks.mapIndexed { index, track ->
-                    PlaylistTrackEntity(imported.id, index, track.videoId)
+                merged.mapIndexed { index, videoId ->
+                    PlaylistTrackEntity(imported.id, index, videoId, locallyAdded = videoId in additionIds)
                 },
             )
         }
