@@ -69,6 +69,15 @@ obtain a valid visitor identifier, use the VISIONOS player endpoint, and accompa
 URLs with the playback nonce. PYTE implements this protocol in its existing Kotlin/OkHttp
 client; NewPipeExtractor is not bundled as an application dependency.
 
+## Settings (0.2.0-alpha.2)
+
+- Unit tests cover settings defaults/persistence and independent switches, disabled history
+  recording, re-enabling recording, and history deletion preserving playlists and favorites.
+- `SettingsUiTest` covers switch actions and the cancel/confirm deletion flow. The test APK
+  compiles; this new UI test has not yet been run on an emulator or physical device.
+- Manual device checks still needed: toggle skip silence while playing a track with quiet gaps,
+  restart the app to check persistence, and clear history while retaining the current queue.
+
 ## Phase 4 + violet design (0.2.0-alpha.1)
 
 - 45 unit tests passed, including Room v1 → v2 migration with existing playlists/favorites,

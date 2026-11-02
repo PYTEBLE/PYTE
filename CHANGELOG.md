@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0-alpha.2
+
+- Add a violet Settings tab with locally persisted skip-silence and listening-history switches.
+- Apply skip-silence changes to active playback. Allow history recording to be disabled without
+  deleting existing entries, or clear history after confirmation without touching playlists,
+  favorites or the current queue.
+- Show app version and local-storage/network privacy information.
+
 ## 0.2.0-alpha.1
 
 - Violet visual refresh based on the supplied original PYTE logo: derived adaptive launcher icon,
