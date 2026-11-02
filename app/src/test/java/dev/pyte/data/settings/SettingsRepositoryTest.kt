@@ -12,6 +12,33 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class SettingsRepositoryTest {
+    @Test fun `sound profiles and theme preferences persist without changing playback settings`() = runBlocking {
+        val context = RuntimeEnvironment.getApplication()
+        val repository = SettingsRepository(context)
+        try {
+            repository.setDynamicCoverTheme(false)
+            repository.enableEqualizer(true)
+            repository.selectSoundProfile("bass")
+            val points = repository.settings.first().equalizer.points
+            repository.saveSoundProfile("My headphones", points)
+            val reopened = SettingsRepository(context)
+            val saved = reopened.settings.first()
+            assertFalse(saved.dynamicCoverTheme)
+            assertTrue(saved.equalizer.enabled)
+            assertEquals(points, saved.equalizer.profiles.single().points)
+            repository.saveSoundProfile("MY HEADPHONES", dev.pyte.playback.EqualizerCurves.flat)
+            assertEquals(1, reopened.settings.first().equalizer.profiles.size)
+            repository.selectSoundProfile("neutral")
+            assertEquals(dev.pyte.playback.EqualizerCurves.flat, reopened.settings.first().equalizer.points)
+            repository.deleteSoundProfile(saved.equalizer.profiles.single().id)
+            assertTrue(reopened.settings.first().equalizer.profiles.isEmpty())
+        } finally {
+            repository.settings.first().equalizer.profiles.forEach { repository.deleteSoundProfile(it.id) }
+            repository.enableEqualizer(false)
+            repository.selectSoundProfile("neutral")
+            repository.setDynamicCoverTheme(true)
+        }
+    }
     @Test fun `download settings persist limits are bounded and playback preferences stay independent`() = runBlocking {
         val repository = SettingsRepository(RuntimeEnvironment.getApplication())
         try {
