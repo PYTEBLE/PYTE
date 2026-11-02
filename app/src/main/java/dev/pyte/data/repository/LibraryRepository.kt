@@ -19,6 +19,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import dev.pyte.data.settings.SettingsRepository
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -26,10 +30,12 @@ import javax.inject.Singleton
 class LibraryRepository @Inject constructor(
     private val db: PyteDatabase,
     private val importer: PlaylistImporter,
+    private val settings: SettingsRepository,
 ) {
     private val playlists = db.playlistDao()
     private val favorites = db.favoriteDao()
     private val tracks = db.trackDao()
+    private val historyMutex = Mutex()
 
     fun observePlaylists(): Flow<List<PlaylistSummary>> =
         playlists.observePlaylists().map { list -> list.map { it.toSummary() } }
@@ -53,12 +59,19 @@ class LibraryRepository @Inject constructor(
     fun observeHistory(): Flow<List<Track>> =
         tracks.observeHistory().map { rows -> rows.map(TrackEntity::toDomain) }
 
-    suspend fun recordPlayed(track: Track) {
+    suspend fun recordPlayed(track: Track) = historyMutex.withLock {
+        if (!settings.settings.first().recordHistory) return@withLock
         db.withTransaction {
             if (tracks.getTrack(track.videoId) == null) tracks.upsertTracks(listOf(track.toEntity()))
             tracks.recordHistory(HistoryEntity(track.videoId, System.currentTimeMillis()))
         }
     }
+
+    suspend fun setHistoryEnabled(enabled: Boolean) = historyMutex.withLock {
+        settings.setRecordHistory(enabled)
+    }
+
+    suspend fun clearHistory() = historyMutex.withLock { tracks.clearHistory() }
 
     suspend fun renamePlaylist(id: String, title: String) {
         val trimmed = title.trim()

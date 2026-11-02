@@ -94,4 +94,7 @@ interface TrackDao {
 
     @Query("SELECT t.* FROM tracks t JOIN history h ON h.videoId = t.videoId ORDER BY h.lastPlayedAt DESC LIMIT 20")
     fun observeHistory(): Flow<List<TrackEntity>>
+
+    @Query("DELETE FROM history")
+    suspend fun clearHistory()
 }

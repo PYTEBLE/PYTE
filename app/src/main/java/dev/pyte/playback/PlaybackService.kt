@@ -30,7 +30,9 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.catch
 import dev.pyte.data.repository.LibraryRepository
+import dev.pyte.data.settings.SettingsRepository
 import okhttp3.OkHttpClient
 import javax.inject.Inject
 import java.io.IOException
@@ -47,6 +49,7 @@ class PlaybackService : MediaSessionService() {
     @Inject lateinit var okHttp: OkHttpClient
     @Inject lateinit var diagnostics: PlaybackDiagnostics
     @Inject lateinit var library: LibraryRepository
+    @Inject lateinit var settings: SettingsRepository
 
     private var session: MediaSession? = null
     private var player: ExoPlayer? = null
@@ -117,6 +120,11 @@ class PlaybackService : MediaSessionService() {
         })
 
         player = exo
+        historyScope.launch(Dispatchers.Main.immediate) {
+            settings.settings
+                .catch { Log.w(TAG, "Could not read playback settings", it) }
+                .collect { exo.skipSilenceEnabled = it.skipSilence }
+        }
         session = MediaSession.Builder(this, exo)
             .setCallback(object : MediaSession.Callback {
                 override fun onAddMediaItems(

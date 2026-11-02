@@ -28,7 +28,7 @@ class LibraryDatabaseTest {
     private val context get() = RuntimeEnvironment.getApplication()
     private val song = Track("YGr2G2fc48U", "schönhauser", "Gustav", 155_000, null)
     private fun repo(db: PyteDatabase) = LibraryRepository(db,
-        PlaylistImporter(InnerTubeClient(OkHttpClient(), Json)))
+        PlaylistImporter(InnerTubeClient(OkHttpClient(), Json)), dev.pyte.data.settings.SettingsRepository(context))
     private fun playlist(vararg songs: Track, title: String = "Source title") =
         ImportedPlaylist("PLtest", title, "Owner", null, songs.toList())
 
@@ -77,6 +77,30 @@ class LibraryDatabaseTest {
         assertEquals(song.videoId, library.observeFavorites().first().single().videoId)
         assertEquals(song.videoId, library.observeHistory().first().single().videoId)
         assertTrue(library.search("orphan").first().isEmpty())
+    }
+
+    @Test
+    fun `disabled history does not record and clearing preserves library and favorites`() = databaseTest { db ->
+        val library = repo(db)
+        library.setHistoryEnabled(true)
+        try {
+            library.saveImported(playlist(song))
+            library.setFavorite(song, true)
+            library.recordPlayed(song)
+            assertEquals(1, library.observeHistory().first().size)
+            library.setHistoryEnabled(false)
+            library.recordPlayed(song.copy(videoId = "newSongId01"))
+            assertEquals(1, library.observeHistory().first().size)
+            library.clearHistory()
+            assertTrue(library.observeHistory().first().isEmpty())
+            assertEquals(song.videoId, library.observeFavorites().first().single().videoId)
+            assertEquals(song.videoId, library.observePlaylist("PLtest").first()!!.second.single().videoId)
+            library.setHistoryEnabled(true)
+            library.recordPlayed(song)
+            assertEquals(1, library.observeHistory().first().size)
+        } finally {
+            library.setHistoryEnabled(true)
+        }
     }
 
     @Test
