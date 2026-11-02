@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,17 +20,32 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -42,6 +58,7 @@ import dev.pyte.ui.components.Artwork
 import dev.pyte.ui.components.EmptyState
 import dev.pyte.ui.components.TrackRow
 import dev.pyte.ui.theme.PyteAccent
+import dev.pyte.ui.viewmodels.PlaylistUiState
 import dev.pyte.ui.viewmodels.PlaylistViewModel
 
 @Composable
@@ -51,111 +68,111 @@ fun PlaylistScreen(
     viewModel: PlaylistViewModel = hiltViewModel(),
 ) {
     val detail by viewModel.detail.collectAsStateWithLifecycle()
+    val action by viewModel.action.collectAsStateWithLifecycle()
     val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
+    val snackbar = remember { SnackbarHostState() }
+    var menuOpen by remember { mutableStateOf(false) }
+    var renameOpen by rememberSaveable { mutableStateOf(false) }
+    var deleteOpen by rememberSaveable { mutableStateOf(false) }
+    var renameText by rememberSaveable { mutableStateOf("") }
 
-    val current = detail
-    if (current == null) {
-        EmptyState(
-            title = "Playlist not found",
-            body = "It may have been deleted.",
-            actionLabel = "Go back",
-            onAction = onBack,
-            modifier = Modifier.padding(contentPadding),
-        )
-        return
+    LaunchedEffect(action.message) {
+        action.message?.let { snackbar.showSnackbar(it); viewModel.consumeMessage() }
     }
-    val (playlist, tracks) = current
 
-    Column(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
-        Box {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(300.dp)
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(PyteAccent.copy(alpha = 0.55f), MaterialTheme.colorScheme.background),
-                        ),
-                    ),
-            )
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(horizontal = 20.dp),
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                    Spacer(Modifier.weight(1f))
-                    IconButton(onClick = { viewModel.deletePlaylist(onBack) }) {
-                        Icon(Icons.Default.Delete, contentDescription = "Delete playlist")
-                    }
-                }
-                Spacer(Modifier.height(8.dp))
-                Artwork(
-                    url = playlist.thumbnailUrl,
-                    modifier = Modifier.size(200.dp).align(Alignment.CenterHorizontally),
-                    shape = RoundedCornerShape(16.dp),
-                )
-                Spacer(Modifier.height(16.dp))
-                Text(
-                    text = playlist.title,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = listOfNotNull(playlist.owner, "${playlist.trackCount} tracks").joinToString(" • "),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(16.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(
-                        onClick = { viewModel.play(tracks, 0) },
-                        enabled = tracks.isNotEmpty(),
-                    ) {
-                        Icon(Icons.Default.PlayArrow, contentDescription = null)
-                        Spacer(Modifier.width(6.dp))
-                        Text("Play")
-                    }
-                    OutlinedButton(
-                        onClick = { viewModel.shuffleAll(tracks) },
-                        enabled = tracks.isNotEmpty(),
-                    ) {
-                        Icon(Icons.Default.Shuffle, contentDescription = null)
-                        Spacer(Modifier.width(6.dp))
-                        Text("Shuffle")
+    Scaffold(
+        modifier = Modifier.padding(contentPadding),
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        snackbarHost = { SnackbarHost(snackbar) },
+    ) { inner ->
+        Column(Modifier.fillMaxSize().padding(inner).statusBarsPadding()) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
+                Text("Playlist", modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+                if (detail is PlaylistUiState.Loaded) {
+                    Box {
+                        IconButton(onClick = { menuOpen = true }, enabled = !action.busy) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "Playlist options")
+                        }
+                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            DropdownMenuItem(text = { Text("Rename locally") }, onClick = {
+                                menuOpen = false
+                                renameText = (detail as PlaylistUiState.Loaded).summary.title
+                                renameOpen = true
+                            })
+                            DropdownMenuItem(text = { Text("Refresh from YouTube") }, onClick = {
+                                menuOpen = false; viewModel.refresh()
+                            })
+                            DropdownMenuItem(text = { Text("Delete playlist") }, onClick = {
+                                menuOpen = false; deleteOpen = true
+                            })
+                        }
                     }
                 }
-                Spacer(Modifier.height(12.dp))
             }
-        }
-
-        if (tracks.isEmpty()) {
-            EmptyState(
-                title = "No tracks",
-                body = "This playlist is empty or couldn't be loaded.",
-                modifier = Modifier.fillMaxSize(),
-            )
-        } else {
-            LazyColumn(contentPadding = PaddingValues(bottom = 120.dp)) {
-                itemsIndexed(tracks, key = { _, t -> t.videoId }) { index, track ->
-                    TrackRow(
-                        track = track,
-                        isCurrent = playerState.current?.videoId == track.videoId,
-                        isFavorite = track.videoId in favoriteIds,
-                        onClick = { viewModel.play(tracks, index) },
-                        onFavoriteClick = {
-                            viewModel.toggleFavorite(track, track.videoId !in favoriteIds)
-                        },
-                    )
+            if (action.busy) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            when (val current = detail) {
+                PlaylistUiState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+                PlaylistUiState.Missing -> EmptyState("Playlist not found", "It may have been deleted.", "Go back", onBack)
+                is PlaylistUiState.Loaded -> {
+                    val playlist = current.summary
+                    val tracks = current.tracks
+                    LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
+                        item(key = "header") {
+                            Column(
+                                Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(
+                                    PyteAccent.copy(alpha = 0.45f), MaterialTheme.colorScheme.background,
+                                ))).padding(20.dp),
+                            ) {
+                                Artwork(playlist.thumbnailUrl, Modifier.size(200.dp).align(Alignment.CenterHorizontally), RoundedCornerShape(16.dp))
+                                Spacer(Modifier.height(16.dp))
+                                Text(playlist.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,
+                                    maxLines = 3, overflow = TextOverflow.Ellipsis)
+                                Text(listOfNotNull(playlist.owner, "${playlist.trackCount} tracks").joinToString(" • "),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Spacer(Modifier.height(16.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    Button(onClick = { viewModel.play(tracks, 0) }, enabled = tracks.isNotEmpty()) {
+                                        Icon(Icons.Default.PlayArrow, null); Spacer(Modifier.width(6.dp)); Text("Play")
+                                    }
+                                    OutlinedButton(onClick = { viewModel.shuffleAll(tracks) }, enabled = tracks.isNotEmpty()) {
+                                        Icon(Icons.Default.Shuffle, null); Spacer(Modifier.width(6.dp)); Text("Shuffle")
+                                    }
+                                }
+                            }
+                        }
+                        itemsIndexed(tracks, key = { index, track -> "$index:${track.videoId}" }) { index, track ->
+                            TrackRow(track, playerState.current?.videoId == track.videoId, track.videoId in favoriteIds,
+                                onClick = { viewModel.play(tracks, index) },
+                                onFavoriteClick = { viewModel.toggleFavorite(track, track.videoId !in favoriteIds) },
+                                onPlayNext = { viewModel.enqueueNext(track) },
+                                onAddToQueue = { viewModel.enqueueLater(track) })
+                        }
+                    }
                 }
             }
         }
+    }
+
+    if (renameOpen) {
+        AlertDialog(onDismissRequest = { renameOpen = false }, title = { Text("Rename playlist") }, text = {
+            OutlinedTextField(renameText, { renameText = it.take(100) }, singleLine = true,
+                label = { Text("Local name") }, supportingText = { Text("${renameText.length}/100 · Kept when refreshing") })
+        }, confirmButton = {
+            TextButton(onClick = { viewModel.rename(renameText); renameOpen = false }, enabled = renameText.isNotBlank() && !action.busy) {
+                Text("Save")
+            }
+        }, dismissButton = { TextButton(onClick = { renameOpen = false }) { Text("Cancel") } })
+    }
+    if (deleteOpen) {
+        AlertDialog(onDismissRequest = { deleteOpen = false }, title = { Text("Delete this playlist?") },
+            text = { Text("Only the local playlist is removed. Favorites and listening history are kept.") },
+            confirmButton = {
+                TextButton(onClick = { deleteOpen = false; viewModel.deletePlaylist(onBack) }, enabled = !action.busy) { Text("Delete") }
+            }, dismissButton = { TextButton(onClick = { deleteOpen = false }) { Text("Cancel") } })
     }
 }

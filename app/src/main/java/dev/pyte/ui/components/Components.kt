@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -28,7 +29,13 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -78,7 +85,10 @@ fun TrackRow(
     onClick: () -> Unit,
     onFavoriteClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onPlayNext: (() -> Unit)? = null,
+    onAddToQueue: (() -> Unit)? = null,
 ) {
+    var menuOpen by remember(track.videoId) { mutableStateOf(false) }
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -121,6 +131,21 @@ fun TrackRow(
                 contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
                 tint = if (isFavorite) PyteAccent else MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+        if (onPlayNext != null || onAddToQueue != null) {
+            Box {
+                IconButton(onClick = { menuOpen = true }) {
+                    Icon(Icons.Default.MoreVert, contentDescription = "Options for ${track.title}")
+                }
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    onPlayNext?.let { action ->
+                        DropdownMenuItem(text = { Text("Play next") }, onClick = { menuOpen = false; action() })
+                    }
+                    onAddToQueue?.let { action ->
+                        DropdownMenuItem(text = { Text("Add to queue") }, onClick = { menuOpen = false; action() })
+                    }
+                }
+            }
         }
     }
 }

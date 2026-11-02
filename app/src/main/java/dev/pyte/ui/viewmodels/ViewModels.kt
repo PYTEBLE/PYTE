@@ -12,11 +12,17 @@ import dev.pyte.playback.PlayerController
 import dev.pyte.playback.PlaybackDiagnostics
 import dev.pyte.playback.PlayerUiState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -33,12 +39,17 @@ sealed interface ImportUiState {
 class HomeViewModel @Inject constructor(
     private val repo: LibraryRepository,
     private val inbox: SharedLinkInbox,
+    private val player: PlayerController,
 ) : ViewModel() {
 
     val playlists: StateFlow<List<PlaylistSummary>> = repo.observePlaylists()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SHARE_TIMEOUT_MS), emptyList())
 
     val pendingLink: StateFlow<String?> = inbox.pending
+    val recentTracks = repo.observeHistory()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SHARE_TIMEOUT_MS), emptyList())
+
+    fun playRecent(tracks: List<Track>, index: Int) = player.playQueue(tracks, index)
 
     private val _importState = MutableStateFlow<ImportUiState>(ImportUiState.Idle)
     val importState: StateFlow<ImportUiState> = _importState.asStateFlow()
@@ -51,6 +62,8 @@ class HomeViewModel @Inject constructor(
                 _importState.value = ImportUiState.Idle
                 inbox.consume()
                 onImported(id)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _importState.value = ImportUiState.Error(e.message ?: "Import failed. Try again.")
             }
@@ -63,6 +76,14 @@ class HomeViewModel @Inject constructor(
     }
 }
 
+sealed interface PlaylistUiState {
+    data object Loading : PlaylistUiState
+    data object Missing : PlaylistUiState
+    data class Loaded(val summary: PlaylistSummary, val tracks: List<Track>) : PlaylistUiState
+}
+
+data class PlaylistActionState(val busy: Boolean = false, val message: String? = null)
+
 @HiltViewModel
 class PlaylistViewModel @Inject constructor(
     savedState: SavedStateHandle,
@@ -72,8 +93,32 @@ class PlaylistViewModel @Inject constructor(
 
     private val playlistId: String = checkNotNull(savedState["playlistId"])
 
-    val detail: StateFlow<Pair<PlaylistSummary, List<Track>>?> = repo.observePlaylist(playlistId)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SHARE_TIMEOUT_MS), null)
+    val detail: StateFlow<PlaylistUiState> = repo.observePlaylist(playlistId)
+        .map { if (it == null) PlaylistUiState.Missing else PlaylistUiState.Loaded(it.first, it.second) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SHARE_TIMEOUT_MS), PlaylistUiState.Loading)
+
+    private val _action = MutableStateFlow(PlaylistActionState())
+    val action = _action.asStateFlow()
+
+    fun consumeMessage() { _action.value = _action.value.copy(message = null) }
+
+    fun rename(title: String) = perform("Playlist renamed") { repo.renamePlaylist(playlistId, title) }
+    fun refresh() = perform("Playlist updated") { repo.refreshPlaylist(playlistId) }
+
+    private fun perform(message: String, block: suspend () -> Unit) {
+        if (_action.value.busy) return
+        _action.value = PlaylistActionState(busy = true)
+        viewModelScope.launch {
+            try {
+                block()
+                _action.value = PlaylistActionState(message = message)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _action.value = PlaylistActionState(message = e.message ?: "Action failed. Try again.")
+            }
+        }
+    }
 
     val favoriteIds: StateFlow<Set<String>> = repo.observeFavoriteIds()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SHARE_TIMEOUT_MS), emptySet())
@@ -83,22 +128,25 @@ class PlaylistViewModel @Inject constructor(
     fun play(tracks: List<Track>, index: Int) = player.playQueue(tracks, index)
 
     fun shuffleAll(tracks: List<Track>) {
-        player.playQueue(tracks.shuffled(), 0)
+        if (tracks.isNotEmpty()) player.playQueue(tracks, tracks.indices.random(), shuffle = true)
     }
+
+    fun enqueueNext(track: Track) = player.enqueueNext(track)
+    fun enqueueLater(track: Track) = player.enqueueLater(track)
 
     fun toggleFavorite(track: Track, favorite: Boolean) {
         viewModelScope.launch { repo.setFavorite(track, favorite) }
     }
 
     fun deletePlaylist(onDeleted: () -> Unit) {
-        viewModelScope.launch {
+        perform("Playlist removed") {
             repo.deletePlaylist(playlistId)
             onDeleted()
         }
     }
 }
 
-@OptIn(ExperimentalCoroutinesApi::class)
+@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @HiltViewModel
 class LibraryViewModel @Inject constructor(
     private val repo: LibraryRepository,
@@ -115,7 +163,8 @@ class LibraryViewModel @Inject constructor(
     val query: StateFlow<String> = _query.asStateFlow()
 
     val results: StateFlow<List<Track>> = _query
-        .flatMapLatest { q -> if (q.isBlank()) repo.observeFavorites() else repo.search(q) }
+        .debounce(200).distinctUntilChanged()
+        .flatMapLatest { q -> if (q.isBlank()) flowOf(emptyList()) else repo.search(q) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SHARE_TIMEOUT_MS), emptyList())
 
     fun setQuery(value: String) {
@@ -127,6 +176,8 @@ class LibraryViewModel @Inject constructor(
     }
 
     fun play(tracks: List<Track>, index: Int) = player.playQueue(tracks, index)
+    fun enqueueNext(track: Track) = player.enqueueNext(track)
+    fun enqueueLater(track: Track) = player.enqueueLater(track)
 }
 
 @HiltViewModel
@@ -151,6 +202,8 @@ class PlayerViewModel @Inject constructor(
     fun playIndex(index: Int) = player.playIndex(index)
     fun toggleShuffle() = player.toggleShuffle()
     fun cycleRepeat() = player.cycleRepeat()
+    fun moveQueueItem(from: Int, to: Int) = player.moveQueueItem(from, to)
+    fun removeQueueItem(index: Int) = player.removeQueueItem(index)
 
     fun toggleFavorite(track: Track, favorite: Boolean) {
         viewModelScope.launch { repo.setFavorite(track, favorite) }
