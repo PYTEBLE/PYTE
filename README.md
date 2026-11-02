@@ -2,10 +2,20 @@
 
 A local-first Android music player for public YouTube Music playlists.
 
+<img src="docs/screenshots/welcome.png" width="260" alt="PYTE violet welcome screen captured on Android" />
+
 - Paste a public playlist link once. No account, no login.
 - Plays audio directly, so there are no ads.
 - Plays in the background through a foreground media service, with lock-screen and notification controls.
 - All data stays on the device (Room database, on-device stream cache).
+- Rename and refresh playlists without losing local names or favorites; deletion asks for confirmation.
+- Search titles and artists locally with Unicode-aware full-text prefix matching.
+- Add songs next/later, open the queue from Now Playing, move entries up/down, or remove them.
+- Recently played songs are recorded locally only after playback starts.
+
+Android cloud backup and automatic device transfer are disabled. Keep the app installed when
+updating APKs: uninstalling or clearing app storage removes your local library. Explicit offline
+downloads and manual library export are not implemented yet.
 
 > Personal use only. Extracting streams is against YouTube's Terms of Service. Do not publish this app to the Play Store or run it as a public service.
 
@@ -27,7 +37,7 @@ Signed release builds: copy `keystore.properties.example` to `keystore.propertie
 | UI | `ui/` | Jetpack Compose, Material 3, dark only |
 | Playback | `playback/` | `PlaybackService` (Media3 `MediaSessionService`) owns ExoPlayer. The UI only sends commands through a `MediaController`. |
 | Extraction | `data/remote/` | Anonymous visitor bootstrap + `VISIONOS` player, with `ANDROID_VR` / `IOS` fallbacks. `WEB_REMIX` playlist browsing with continuation tokens. |
-| Storage | `data/local/` | Room: playlists, tracks, playlist order, favorites |
+| Storage | `data/local/` | Room: playlists, tracks, playlist order, favorites, history, FTS4 search |
 | Cache | `di/AppModule.kt` | Media3 `SimpleCache`, LRU, 1.5 GB |
 
 Stream URLs are resolved lazily, when the player requests bytes, and cached until shortly before their `expire` time. A one-byte range probe checks audio access before selecting a client; if it fails, the resolver tries the next client. Each stream uses its originating client's User-Agent. Late HTTP 403/410 responses temporarily exclude that client during recovery. Audio cache keys include the format ID so fallback cannot mix different encodings.
@@ -38,3 +48,12 @@ account cookies are involved. This remains an unofficial API: successful tests d
 access to every track, region, network, or future YouTube version.
 
 See [CHANGELOG.md](CHANGELOG.md) and [TESTING.md](TESTING.md) for changes and verification limits.
+
+## Current development phase
+
+Phase 4 adds library management, a local FTS4 index, history, and queue editing using
+accessible move buttons (not drag-and-drop). The database migrates from version 1 to 2
+without destructive fallback; tests cover pre-existing playlists, order, and favorites.
+Phase 5 remains offline downloads, cache management, and longer-running device resilience checks.
+
+The violet design and original-logo asset pipeline are documented in [docs/DESIGN.md](docs/DESIGN.md).

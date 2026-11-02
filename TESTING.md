@@ -68,3 +68,16 @@ The anonymous bootstrap flow was checked against the current behavior described 
 obtain a valid visitor identifier, use the VISIONOS player endpoint, and accompany media
 URLs with the playback nonce. PYTE implements this protocol in its existing Kotlin/OkHttp
 client; NewPipeExtractor is not bundled as an application dependency.
+
+## Phase 4 + violet design (0.2.0-alpha.1)
+
+- 45 unit tests passed, including Room v1 → v2 migration with existing playlists/favorites,
+  Unicode prefix search, refresh preserving local names, ExoPlayer queue edits preserving
+  the current item's identity/position, and semantic text/button contrast.
+- APK build and Android lint passed.
+- Three Android 11 emulator tests passed (zero skipped): two Compose UI tests for queue/track
+  actions, plus live/background playback of `YGr2G2fc48U`.
+- The welcome screen was visually reviewed; its emulator capture is in `docs/screenshots/welcome.png`.
+- The user confirmed physical-phone playback on alpha.4. This newer feature/design update
+  still needs a phone update test. The emulator's five-second background check is not a
+  long-running screen-off, battery, or Doze qualification.

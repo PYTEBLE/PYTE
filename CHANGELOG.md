@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.2.0-alpha.1
+
+- Violet visual refresh based on the supplied original PYTE logo: derived adaptive launcher icon,
+  original wordmark, branded welcome screen, semantic dark surfaces, gradient Play controls,
+  rounded library cards, and a floating mini-player. Contrast tests cover text and button colors.
+- Local playlist rename, source refresh, and confirmed deletion. Refresh preserves the local name,
+  original import time, favorites, and repeated occurrences of the same track.
+- SQLite FTS4 prefix search across titles and artists, including Unicode/diacritic handling;
+  punctuation is sanitized before MATCH queries.
+- Record successfully started songs in an on-device history and show a Recently played rail.
+- Track menus for Play next / Add to queue; Now Playing has an editable queue with move up/down
+  and removal controls. Explicit ordering switches shuffle off so Play next is predictable.
+- Fix duplicate playlist-row keys and make playlist headers / Now Playing scroll on short screens.
+- Database migration 1 → 2 preserves existing data; favorites and history survive playlist deletion.
+- Disable Android cloud backups and automatic device transfers to respect local-only storage.
+- Add database, migration, queue/player, and Android UI tests. Offline downloads remain deferred.
+
+Verified: 45 unit tests, APK build, Android lint, and three Android 11 emulator tests
+(queue controls, track action menus, and real/background playback of the reported track).
+The welcome screen was also visually checked in the emulator. Physical-device testing of
+this feature/design update and long-running screen-off playback remain pending.
+
 ## 0.1.0-alpha.4
 
 - Obtain an anonymous YouTube visitor session before requesting playback through the VISIONOS client.
