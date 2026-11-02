@@ -23,7 +23,9 @@ import java.util.concurrent.atomic.AtomicLong
 class LivePlaybackTest {
     @Test
     fun playsPublicTrackAndContinuesBehindHomeScreen() {
-        assumeTrue(InstrumentationRegistry.getArguments().getString("livePlayback") == "true")
+        val arguments = InstrumentationRegistry.getArguments()
+        assumeTrue(arguments.getString("livePlayback") == "true")
+        val videoId = arguments.getString("videoId") ?: "dQw4w9WgXcQ"
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
         context.startActivity(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
@@ -42,7 +44,7 @@ class LivePlaybackTest {
                         errors += error.errorCodeName
                     }
                 })
-                controller.setMediaItem(MediaItem.Builder().setMediaId("dQw4w9WgXcQ").build())
+                controller.setMediaItem(MediaItem.Builder().setMediaId(videoId).build())
                 controller.prepare()
                 controller.play()
             }
