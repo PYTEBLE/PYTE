@@ -22,6 +22,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import dev.pyte.data.remote.StreamResolver
+import dev.pyte.data.remote.StreamUnavailableException
 import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import javax.inject.Inject
@@ -132,7 +133,11 @@ class PlaybackService : MediaSessionService() {
      * at the same position, a bounded number of times so a dead track can't loop forever.
      */
     private fun recoverFromError(exo: ExoPlayer, error: PlaybackException) {
-        if (retriesForItem >= MAX_RETRIES_PER_ITEM) {
+        // The resolver already tried every available client. Repeating the whole chain
+        // immediately cannot solve LOGIN_REQUIRED and needlessly increases request pressure.
+        val clientsExhausted = generateSequence<Throwable>(error) { it.cause }
+            .take(12).any { it is StreamUnavailableException }
+        if (clientsExhausted || retriesForItem >= MAX_RETRIES_PER_ITEM) {
             diagnostics.record(error)
             retriesForItem = 0
             exo.pause()
