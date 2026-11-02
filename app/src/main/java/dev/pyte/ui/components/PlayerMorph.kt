@@ -45,7 +45,10 @@ class PlayerMorphState {
     }
     fun miniBounds(id: String, rect: Rect) { mini = id to rect }
     fun heroBounds(id: String, rect: Rect) { hero = id to rect }
-    fun clearHero(id: String) { if (hero?.first == id) hero = null }
+    fun clearHero(id: String) {
+        if (hero?.first == id) hero = null
+        if (request?.opening == true && request?.track?.videoId == id) cancel()
+    }
     fun begin(track: Track?, opening: Boolean, animate: Boolean) {
         val source = currentRect?.takeIf { request?.track?.videoId == track?.videoId }
             ?: (if (opening) mini else hero)?.takeIf { it.first == track?.videoId }?.second

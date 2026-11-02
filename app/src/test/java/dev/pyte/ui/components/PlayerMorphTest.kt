@@ -53,6 +53,19 @@ class PlayerMorphTest {
         state.rootBounds(Rect(0f, 0f, 900f, 400f))
         assertNull(state.request)
     }
+    @Test fun `leaving the cover for lyrics cancels opening but closing survives disposal`() {
+        val state = PlayerMorphState()
+        state.rootBounds(root)
+        state.miniBounds(song.videoId, mini)
+        state.begin(song, true, true)
+        state.heroBounds(song.videoId, hero)
+        state.clearHero(song.videoId)
+        assertNull(state.request)
+        state.heroBounds(song.videoId, hero)
+        state.begin(song, false, true)
+        state.clearHero(song.videoId)
+        assertNotNull(state.request)
+    }
     @Test fun `interpolation is reversible and does not overshoot`() {
         assertEquals(mini, interpolateBounds(mini, hero, -1f))
         assertEquals(hero, interpolateBounds(mini, hero, 2f))
