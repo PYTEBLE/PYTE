@@ -86,16 +86,18 @@ class LibraryRepository @Inject constructor(
     }
 
     /** Adds metadata and an ordered link only; never writes to a YouTube account. */
-    suspend fun addToPlaylist(id: String, track: Track): Boolean = db.withTransaction {
-        val playlist = playlists.getPlaylist(id) ?: error("Playlist was deleted")
-        val links = playlists.getPlaylistLinks(id)
-        if (links.any { it.videoId == track.videoId }) return@withTransaction false
-        tracks.upsertTracks(listOf(track.toEntity()))
-        playlists.insertPlaylistTracks(listOf(PlaylistTrackEntity(id,
-            (links.maxOfOrNull { it.position } ?: -1) + 1, track.videoId, locallyAdded = true)))
-        playlists.upsertPlaylist(playlist.copy(trackCount = links.size + 1,
-            thumbnailUrl = playlist.thumbnailUrl ?: track.thumbnailUrl))
-        true
+    suspend fun addToPlaylist(id: String, track: Track): Boolean {
+        return db.withTransaction {
+            val playlist = playlists.getPlaylist(id) ?: error("Playlist was deleted")
+            val links = playlists.getPlaylistLinks(id)
+            if (links.any { it.videoId == track.videoId }) return@withTransaction false
+            tracks.upsertTracks(listOf(track.toEntity()))
+            playlists.insertPlaylistTracks(listOf(PlaylistTrackEntity(id,
+                (links.maxOfOrNull { it.position } ?: -1) + 1, track.videoId, locallyAdded = true)))
+            playlists.upsertPlaylist(playlist.copy(trackCount = links.size + 1,
+                thumbnailUrl = playlist.thumbnailUrl ?: track.thumbnailUrl))
+            true
+        }
     }
 
     suspend fun createPlaylist(title: String, firstTrack: Track): String = db.withTransaction {
@@ -123,6 +125,7 @@ class LibraryRepository @Inject constructor(
         db.withTransaction {
             playlists.deletePlaylistLinks(id)
             playlists.deletePlaylist(id)
+            db.offlineDao().deselect(id)
         }
     }
 

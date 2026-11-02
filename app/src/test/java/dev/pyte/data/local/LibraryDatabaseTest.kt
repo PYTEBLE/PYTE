@@ -152,6 +152,29 @@ class LibraryDatabaseTest {
     @Test
     fun `version two data migrates without losing playlists favorites or order`() = migrationTest(2)
 
+    @Test
+    fun `version three data migrates without losing local additions`() = migrationTest(3)
+
+    @Test
+    fun `offline selection excludes history favorites and unselected playlists and deduplicates shared songs`() = databaseTest { db ->
+        val library = repo(db)
+        library.saveImported(playlist(song, song))
+        val other = library.createPlaylist("Other", song)
+        val historyOnly = song.copy(videoId = "dQw4w9WgXcQ")
+        library.recordPlayed(historyOnly)
+        library.setFavorite(historyOnly, true)
+        val dao = db.offlineDao()
+        assertTrue(dao.wantedTracks().isEmpty())
+        dao.select(OfflinePlaylistEntity("PLtest"))
+        dao.select(OfflinePlaylistEntity(other))
+        assertEquals(listOf(song.videoId), dao.wantedTracks().map { it.videoId })
+        assertFalse(dao.isWanted(historyOnly.videoId))
+        library.deletePlaylist("PLtest")
+        assertTrue(dao.isWanted(song.videoId))
+        dao.deselect(other)
+        assertTrue(dao.wantedTracks().isEmpty())
+    }
+
     private fun migrationTest(version: Int) = runBlocking {
         withContext(Dispatchers.IO) {
             val name = "migration-${UUID.randomUUID()}.db"
@@ -166,7 +189,7 @@ class LibraryDatabaseTest {
                 old.execSQL("INSERT INTO tracks VALUES('YGr2G2fc48U', 'schönhauser', 'Gustav', 155000, NULL)")
                 old.execSQL("INSERT INTO playlist_tracks VALUES('PLtest', 0, 'YGr2G2fc48U')")
                 old.execSQL("INSERT INTO favorites VALUES('YGr2G2fc48U', 200)")
-                if (version == 2) {
+                if (version >= 2) {
                     old.execSQL("ALTER TABLE playlists ADD COLUMN localTitle TEXT")
                     old.execSQL("UPDATE playlists SET localTitle = 'My old name'")
                     old.execSQL("CREATE TABLE history(videoId TEXT NOT NULL PRIMARY KEY, lastPlayedAt INTEGER NOT NULL)")
@@ -175,14 +198,16 @@ class LibraryDatabaseTest {
                     old.execSQL("INSERT INTO tracks_fts(rowid, videoId, title, artist) SELECT rowid, videoId, title, artist FROM tracks")
                     old.execSQL("CREATE TRIGGER tracks_search_update AFTER UPDATE ON tracks BEGIN DELETE FROM tracks_fts WHERE rowid = old.rowid; INSERT INTO tracks_fts(rowid, videoId, title, artist) VALUES(new.rowid, new.videoId, new.title, new.artist); END")
                 }
+                if (version == 3) old.execSQL("ALTER TABLE playlist_tracks ADD COLUMN locallyAdded INTEGER NOT NULL DEFAULT 0")
                 old.version = version
             }
             val db = PyteDatabase.open(context, name)
             try {
                 val library = repo(db)
-                assertEquals(if (version == 2) "My old name" else "Old library", library.observePlaylist("PLtest").first()!!.first.title)
+                assertEquals(if (version >= 2) "My old name" else "Old library", library.observePlaylist("PLtest").first()!!.first.title)
                 assertFalse(db.playlistDao().getPlaylistLinks("PLtest").single().locallyAdded)
-                if (version == 2) assertEquals(song.videoId, library.observeHistory().first().single().videoId)
+                if (version >= 2) assertEquals(song.videoId, library.observeHistory().first().single().videoId)
+                assertTrue(db.offlineDao().wantedTracks().isEmpty())
                 assertEquals(song.videoId, library.observeFavorites().first().single().videoId)
                 assertEquals(song.videoId, library.search("schon").first().single().videoId)
                 library.saveImported(playlist(song.copy(title = "Updated")))
