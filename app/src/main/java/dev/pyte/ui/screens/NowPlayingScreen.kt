@@ -1,6 +1,8 @@
 package dev.pyte.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,6 +27,7 @@ import androidx.compose.material.icons.filled.RepeatOne
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -39,6 +42,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,6 +67,12 @@ fun NowPlayingScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
     val track = state.current
+    var queueOpen by rememberSaveable { mutableStateOf(false) }
+
+    if (queueOpen) {
+        QueueSheet(state, onDismiss = { queueOpen = false }, onPlay = viewModel::playIndex,
+            onMove = viewModel::moveQueueItem, onRemove = viewModel::removeQueueItem)
+    }
 
     Column(
         modifier = Modifier
@@ -74,6 +84,7 @@ fun NowPlayingScreen(
             )
             .statusBarsPadding()
             .navigationBarsPadding()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp),
     ) {
         Row(
@@ -86,7 +97,9 @@ fun NowPlayingScreen(
             Spacer(Modifier.weight(1f))
             Text("Now playing", style = MaterialTheme.typography.labelLarge)
             Spacer(Modifier.weight(1f))
-            Spacer(Modifier.size(48.dp))
+            IconButton(onClick = { queueOpen = true }) {
+                Icon(Icons.Default.QueueMusic, contentDescription = "Open queue")
+            }
         }
 
         Spacer(Modifier.height(16.dp))

@@ -57,6 +57,8 @@ fun FavoritesScreen(
                 favoriteIds = favoriteIds,
                 onPlay = { index -> viewModel.play(favorites, index) },
                 onToggleFavorite = { track -> viewModel.toggleFavorite(track, false) },
+                onPlayNext = viewModel::enqueueNext,
+                onAddToQueue = viewModel::enqueueLater,
             )
         }
     }
@@ -105,6 +107,8 @@ fun SearchScreen(
                 favoriteIds = favoriteIds,
                 onPlay = { index -> viewModel.play(results, index) },
                 onToggleFavorite = { track -> viewModel.toggleFavorite(track, track.videoId !in favoriteIds) },
+                onPlayNext = viewModel::enqueueNext,
+                onAddToQueue = viewModel::enqueueLater,
             )
         }
     }
@@ -117,6 +121,8 @@ private fun TrackList(
     favoriteIds: Set<String>,
     onPlay: (Int) -> Unit,
     onToggleFavorite: (Track) -> Unit,
+    onPlayNext: (Track) -> Unit,
+    onAddToQueue: (Track) -> Unit,
 ) {
     LazyColumn(contentPadding = PaddingValues(bottom = 120.dp)) {
         itemsIndexed(tracks, key = { _, t -> t.videoId }) { index, track ->
@@ -126,6 +132,8 @@ private fun TrackList(
                 isFavorite = track.videoId in favoriteIds,
                 onClick = { onPlay(index) },
                 onFavoriteClick = { onToggleFavorite(track) },
+                onPlayNext = { onPlayNext(track) },
+                onAddToQueue = { onAddToQueue(track) },
             )
         }
     }
