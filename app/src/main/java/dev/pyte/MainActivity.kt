@@ -15,7 +15,6 @@ import dagger.hilt.android.AndroidEntryPoint
 import dev.pyte.data.SharedLinkInbox
 import dev.pyte.ui.navigation.PyteRoot
 import dev.pyte.ui.theme.PyteTheme
-import dev.pyte.ui.components.AppBackground
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -43,7 +42,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             PyteTheme {
-                AppBackground { PyteRoot() }
+                PyteRoot()
             }
         }
     }

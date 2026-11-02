@@ -51,7 +51,6 @@ import dev.pyte.ui.components.PlaylistCard
 import dev.pyte.ui.components.Artwork
 import dev.pyte.ui.components.ScreenHeading
 import dev.pyte.ui.components.LibraryWelcome
-import dev.pyte.ui.theme.PyteAccent
 import dev.pyte.ui.viewmodels.HomeViewModel
 import dev.pyte.ui.viewmodels.ImportUiState
 
@@ -78,7 +77,7 @@ fun HomeScreen(
             if (playlists.isNotEmpty() || recent.isNotEmpty()) {
             ExtendedFloatingActionButton(
                 onClick = { showImport = true },
-                containerColor = PyteAccent,
+                containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
                 text = { Text("Import", fontWeight = FontWeight.SemiBold) },

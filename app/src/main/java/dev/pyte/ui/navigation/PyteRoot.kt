@@ -1,7 +1,14 @@
 package dev.pyte.ui.navigation
 
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material.icons.Icons
@@ -45,7 +52,14 @@ import dev.pyte.ui.screens.PlaylistScreen
 import dev.pyte.ui.screens.SearchScreen
 import dev.pyte.ui.screens.SettingsScreen
 import dev.pyte.ui.viewmodels.PlayerViewModel
-import dev.pyte.ui.theme.PlayerCoverTheme
+import dev.pyte.ui.theme.AppCoverTheme
+import dev.pyte.ui.theme.LocalLivingUi
+import dev.pyte.ui.theme.rememberLivingUiPolicy
+import androidx.compose.runtime.CompositionLocalProvider
+import dev.pyte.ui.components.AppBackground
+import dev.pyte.ui.components.PlayerMorphState
+import dev.pyte.ui.components.LocalPlayerMorph
+import dev.pyte.ui.components.PlayerMorphOverlay
 
 private object Routes {
     const val HOME = "home"
@@ -72,17 +86,37 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel()) {
     val nav = rememberNavController()
     val playerState by playerViewModel.state.collectAsStateWithLifecycle()
     val coverColors by playerViewModel.coverColors.collectAsStateWithLifecycle()
+    val appearance by playerViewModel.appearance.collectAsStateWithLifecycle()
+    val motion = rememberLivingUiPolicy(appearance)
     val report by playerViewModel.diagnosticReport.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val backStack by nav.currentBackStackEntryAsState()
     val route = backStack?.destination?.route
     val onNowPlaying = route == Routes.NOW_PLAYING
     val snackbar = remember { SnackbarHostState() }
+    val morph = remember { PlayerMorphState() }
+    val openPlayer = {
+        if (nav.currentDestination?.route != Routes.NOW_PLAYING) {
+            morph.begin(playerState.current, opening = true, animate = motion.animate)
+            nav.navigate(Routes.NOW_PLAYING) { launchSingleTop = true }
+        }
+    }
+    val closePlayer = {
+        if (nav.currentDestination?.route == Routes.NOW_PLAYING) {
+            morph.begin(playerState.current, opening = false, animate = motion.animate)
+            nav.popBackStack()
+        }
+        Unit
+    }
 
     LaunchedEffect(playerState.errorMessage) {
         playerState.errorMessage?.let { snackbar.showSnackbar(it) }
     }
 
+    CompositionLocalProvider(LocalLivingUi provides motion, LocalPlayerMorph provides morph) {
+    AppCoverTheme(coverColors) {
+    AppBackground(playerState.isPlaying, onNowPlaying) {
+    Box(Modifier.fillMaxSize().onGloballyPositioned { morph.rootBounds(it.boundsInWindow()) }) {
     report?.let { details ->
         AlertDialog(
             onDismissRequest = playerViewModel::dismissDiagnostics,
@@ -110,7 +144,6 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel()) {
                 Column {
                     val current = playerState.current
                     if (current != null) {
-                        PlayerCoverTheme(coverColors) {
                         MiniPlayer(
                             title = current.title,
                             artist = current.artist,
@@ -121,12 +154,11 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel()) {
                             } else {
                                 0f
                             },
-                            onOpen = { nav.navigate(Routes.NOW_PLAYING) },
+                            onOpen = openPlayer,
                             onToggle = playerViewModel::togglePlayPause,
                             onNext = playerViewModel::next,
                             videoId = current.videoId,
                         )
-                        }
                     }
                     NavigationBar(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)) {
                         tabs.forEach { tab ->
@@ -158,6 +190,10 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel()) {
         NavHost(
             navController = nav,
             startDestination = Routes.HOME,
+            enterTransition = { fadeIn(tween(motion.duration(220))) },
+            exitTransition = { fadeOut(tween(motion.duration(180))) },
+            popEnterTransition = { fadeIn(tween(motion.duration(220))) },
+            popExitTransition = { fadeOut(tween(motion.duration(180))) },
         ) {
             composable(Routes.HOME) {
                 HomeScreen(
@@ -185,13 +221,19 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel()) {
             }
             composable(
                 route = Routes.NOW_PLAYING,
-                enterTransition = { slideInVertically(initialOffsetY = { it }) },
-                exitTransition = { slideOutVertically(targetOffsetY = { it }) },
-                popEnterTransition = { slideInVertically(initialOffsetY = { it }) },
-                popExitTransition = { slideOutVertically(targetOffsetY = { it }) },
+                enterTransition = { fadeIn(tween(motion.duration(380))) },
+                exitTransition = { fadeOut(tween(motion.duration(300))) },
+                popEnterTransition = { fadeIn(tween(motion.duration(380))) },
+                popExitTransition = { fadeOut(tween(motion.duration(300))) },
             ) {
-                PlayerCoverTheme(coverColors) { NowPlayingScreen(onClose = { nav.popBackStack() }) }
+                NowPlayingScreen(onClose = closePlayer)
             }
         }
+    }
+    PlayerMorphOverlay(morph, playerState.current?.videoId)
+    BackHandler(enabled = onNowPlaying) { closePlayer() }
+    }
+    }
+    }
     }
 }

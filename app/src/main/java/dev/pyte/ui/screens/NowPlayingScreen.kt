@@ -64,6 +64,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
 import dev.pyte.ui.components.Artwork
+import dev.pyte.ui.components.HeroCoverFrame
+import dev.pyte.ui.components.SongSwap
+import dev.pyte.ui.components.SongMetadata
+import dev.pyte.ui.components.songDirection
+import dev.pyte.ui.components.FavoriteButton
+import dev.pyte.ui.components.LivingPlayButton
+import androidx.compose.runtime.SideEffect
 import dev.pyte.ui.components.formatDuration
 import dev.pyte.R
 import dev.pyte.ui.viewmodels.PlayerViewModel
@@ -76,6 +83,9 @@ fun NowPlayingScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
     val track = state.current
+    var previousId by remember { mutableStateOf(track?.videoId) }
+    val direction = remember(track?.videoId) { songDirection(previousId, state.currentIndex, state.queue, state.shuffle) }
+    SideEffect { previousId = track?.videoId }
     var queueOpen by rememberSaveable { mutableStateOf(false) }
     var lyricsOpen by rememberSaveable { mutableStateOf(false) }
     var equalizerOpen by rememberSaveable { mutableStateOf(false) }
@@ -94,11 +104,6 @@ fun NowPlayingScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.background),
-                ),
-            )
             .statusBarsPadding()
             .navigationBarsPadding()
             .verticalScroll(rememberScrollState())
@@ -133,44 +138,22 @@ fun NowPlayingScreen(
             return@Column
         }
 
-        Artwork(
-            url = track.thumbnailUrl,
-            videoId = track.videoId,
-            modifier = Modifier
+        HeroCoverFrame(track.videoId, Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
                 .shadow(24.dp, RoundedCornerShape(26.dp), ambientColor = MaterialTheme.colorScheme.primary, spotColor = MaterialTheme.colorScheme.primary)
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(26.dp)),
-            shape = RoundedCornerShape(26.dp),
-        )
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(26.dp))) { artworkModifier ->
+            SongSwap(track, direction, artworkModifier) { shown ->
+                Artwork(shown.thumbnailUrl, Modifier.fillMaxSize(), RoundedCornerShape(26.dp), shown.videoId, requestedPixels = 1200)
+            }
+        }
 
         Spacer(Modifier.height(28.dp))
 
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = track.title,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = track.artist,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+            SongMetadata(track, direction, Modifier.weight(1f))
             val isFav = track.videoId in favoriteIds
-            IconButton(onClick = { viewModel.toggleFavorite(track, !isFav) }) {
-                Icon(
-                    imageVector = if (isFav) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = if (isFav) "Remove from favorites" else "Add to favorites",
-                    tint = if (isFav) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                )
-            }
+            FavoriteButton(isFav, { viewModel.toggleFavorite(track, !isFav) }, key = track.videoId)
         }
 
         Spacer(Modifier.height(20.dp))
@@ -198,18 +181,7 @@ fun NowPlayingScreen(
             IconButton(onClick = viewModel::previous, modifier = Modifier.size(56.dp)) {
                 Icon(Icons.Default.SkipPrevious, contentDescription = "Previous", modifier = Modifier.size(36.dp))
             }
-            FilledIconButton(
-                onClick = viewModel::togglePlayPause,
-                modifier = Modifier.size(80.dp).background(Brush.linearGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary)), CircleShape),
-                colors = IconButtonDefaults.filledIconButtonColors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
-            ) {
-                Icon(
-                    imageVector = if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = if (state.isPlaying) "Pause" else "Play",
-                    modifier = Modifier.size(40.dp),
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                )
-            }
+            LivingPlayButton(state.isPlaying, viewModel::togglePlayPause)
             IconButton(onClick = viewModel::next, modifier = Modifier.size(56.dp)) {
                 Icon(Icons.Default.SkipNext, contentDescription = "Next", modifier = Modifier.size(36.dp))
             }

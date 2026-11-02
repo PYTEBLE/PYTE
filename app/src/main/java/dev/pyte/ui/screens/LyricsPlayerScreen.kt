@@ -35,6 +35,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
 import dev.pyte.data.lyrics.LrcParser
 import dev.pyte.ui.components.Artwork
+import dev.pyte.ui.components.AuroraBackdrop
+import dev.pyte.ui.components.FavoriteButton
+import dev.pyte.ui.components.LivingPlayButton
+import dev.pyte.ui.components.SongMetadata
+import dev.pyte.ui.theme.LocalLivingUi
+import dev.pyte.ui.theme.rememberAmbientMotion
 import dev.pyte.ui.viewmodels.PlayerViewModel
 import kotlin.math.PI
 import kotlin.math.sin
@@ -49,7 +55,8 @@ internal fun LyricsPlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit,
     var equalizerOpen by rememberSaveable { mutableStateOf(false) }
     if (equalizerOpen) EqualizerSheet(onDismiss = { equalizerOpen = false })
     var request by remember(track.videoId) { mutableIntStateOf(0) }
-    val motion = ValueAnimator.areAnimatorsEnabled()
+    val policy = LocalLivingUi.current
+    val motion = policy.animate
     val accent = MaterialTheme.colorScheme.primary
     LaunchedEffect(track.videoId, request) { viewModel.loadLyrics(track) }
     if (queue) QueueSheet(state, { queue = false }, viewModel::playIndex,
@@ -61,21 +68,15 @@ internal fun LyricsPlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit,
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(
             MaterialTheme.colorScheme.primaryContainer.copy(alpha = .82f),
             MaterialTheme.colorScheme.background.copy(alpha = .86f), MaterialTheme.colorScheme.background.copy(alpha = .98f)))))
+        AuroraBackdrop(state.isPlaying, expanded = true)
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 20.dp)) {
             Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onClose) { Icon(Icons.Default.KeyboardArrowDown, "Close player") }
                 Artwork(track.thumbnailUrl, Modifier.size(48.dp), videoId = track.videoId)
-                Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                    Text(track.title, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(track.artist, color = Color.White.copy(alpha = .65f), maxLines = 1,
-                        overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
-                }
+                SongMetadata(track, 1, Modifier.weight(1f).padding(horizontal = 12.dp), compact = true)
                 val favorite = track.videoId in favorites
                 IconButton(onClick = { equalizerOpen = true }) { Icon(Icons.Default.Equalizer, "Open equalizer") }
-                IconButton(onClick = { viewModel.toggleFavorite(track, !favorite) }) {
-                    Icon(if (favorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        if (favorite) "Remove from favorites" else "Add to favorites", tint = accent)
-                }
+                FavoriteButton(favorite, { viewModel.toggleFavorite(track, !favorite) }, key = track.videoId)
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically) {
@@ -151,7 +152,7 @@ internal fun LyricsPlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit,
             }
             Text("Lyrics by LRCLIB", color = Color.White.copy(alpha = .45f),
                 style = MaterialTheme.typography.labelSmall, modifier = Modifier.align(Alignment.CenterHorizontally))
-            LyricWave(state.isPlaying && motion, Modifier.fillMaxWidth().height(42.dp))
+            LyricWave(state.isPlaying && policy.ambient, Modifier.fillMaxWidth().height(42.dp))
             SeekBar(state.positionMs, state.durationMs, viewModel::seekTo)
             Row(Modifier.fillMaxWidth().padding(bottom = 12.dp), horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically) {
@@ -159,12 +160,7 @@ internal fun LyricsPlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit,
                     Icon(Icons.Default.Shuffle, "Shuffle", tint = if (state.shuffle) accent else Color.White.copy(alpha = .6f))
                 }
                 IconButton(onClick = viewModel::previous) { Icon(Icons.Default.SkipPrevious, "Previous", Modifier.size(34.dp)) }
-                FilledIconButton(onClick = viewModel::togglePlayPause,
-                    modifier = Modifier.size(72.dp).background(Brush.linearGradient(listOf(accent, MaterialTheme.colorScheme.tertiary)), CircleShape),
-                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = Color.Transparent)) {
-                    Icon(if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        if (state.isPlaying) "Pause" else "Play", Modifier.size(36.dp), tint = MaterialTheme.colorScheme.onPrimary)
-                }
+                LivingPlayButton(state.isPlaying, viewModel::togglePlayPause, size = 72.dp)
                 IconButton(onClick = viewModel::next) { Icon(Icons.Default.SkipNext, "Next", Modifier.size(34.dp)) }
                 IconButton(onClick = viewModel::cycleRepeat) {
                     Icon(if (state.repeat == Player.REPEAT_MODE_ONE) Icons.Default.RepeatOne else Icons.Default.Repeat,
@@ -178,16 +174,14 @@ internal fun LyricsPlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit,
 @Composable
 private fun LyricWave(animate: Boolean, modifier: Modifier) {
     val accent = MaterialTheme.colorScheme.primary
-    val phase = if (animate) {
-        val transition = rememberInfiniteTransition(label = "lyricWave")
-        transition.animateFloat(0f, (2 * PI).toFloat(), infiniteRepeatable(tween(6000, easing = LinearEasing)), label = "phase").value
-    } else 0f
+    val (phase, amplitude) = rememberAmbientMotion(animate, (PI / 3).toFloat())
     Canvas(modifier) {
         repeat(3) { layer ->
             val path = Path()
             for (step in 0..100) {
                 val x = size.width * step / 100
-                val y = size.height / 2 + sin(step / 100f * PI * 3 + phase + layer * .65).toFloat() * size.height * .26f
+                val y = size.height / 2 + sin(step / 100f * PI * 3 + phase.value + layer * .65).toFloat() *
+                    size.height * .26f * (.15f + amplitude.value * .85f)
                 if (step == 0) path.moveTo(x, y) else path.lineTo(x, y)
             }
             drawPath(path, accent.copy(alpha = .07f / (layer + 1)),

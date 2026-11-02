@@ -212,8 +212,7 @@ class PlayerViewModel @Inject constructor(
     val coverColors = combine(player.state.map { it.current }.distinctUntilChanged(),
         settings.settings.map { it.dynamicCoverTheme }.distinctUntilChanged()) { track, enabled -> track.takeIf { enabled } }
         .transformLatest { track ->
-            emit(null)
-            if (track != null) emit(palette.colors(track))
+            if (track == null) emit(null) else emit(palette.colors(track))
         }
         .catch { emit(null) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SHARE_TIMEOUT_MS), null)

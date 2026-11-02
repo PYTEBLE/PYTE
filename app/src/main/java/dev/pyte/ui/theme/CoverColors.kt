@@ -44,14 +44,29 @@ object CoverColorExtractor {
 }
 
 @Composable
-fun PlayerCoverTheme(colors: CoverColors?, content: @Composable () -> Unit) {
+fun AppCoverTheme(colors: CoverColors?, content: @Composable () -> Unit) {
     val base = MaterialTheme.colorScheme
-    val accent by animateColorAsState(colors?.accent ?: base.primary, tween(650), label = "coverAccent")
-    val background by animateColorAsState(colors?.background ?: base.background, tween(650), label = "coverBackground")
-    val surface by animateColorAsState(colors?.surface ?: base.surface, tween(650), label = "coverSurface")
-    val secondary by animateColorAsState(colors?.secondary ?: base.tertiary, tween(650), label = "coverSecondary")
+    val duration = LocalLivingUi.current.duration(700)
+    val rawAccent by animateColorAsState(colors?.accent ?: base.primary, tween(duration), label = "coverAccent")
+    val background by animateColorAsState(colors?.background ?: base.background, tween(duration), label = "coverBackground")
+    val surface by animateColorAsState(colors?.surface ?: base.surface, tween(duration), label = "coverSurface")
+    val secondary by animateColorAsState(colors?.secondary ?: base.primary, tween(duration), label = "coverSecondary")
+    val accent = readableAccent(rawAccent, surface)
     val onAccent = if (contrast(Color.Black, accent) >= contrast(Color.White, accent)) Color.Black else Color.White
+    val muted = readableAccent(base.onSurfaceVariant, surface)
     MaterialTheme(colorScheme = base.copy(primary = accent, onPrimary = onAccent, secondary = accent,
-        tertiary = secondary, primaryContainer = surface, background = background, surface = surface,
-        surfaceContainerHigh = surface, surfaceVariant = surface, outlineVariant = accent.copy(alpha = .22f)), content = content)
+        onSecondary = onAccent, tertiary = secondary, primaryContainer = surface, onPrimaryContainer = accent,
+        secondaryContainer = surface, onSecondaryContainer = accent, background = background, onBackground = base.onBackground,
+        surface = surface, onSurfaceVariant = muted, surfaceContainer = surface, surfaceContainerHigh = surface,
+        surfaceContainerHighest = surface, surfaceContainerLow = background, surfaceContainerLowest = background,
+        surfaceVariant = surface, surfaceTint = accent, outline = accent.copy(alpha = .35f),
+        inverseSurface = surface, inverseOnSurface = base.onSurface,
+        outlineVariant = accent.copy(alpha = .22f)), content = content)
+}
+
+/** Also protect contrast at intermediate animation frames, not just palette endpoints. */
+internal fun readableAccent(color: Color, surface: Color): Color {
+    var result = color
+    repeat(20) { if (contrast(result, surface) < 4.8f) result = lerp(result, Color.White, .12f) }
+    return result
 }
