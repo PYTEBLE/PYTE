@@ -113,7 +113,7 @@ fun HomeScreen(
                                     contentPadding = PaddingValues(horizontal = 8.dp)) {
                                     itemsIndexed(recent, key = { _, track -> track.videoId }) { index, track ->
                                         Column(Modifier.width(136.dp).clickable { viewModel.playRecent(recent, index) }.padding(bottom = 16.dp)) {
-                                            Artwork(track.thumbnailUrl, Modifier.fillMaxWidth().aspectRatio(1f))
+                                            Artwork(track.thumbnailUrl, Modifier.fillMaxWidth().aspectRatio(1f), videoId = track.videoId)
                                             Spacer(Modifier.height(8.dp))
                                             Text(track.title, maxLines = 1, overflow = TextOverflow.Ellipsis,
                                                 style = MaterialTheme.typography.bodyMedium)

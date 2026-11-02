@@ -48,7 +48,7 @@ fun QueueSheet(
                     Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
                         Row(Modifier.fillMaxWidth().clickable { onPlay(index) }.padding(vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically) {
-                            Artwork(track.thumbnailUrl, Modifier.size(44.dp))
+                            Artwork(track.thumbnailUrl, Modifier.size(44.dp), videoId = track.videoId)
                             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                                 Text(track.title, maxLines = 1, overflow = TextOverflow.Ellipsis,
                                     color = if (index == state.currentIndex) PyteAccent else MaterialTheme.colorScheme.onSurface)

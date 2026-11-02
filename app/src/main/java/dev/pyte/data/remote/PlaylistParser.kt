@@ -100,7 +100,8 @@ object PlaylistParser {
         findObjects(obj, "musicThumbnailRenderer").firstOrNull()
             ?.get("thumbnail")?.asObject()
             ?.get("thumbnails")?.asArray()
-            ?.lastOrNull()?.asObject()
+            ?.mapNotNull { it.asObject() }
+            ?.maxByOrNull { (it["width"]?.asString()?.toIntOrNull() ?: 0) * (it["height"]?.asString()?.toIntOrNull() ?: 0) }
             ?.get("url")?.asString()
 
     private fun parseDurationMs(text: String): Long {

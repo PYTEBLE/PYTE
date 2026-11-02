@@ -51,6 +51,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.layout.BoxWithConstraints
+import dev.pyte.data.remote.ArtworkUrls
+import androidx.compose.ui.platform.LocalContext
+import java.io.File
 import dev.pyte.domain.Track
 import dev.pyte.domain.PlaylistSummary
 import dev.pyte.ui.theme.PyteAccent
@@ -62,16 +67,24 @@ fun Artwork(
     url: String?,
     modifier: Modifier = Modifier,
     shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(10.dp),
+    videoId: String? = null,
 ) {
-    Box(
+    val context = LocalContext.current
+    val local = videoId?.takeIf { it.matches(Regex("[A-Za-z0-9_-]{11}")) }
+        ?.let { File(context.filesDir, "offline/$it.cover").takeIf(File::isFile) }
+    BoxWithConstraints(
         modifier = modifier
             .clip(shape)
             .background(MaterialTheme.colorScheme.surfaceVariant),
         contentAlignment = Alignment.Center,
     ) {
-        if (url != null) {
+        if (url != null || local != null) {
+            val pixels = with(LocalDensity.current) { maxWidth.roundToPx() }.coerceIn(96, 1600)
+            val sized = ArtworkUrls.sized(url, pixels)
+            var failed by remember(url, sized) { mutableStateOf(false) }
             AsyncImage(
-                model = url,
+                model = local ?: if (failed) url else sized,
+                onError = { failed = true },
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
@@ -106,7 +119,7 @@ fun TrackRow(
             .padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Artwork(url = track.thumbnailUrl, modifier = Modifier.size(48.dp))
+        Artwork(url = track.thumbnailUrl, modifier = Modifier.size(48.dp), videoId = track.videoId)
         Column(
             modifier = Modifier
                 .weight(1f)
