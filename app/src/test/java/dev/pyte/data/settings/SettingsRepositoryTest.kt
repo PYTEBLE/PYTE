@@ -12,6 +12,23 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class SettingsRepositoryTest {
+    @Test fun `effect intensity and haptics persist independently of cover colors`() = runBlocking {
+        val context = RuntimeEnvironment.getApplication()
+        val repository = SettingsRepository(context)
+        try {
+            repository.setEffectLevel(EffectLevel.INTENSE)
+            repository.setHapticFeedback(false)
+            repository.setDynamicCoverTheme(false)
+            val reopened = SettingsRepository(context).settings.first()
+            assertEquals(EffectLevel.INTENSE, reopened.effectLevel)
+            assertFalse(reopened.hapticFeedback)
+            assertFalse(reopened.dynamicCoverTheme)
+        } finally {
+            repository.setEffectLevel(EffectLevel.LIVELY)
+            repository.setHapticFeedback(true)
+            repository.setDynamicCoverTheme(true)
+        }
+    }
     @Test fun `sound profiles and theme preferences persist without changing playback settings`() = runBlocking {
         val context = RuntimeEnvironment.getApplication()
         val repository = SettingsRepository(context)

@@ -39,6 +39,8 @@ class SettingsViewModel @Inject constructor(
 
     fun skipSilence(enabled: Boolean) = update { repository.setSkipSilence(enabled) }
     fun dynamicCoverTheme(enabled: Boolean) = update { repository.setDynamicCoverTheme(enabled) }
+    fun effectLevel(level: dev.pyte.data.settings.EffectLevel) = update { repository.setEffectLevel(level) }
+    fun hapticFeedback(enabled: Boolean) = update { repository.setHapticFeedback(enabled) }
     fun recordHistory(enabled: Boolean) = update { library.setHistoryEnabled(enabled) }
     fun clearHistory() = update {
         library.clearHistory()

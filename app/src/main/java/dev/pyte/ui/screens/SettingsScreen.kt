@@ -21,6 +21,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.FilterChip
+import dev.pyte.data.settings.EffectLevel
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -67,8 +69,19 @@ fun SettingsScreen(contentPadding: PaddingValues, viewModel: SettingsViewModel =
                             }
                         }
                         SettingsSection("Appearance") {
-                            SettingsSwitch("Dynamic cover theme", "Match player, lyrics and mini-player colors to the song cover. Your library keeps its violet theme.",
+                            SettingsSwitch("Dynamic cover theme", "Let your entire app follow the current cover. Without artwork, PYTE stays violet.",
                                 value.dynamicCoverTheme, !busy, viewModel::dynamicCoverTheme)
+                            Text("Effekte", Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.titleSmall)
+                            Column(Modifier.padding(horizontal = 16.dp)) {
+                                EffectLevel.entries.forEach { level ->
+                                    FilterChip(selected = value.effectLevel == level, enabled = !busy,
+                                        onClick = { viewModel.effectLevel(level) }, label = { Text(level.label) })
+                                }
+                            }
+                            Text("System animation settings and battery saver take priority. Decorative effects stop in the background.",
+                                Modifier.padding(16.dp), style = MaterialTheme.typography.bodySmall)
+                            SettingsSwitch("Haptic feedback", "Gentle feedback when favoriting a song. Respects system settings.",
+                                value.hapticFeedback, !busy, viewModel::hapticFeedback)
                         }
                         SettingsSection("Offline downloads") {
                             Text("${offlineBytes / (1024 * 1024)} MB used · ${value.downloadLimitMb} MB limit",
