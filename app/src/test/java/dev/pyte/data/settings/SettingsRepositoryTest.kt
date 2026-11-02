@@ -12,6 +12,23 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class SettingsRepositoryTest {
+    @Test fun `download settings persist limits are bounded and playback preferences stay independent`() = runBlocking {
+        val repository = SettingsRepository(RuntimeEnvironment.getApplication())
+        try {
+            repository.pauseDownloads(true)
+            repository.setDownloadLimit(1)
+            val reopened = SettingsRepository(RuntimeEnvironment.getApplication())
+            assertTrue(reopened.settings.first().downloadsPaused)
+            assertEquals(512L, reopened.settings.first().downloadLimitMb)
+            repository.setDownloadLimit(100_000)
+            assertEquals(16384L, reopened.settings.first().downloadLimitMb)
+            assertFalse(reopened.settings.first().skipSilence)
+            assertTrue(reopened.settings.first().recordHistory)
+        } finally {
+            repository.pauseDownloads(false)
+            repository.setDownloadLimit(2048)
+        }
+    }
     @Test fun `settings have safe defaults persist and change independently`() = runBlocking {
         val context = RuntimeEnvironment.getApplication()
         val repository = SettingsRepository(context)
