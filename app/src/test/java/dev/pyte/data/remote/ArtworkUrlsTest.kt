@@ -5,6 +5,8 @@ import org.junit.Test
 
 class ArtworkUrlsTest {
     @Test fun `music images request actual high resolution`() {
+        assertEquals("https://yt3.googleusercontent.com/cover=w1200-h1200-l90-rj",
+            ArtworkUrls.sized("https://yt3.googleusercontent.com/cover=w120-h120-l90-rj"))
         assertEquals("https://lh3.googleusercontent.com/abc=w1200-h1200-l90-rj",
             ArtworkUrls.sized("https://lh3.googleusercontent.com/abc=w60-h60-l90-rj"))
         assertEquals("https://yt3.ggpht.com/abc=s600-c-k",

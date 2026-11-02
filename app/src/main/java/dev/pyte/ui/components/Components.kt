@@ -55,6 +55,11 @@ import coil3.compose.AsyncImage
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.layout.BoxWithConstraints
 import dev.pyte.data.remote.ArtworkUrls
+import dev.pyte.data.remote.ArtworkQuality
+import androidx.compose.runtime.produceState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import coil3.request.ImageRequest
 import androidx.compose.ui.platform.LocalContext
 import java.io.File
 import dev.pyte.domain.Track
@@ -82,9 +87,17 @@ fun Artwork(
         if (url != null || local != null) {
             val pixels = with(LocalDensity.current) { maxWidth.roundToPx() }.coerceIn(96, 1600)
             val sized = ArtworkUrls.sized(url, pixels)
-            var failed by remember(url, sized) { mutableStateOf(false) }
+            val revision = local?.let { "${it.lastModified()}:${it.length()}" }
+            val localSize by produceState<dev.pyte.data.remote.ArtworkSize?>(null, local?.path, revision) {
+                value = withContext(Dispatchers.IO) { local?.let(ArtworkQuality::size) }
+            }
+            val preferLocal = local != null && (url == null || (localSize?.shortEdge ?: 0) >= pixels.coerceAtMost(1200))
+            var failed by remember(url, sized, revision) { mutableStateOf(false) }
+            val data = if (preferLocal || failed && local != null) local else if (failed) url else sized
             AsyncImage(
-                model = local ?: if (failed) url else sized,
+                model = ImageRequest.Builder(context).data(data)
+                    .memoryCacheKey(if (data is File) "offline-cover:${data.path}:$revision" else data?.toString())
+                    .build(),
                 onError = { failed = true },
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
@@ -227,6 +240,7 @@ fun MiniPlayer(
     onToggle: () -> Unit,
     onNext: () -> Unit,
     modifier: Modifier = Modifier,
+    videoId: String? = null,
 ) {
     Surface(
         modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
@@ -239,7 +253,7 @@ fun MiniPlayer(
             LinearProgressIndicator(
                 progress = { progress.coerceIn(0f, 1f) },
                 modifier = Modifier.fillMaxWidth().height(3.dp),
-                color = PyteAccent,
+                color = MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.surfaceVariant,
             )
             Row(
@@ -249,7 +263,7 @@ fun MiniPlayer(
                     .padding(start = 12.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Artwork(url = artworkUrl, modifier = Modifier.size(44.dp))
+                Artwork(url = artworkUrl, modifier = Modifier.size(44.dp), videoId = videoId)
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -271,7 +285,7 @@ fun MiniPlayer(
                     )
                 }
                 FilledIconButton(onClick = onToggle,
-                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = PyteAccent, contentColor = PyteOnAccent)) {
+                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)) {
                     Icon(
                         imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                         contentDescription = if (isPlaying) "Pause" else "Play",

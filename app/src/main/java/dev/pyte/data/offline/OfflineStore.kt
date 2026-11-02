@@ -12,6 +12,7 @@ import dagger.hilt.components.SingletonComponent
 import dev.pyte.data.local.*
 import dev.pyte.data.lyrics.LyricsRepository
 import dev.pyte.data.remote.ArtworkUrls
+import dev.pyte.data.remote.ArtworkQuality
 import dev.pyte.data.remote.StreamResolver
 import dev.pyte.data.repository.toDomain
 import dev.pyte.data.settings.SettingsRepository
@@ -223,7 +224,12 @@ class OfflineStore internal constructor(
     }
 
     private suspend fun downloadCover(track: TrackEntity) {
-        if (cover(track.videoId) != null) return
+        val existing = cover(track.videoId)
+        val oldSize = existing?.let(ArtworkQuality::size)
+        if ((oldSize?.shortEdge ?: 0) >= ArtworkQuality.OFFLINE_TARGET) return
+        val checked = file(track.videoId, "covercheck")
+        if (checked.exists() && System.currentTimeMillis() - checked.lastModified() < 86_400_000) return
+        checked.writeText("")
         for (url in listOfNotNull(ArtworkUrls.sized(track.thumbnailUrl), track.thumbnailUrl).distinct()) {
         http.newCall(Request.Builder().url(url).build()).execute().use { response ->
             if (!response.isSuccessful || response.header("Content-Type")?.startsWith("image/") != true) return@use
@@ -245,10 +251,11 @@ class OfflineStore internal constructor(
                         }
                     }
                 }
-                if (temp.length() > 0) temp.renameTo(file(track.videoId, "cover"))
+                if (ArtworkQuality.shouldReplace(oldSize, ArtworkQuality.size(temp)) && dao.isWanted(track.videoId))
+                    temp.renameTo(file(track.videoId, "cover"))
             } finally { temp.delete() }
         }
-        if (cover(track.videoId) != null) return
+        if ((cover(track.videoId)?.let(ArtworkQuality::size)?.shortEdge ?: 0) > (oldSize?.shortEdge ?: 0)) return
         }
     }
 }

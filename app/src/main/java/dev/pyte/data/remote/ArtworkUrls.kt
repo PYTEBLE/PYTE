@@ -10,7 +10,7 @@ object ArtworkUrls {
         if (host == "i.ytimg.com" && pixels >= 720) {
             return url.replace(Regex("/(?:default|mqdefault|hqdefault|sddefault)\\.(jpg|webp)(?=\\?|$)"), "/maxresdefault.$1")
         }
-        if (host != "lh3.googleusercontent.com" && host != "lh3.google.com" &&
+        if (!Regex("(?:lh|yt)\\d+\\.googleusercontent\\.com").matches(host) && host != "lh3.google.com" &&
             !host.endsWith(".ggpht.com")) return url
         val size = pixels.coerceIn(96, 1600)
         return url.replace(Regex("([=-])w\\d+"), "$1w$size")

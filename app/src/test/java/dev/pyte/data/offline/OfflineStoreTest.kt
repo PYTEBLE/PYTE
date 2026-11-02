@@ -17,6 +17,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import org.robolectric.annotation.SQLiteMode
 import java.io.File
 import java.io.IOException
@@ -24,6 +25,7 @@ import java.util.UUID
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 @SQLiteMode(SQLiteMode.Mode.NATIVE)
 class OfflineStoreTest {
     private val id = "dQw4w9WgXcQ"
@@ -43,10 +45,10 @@ class OfflineStoreTest {
                 db.playlistDao().insertPlaylistTracks(listOf(PlaylistTrackEntity("local:test", 0, id)))
                 db.offlineDao().select(OfflinePlaylistEntity("local:test"))
                 file("part").parentFile!!.mkdirs()
-                listOf("part", "audio", "format", "validator", "lyrics").forEach { file(it).delete() }
+                listOf("part", "audio", "format", "validator", "lyrics", "cover", "covercheck", "cover.tmp").forEach { file(it).delete() }
                 block(db, settings)
             } finally {
-                listOf("part", "audio", "format", "validator", "lyrics").forEach { file(it).delete() }
+                listOf("part", "audio", "format", "validator", "lyrics", "cover", "covercheck", "cover.tmp").forEach { file(it).delete() }
                 db.close()
                 context.deleteDatabase(name)
             }
@@ -195,5 +197,32 @@ class OfflineStoreTest {
         assertEquals("Waiting for Wi-Fi", db.offlineDao().observeDownloads().first().single().state)
         assertFalse(store.sync())
         assertEquals("aac bytes", store.audio(id)!!.readText())
+    }
+
+    @Test fun `small offline cover upgrades without redownloading audio`() = fixture { db, settings ->
+        fun image(size: Int): ByteArray {
+            val bitmap = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
+            return java.io.ByteArrayOutputStream().use { output ->
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, output)
+                bitmap.recycle()
+                output.toByteArray()
+            }
+        }
+        file("audio").writeText("already downloaded")
+        file("cover").writeBytes(image(120))
+        db.trackDao().upsertTracks(listOf(TrackEntity(id, "Test", "Artist", 10000,
+            "https://yt3.googleusercontent.com/cover=w120-h120-l90-rj")))
+        var covers = 0
+        val store = store(db, settings) { request ->
+            assertEquals("yt3.googleusercontent.com", request.url.host)
+            assertTrue(request.url.toString().contains("w1200-h1200"))
+            covers++
+            response(request, image(1200).toResponseBody()).header("Content-Type", "image/png").build()
+        }
+        assertFalse(store.sync())
+        assertEquals(1200, dev.pyte.data.remote.ArtworkQuality.size(file("cover"))!!.shortEdge)
+        assertEquals("already downloaded", file("audio").readText())
+        assertFalse(store.sync())
+        assertEquals(1, covers)
     }
 }
