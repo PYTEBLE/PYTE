@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -110,6 +111,7 @@ fun TrackRow(
     onPlayNext: (() -> Unit)? = null,
     onAddToQueue: (() -> Unit)? = null,
     onAddToPlaylist: (() -> Unit)? = null,
+    isDownloaded: Boolean = false,
 ) {
     var menuOpen by remember(track.videoId) { mutableStateOf(false) }
     Row(
@@ -140,6 +142,10 @@ fun TrackRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+        }
+        if (isDownloaded) {
+            Icon(Icons.Default.DownloadDone, "Available offline", tint = PyteAccent,
+                modifier = Modifier.padding(end = 8.dp).size(18.dp))
         }
         if (track.durationMs > 0) {
             Text(

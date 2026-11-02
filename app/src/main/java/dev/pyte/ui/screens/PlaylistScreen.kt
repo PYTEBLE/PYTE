@@ -39,6 +39,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -73,6 +74,8 @@ fun PlaylistScreen(
     val action by viewModel.action.collectAsStateWithLifecycle()
     val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
+    val selected by viewModel.offlinePlaylists.collectAsStateWithLifecycle()
+    val downloads by viewModel.downloads.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     var menuOpen by remember { mutableStateOf(false) }
     var renameOpen by rememberSaveable { mutableStateOf(false) }
@@ -136,7 +139,28 @@ fun PlaylistScreen(
                                     maxLines = 3, overflow = TextOverflow.Ellipsis)
                                 Text(listOfNotNull(playlist.owner, "${playlist.trackCount} tracks").joinToString(" • "),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Spacer(Modifier.height(16.dp))
+                                 Spacer(Modifier.height(16.dp))
+                                val enabled = playlist.id in selected
+                                val relevant = downloads.filter { d -> tracks.any { it.videoId == d.videoId } }
+                                val complete = relevant.count { it.state == "Downloaded" }
+                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                    Column(Modifier.weight(1f)) {
+                                        Text("Available offline", style = MaterialTheme.typography.titleMedium)
+                                        Text(if (enabled) "$complete / ${tracks.size} downloaded · Wi-Fi only" else "Download this playlist only",
+                                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    Switch(checked = enabled, onCheckedChange = viewModel::offlineEnabled, enabled = !action.busy)
+                                }
+                                if (enabled) {
+                                    relevant.firstOrNull { it.state != "Downloaded" }?.let { download ->
+                                        Text(download.error ?: download.state, style = MaterialTheme.typography.bodySmall, color = PyteAccent)
+                                        if (download.total > 0) LinearProgressIndicator(
+                                            progress = { (download.bytes.toFloat() / download.total).coerceIn(0f, 1f) },
+                                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp))
+                                    }
+                                    if (complete < tracks.size) TextButton(onClick = viewModel::retryDownloads) { Text("Retry downloads") }
+                                }
+                                Spacer(Modifier.height(12.dp))
                                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                                     BrandButton("Play", { viewModel.play(tracks, 0) }, enabled = tracks.isNotEmpty(), icon = Icons.Default.PlayArrow)
                                     OutlinedButton(onClick = { viewModel.shuffleAll(tracks) }, enabled = tracks.isNotEmpty(),
@@ -151,7 +175,8 @@ fun PlaylistScreen(
                                 onClick = { viewModel.play(tracks, index) },
                                 onFavoriteClick = { viewModel.toggleFavorite(track, track.videoId !in favoriteIds) },
                                 onPlayNext = { viewModel.enqueueNext(track) },
-                                onAddToQueue = { viewModel.enqueueLater(track) })
+                                onAddToQueue = { viewModel.enqueueLater(track) },
+                                isDownloaded = downloads.any { it.videoId == track.videoId && it.state == "Downloaded" })
                         }
                     }
                 }

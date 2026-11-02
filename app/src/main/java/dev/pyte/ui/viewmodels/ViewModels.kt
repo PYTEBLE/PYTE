@@ -26,6 +26,9 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import dev.pyte.data.offline.OfflineStore
+import dev.pyte.data.lyrics.Lyrics
+import dev.pyte.data.lyrics.LyricsRepository
 
 private const val SHARE_TIMEOUT_MS = 5_000L
 
@@ -89,9 +92,16 @@ class PlaylistViewModel @Inject constructor(
     savedState: SavedStateHandle,
     private val repo: LibraryRepository,
     private val player: PlayerController,
+    private val offline: OfflineStore,
 ) : ViewModel() {
 
     private val playlistId: String = checkNotNull(savedState["playlistId"])
+    val offlinePlaylists = offline.selected.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SHARE_TIMEOUT_MS), emptyList())
+    val downloads = offline.downloads.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SHARE_TIMEOUT_MS), emptyList())
+    fun offlineEnabled(enabled: Boolean) = perform(if (enabled) "Download queued · Wi-Fi only" else "Offline downloads removed") {
+        offline.setSelected(playlistId, enabled)
+    }
+    fun retryDownloads() { viewModelScope.launch { offline.schedule() } }
 
     val detail: StateFlow<PlaylistUiState> = repo.observePlaylist(playlistId)
         .map { if (it == null) PlaylistUiState.Missing else PlaylistUiState.Loaded(it.first, it.second) }
@@ -185,9 +195,23 @@ class PlayerViewModel @Inject constructor(
     private val player: PlayerController,
     private val repo: LibraryRepository,
     private val diagnostics: PlaybackDiagnostics,
+    private val lyricsRepository: LyricsRepository,
 ) : ViewModel() {
 
     val state: StateFlow<PlayerUiState> = player.state
+    private val _lyrics = MutableStateFlow(LyricsUiState())
+    val lyrics = _lyrics.asStateFlow()
+    suspend fun loadLyrics(track: Track) {
+        _lyrics.value = LyricsUiState(trackId = track.videoId, loading = true)
+        try {
+            val result = lyricsRepository.get(track)
+            _lyrics.value = LyricsUiState(trackId = track.videoId, lyrics = result,
+                message = if (result == null) "No lyrics available for this song." else null)
+        } catch (e: CancellationException) { throw e }
+        catch (_: Exception) {
+            _lyrics.value = LyricsUiState(trackId = track.videoId, message = "Lyrics could not be loaded. Check your connection and try again.")
+        }
+    }
     val diagnosticReport: StateFlow<String?> = diagnostics.report
 
     fun dismissDiagnostics() = diagnostics.clear()
@@ -209,3 +233,5 @@ class PlayerViewModel @Inject constructor(
         viewModelScope.launch { repo.setFavorite(track, favorite) }
     }
 }
+
+data class LyricsUiState(val trackId: String? = null, val loading: Boolean = false, val lyrics: Lyrics? = null, val message: String? = null)

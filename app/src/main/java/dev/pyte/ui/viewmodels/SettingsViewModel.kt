@@ -13,11 +13,15 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import dev.pyte.data.offline.OfflineStore
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.flow
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val repository: SettingsRepository,
     private val library: LibraryRepository,
+    private val offline: OfflineStore,
 ) : ViewModel() {
     private val _loadFailed = MutableStateFlow(false)
     val loadFailed = _loadFailed.asStateFlow()
@@ -27,6 +31,11 @@ class SettingsViewModel @Inject constructor(
     val busy = _busy.asStateFlow()
     private val _message = MutableStateFlow<String?>(null)
     val message = _message.asStateFlow()
+    val offlineBytes = flow {
+        while (true) { emit(offline.usedBytes()); delay(2000) }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0L)
+    fun downloadLimit(mb: Long) = update { repository.setDownloadLimit(mb); offline.schedule() }
+    fun pauseDownloads(paused: Boolean) = update { repository.pauseDownloads(paused); if (!paused) offline.schedule() }
 
     fun skipSilence(enabled: Boolean) = update { repository.setSkipSilence(enabled) }
     fun recordHistory(enabled: Boolean) = update { library.setHistoryEnabled(enabled) }

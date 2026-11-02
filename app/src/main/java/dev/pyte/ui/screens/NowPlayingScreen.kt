@@ -40,6 +40,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -79,6 +80,12 @@ fun NowPlayingScreen(
     val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
     val track = state.current
     var queueOpen by rememberSaveable { mutableStateOf(false) }
+    var lyricsOpen by rememberSaveable { mutableStateOf(false) }
+
+    if (lyricsOpen && track != null) {
+        LyricsPlayerScreen(viewModel, onClose, onCover = { lyricsOpen = false })
+        return
+    }
 
     if (queueOpen) {
         QueueSheet(state, onDismiss = { queueOpen = false }, onPlay = viewModel::playIndex,
@@ -108,6 +115,7 @@ fun NowPlayingScreen(
             Spacer(Modifier.weight(1f))
             Text("NOW PLAYING", style = MaterialTheme.typography.labelMedium, color = PyteAccent, letterSpacing = 2.sp)
             Spacer(Modifier.weight(1f))
+            TextButton(onClick = { lyricsOpen = true }, enabled = track != null) { Text("Lyrics") }
             IconButton(onClick = { queueOpen = true }) {
                 Icon(Icons.Default.QueueMusic, contentDescription = "Open queue")
             }
@@ -128,6 +136,7 @@ fun NowPlayingScreen(
 
         Artwork(
             url = track.thumbnailUrl,
+            videoId = track.videoId,
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
@@ -226,7 +235,7 @@ fun NowPlayingScreen(
 }
 
 @Composable
-private fun SeekBar(positionMs: Long, durationMs: Long, onSeek: (Long) -> Unit) {
+internal fun SeekBar(positionMs: Long, durationMs: Long, onSeek: (Long) -> Unit) {
     var dragging by remember { mutableStateOf(false) }
     var dragFraction by remember { mutableFloatStateOf(0f) }
 

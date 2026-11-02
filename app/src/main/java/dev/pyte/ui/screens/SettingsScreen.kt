@@ -45,6 +45,7 @@ fun SettingsScreen(contentPadding: PaddingValues, viewModel: SettingsViewModel =
     val busy by viewModel.busy.collectAsStateWithLifecycle()
     val message by viewModel.message.collectAsStateWithLifecycle()
     val loadFailed by viewModel.loadFailed.collectAsStateWithLifecycle()
+    val offlineBytes by viewModel.offlineBytes.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(message) {
         message?.let { snackbar.showSnackbar(it); viewModel.dismissMessage() }
@@ -56,6 +57,25 @@ fun SettingsScreen(contentPadding: PaddingValues, viewModel: SettingsViewModel =
                 Text("Please close and reopen the app to try again. No settings were changed.", Modifier.padding(20.dp))
             } else {
                 SettingsContent(settings, busy, viewModel::skipSilence, viewModel::recordHistory, viewModel::clearHistory)
+                settings?.let { value ->
+                    Column(Modifier.padding(20.dp)) {
+                        SettingsSection("Offline downloads") {
+                            Text("${offlineBytes / (1024 * 1024)} MB used · ${value.downloadLimitMb} MB limit",
+                                Modifier.padding(16.dp), style = MaterialTheme.typography.titleMedium)
+                            Text("Only playlists you mark for offline use are downloaded, on Wi-Fi only. Existing downloads are never automatically evicted to make room.",
+                                Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Separate temporary caches: audio up to 1.5 GB, artwork up to 96 MB, lyrics up to 8 MB.",
+                                Modifier.padding(16.dp), style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            SettingsSwitch("Pause downloads", "Playback of completed downloads stays available.",
+                                value.downloadsPaused, !busy, viewModel::pauseDownloads)
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                                TextButton(onClick = { viewModel.downloadLimit((value.downloadLimitMb / 2).coerceAtLeast(512)) }, enabled = !busy) { Text("Lower limit") }
+                                TextButton(onClick = { viewModel.downloadLimit((value.downloadLimitMb * 2).coerceAtMost(16384)) }, enabled = !busy) { Text("Raise limit") }
+                            }
+                        }
+                    }
+                }
             }
         }
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(horizontal = 20.dp))
@@ -91,7 +111,7 @@ internal fun SettingsContent(
         SettingsSection("Your privacy") {
             Text("Your playlists, favorites, history and settings stay on this device. No Google login. Android cloud backup and device transfer are disabled.",
                 Modifier.padding(16.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Online searches, streaming and playlist imports connect to YouTube; artwork may load from its image servers. An internet connection is required. The streaming cache is not an offline download.",
+            Text("Online searches, streaming and playlist imports connect to YouTube; artwork may load from its image servers. Lyrics requests send song title, artist and duration to LRCLIB. Available lyrics are cached locally. Only completed playlist downloads guarantee offline playback; the streaming cache does not.",
                 Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         SettingsSection("About PYTE") {

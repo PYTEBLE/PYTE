@@ -157,7 +157,7 @@ class PlayerController @Inject constructor(
     }
 
     private companion object {
-        const val POSITION_TICK_MS = 500L
+        const val POSITION_TICK_MS = 200L
     }
 }
 
