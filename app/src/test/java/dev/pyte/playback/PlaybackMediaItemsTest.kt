@@ -4,6 +4,8 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertNotEquals
+import dev.pyte.domain.Track
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -12,6 +14,15 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class PlaybackMediaItemsTest {
+    @Test fun `queue identity is unique for duplicates and survives service reconstruction`() {
+        val song = Track("dQw4w9WgXcQ", "Song", "Artist", 1000, null)
+        val first = song.toMediaItem()
+        val second = song.toMediaItem()
+        val id = first.mediaMetadata.extras!!.getString("queueEntryId")
+        assertNotEquals(id, second.mediaMetadata.extras!!.getString("queueEntryId"))
+        assertEquals(id, resolvePlaybackItem(first).mediaMetadata.extras!!.getString("queueEntryId"))
+        assertEquals(song.videoId, resolvePlaybackItem(first).mediaId)
+    }
     @Test
     fun `controller item without local configuration becomes playable`() {
         val metadata = MediaMetadata.Builder().setTitle("Test song").setArtist("Test artist").build()

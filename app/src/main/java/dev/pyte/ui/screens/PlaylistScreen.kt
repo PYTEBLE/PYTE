@@ -40,6 +40,11 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Switch
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import dev.pyte.ui.theme.LocalLivingUi
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -59,8 +64,6 @@ import dev.pyte.ui.components.Artwork
 import dev.pyte.ui.components.EmptyState
 import dev.pyte.ui.components.TrackRow
 import dev.pyte.ui.components.BrandButton
-import dev.pyte.ui.theme.PyteAccent
-import dev.pyte.ui.theme.PyteBrandStart
 import dev.pyte.ui.viewmodels.PlaylistUiState
 import dev.pyte.ui.viewmodels.PlaylistViewModel
 
@@ -130,7 +133,7 @@ fun PlaylistScreen(
                         item(key = "header") {
                             Column(
                                 Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(
-                                    PyteBrandStart.copy(alpha = 0.30f), MaterialTheme.colorScheme.background,
+                                    MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.background,
                                 ))).padding(20.dp),
                             ) {
                                 Artwork(playlist.thumbnailUrl, Modifier.size(200.dp).align(Alignment.CenterHorizontally), RoundedCornerShape(16.dp))
@@ -142,18 +145,31 @@ fun PlaylistScreen(
                                  Spacer(Modifier.height(16.dp))
                                 val enabled = playlist.id in selected
                                 val relevant = downloads.filter { d -> tracks.any { it.videoId == d.videoId } }
-                                val complete = relevant.count { it.state == "Downloaded" }
+                                val complete = tracks.count { track -> relevant.any { it.videoId == track.videoId && it.state == "Downloaded" } }
+                                val fraction = if (tracks.isEmpty()) 0f else tracks.sumOf { track ->
+                                    val record = relevant.firstOrNull { it.videoId == track.videoId }
+                                    when {
+                                        record?.state == "Downloaded" -> 1.0
+                                        record != null && record.total > 0 -> (record.bytes.toDouble() / record.total).coerceIn(0.0, 1.0)
+                                        else -> 0.0
+                                    }
+                                }.toFloat() / tracks.size
+                                val ring by animateFloatAsState(fraction, tween(LocalLivingUi.current.duration(280)), label = "offlineProgress")
                                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                     Column(Modifier.weight(1f)) {
                                         Text("Available offline", style = MaterialTheme.typography.titleMedium)
                                         Text(if (enabled) "$complete / ${tracks.size} downloaded · Wi-Fi only" else "Download this playlist only",
                                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
+                                    if (enabled) CircularProgressIndicator(progress = { ring }, strokeWidth = 3.dp,
+                                        modifier = Modifier.padding(horizontal = 8.dp).size(32.dp)
+                                            .semantics { contentDescription = "Offline download progress" })
                                     Switch(checked = enabled, onCheckedChange = viewModel::offlineEnabled, enabled = !action.busy)
                                 }
                                 if (enabled) {
                                     relevant.firstOrNull { it.state != "Downloaded" }?.let { download ->
-                                        Text(download.error ?: download.state, style = MaterialTheme.typography.bodySmall, color = PyteAccent)
+                                        Text(download.error ?: download.state, style = MaterialTheme.typography.bodySmall,
+                                            color = if (download.error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
                                         if (download.total > 0) LinearProgressIndicator(
                                             progress = { (download.bytes.toFloat() / download.total).coerceIn(0f, 1f) },
                                             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp))

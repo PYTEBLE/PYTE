@@ -34,6 +34,7 @@ data class PlayerUiState(
     val shuffle: Boolean = false,
     val repeat: Int = Player.REPEAT_MODE_OFF,
     val errorMessage: String? = null,
+    val queueEntryIds: List<String> = emptyList(),
 ) {
     val hasItems: Boolean get() = queue.isNotEmpty()
 }
@@ -153,6 +154,9 @@ class PlayerController @Inject constructor(
             shuffle = player.shuffleModeEnabled,
             repeat = player.repeatMode,
             errorMessage = _state.value.errorMessage,
+            queueEntryIds = (0 until player.mediaItemCount).map { index ->
+                player.getMediaItemAt(index).mediaMetadata.extras?.getString("queueEntryId") ?: "external:$index"
+            },
         )
     }
 
@@ -170,7 +174,10 @@ internal fun Track.toMediaItem(): MediaItem = MediaItem.Builder()
         MediaMetadata.Builder()
             .setTitle(title)
             .setArtist(artist)
-            .setExtras(Bundle().apply { putLong("durationMs", durationMs) })
+            .setExtras(Bundle().apply {
+                putLong("durationMs", durationMs)
+                putString("queueEntryId", java.util.UUID.randomUUID().toString())
+            })
             .setArtworkUri(thumbnailUrl?.let(android.net.Uri::parse))
             .build(),
     )
