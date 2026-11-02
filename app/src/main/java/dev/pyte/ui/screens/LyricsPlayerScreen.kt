@@ -35,8 +35,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
 import dev.pyte.data.lyrics.LrcParser
 import dev.pyte.ui.components.Artwork
-import dev.pyte.ui.theme.PyteAccent
-import dev.pyte.ui.theme.PyteBrandGradient
 import dev.pyte.ui.viewmodels.PlayerViewModel
 import kotlin.math.PI
 import kotlin.math.sin
@@ -48,17 +46,21 @@ internal fun LyricsPlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit,
     val favorites by viewModel.favoriteIds.collectAsStateWithLifecycle()
     val track = state.current ?: return
     var queue by rememberSaveable { mutableStateOf(false) }
+    var equalizerOpen by rememberSaveable { mutableStateOf(false) }
+    if (equalizerOpen) EqualizerSheet(onDismiss = { equalizerOpen = false })
     var request by remember(track.videoId) { mutableIntStateOf(0) }
     val motion = ValueAnimator.areAnimatorsEnabled()
+    val accent = MaterialTheme.colorScheme.primary
     LaunchedEffect(track.videoId, request) { viewModel.loadLyrics(track) }
     if (queue) QueueSheet(state, { queue = false }, viewModel::playIndex,
         viewModel::moveQueueItem, viewModel::removeQueueItem)
 
-    Box(Modifier.fillMaxSize().background(Color(0xFF10091D))) {
+    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Artwork(track.thumbnailUrl, Modifier.fillMaxSize().graphicsLayer { scaleX = 1.15f; scaleY = 1.15f }
             .blur(36.dp), RoundedCornerShape(0.dp), videoId = track.videoId)
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(
-            Color(0xFF190B2D).copy(alpha = .65f), Color(0xFF170B29).copy(alpha = .78f), Color(0xFF0D0819).copy(alpha = .97f)))))
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = .82f),
+            MaterialTheme.colorScheme.background.copy(alpha = .86f), MaterialTheme.colorScheme.background.copy(alpha = .98f)))))
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 20.dp)) {
             Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onClose) { Icon(Icons.Default.KeyboardArrowDown, "Close player") }
@@ -69,16 +71,17 @@ internal fun LyricsPlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit,
                         overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
                 }
                 val favorite = track.videoId in favorites
+                IconButton(onClick = { equalizerOpen = true }) { Icon(Icons.Default.Equalizer, "Open equalizer") }
                 IconButton(onClick = { viewModel.toggleFavorite(track, !favorite) }) {
                     Icon(if (favorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        if (favorite) "Remove from favorites" else "Add to favorites", tint = PyteAccent)
+                        if (favorite) "Remove from favorites" else "Add to favorites", tint = accent)
                 }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = onCover) { Text("Cover", color = Color.White.copy(alpha = .65f)) }
-                Surface(shape = CircleShape, color = PyteAccent.copy(alpha = .18f),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, PyteAccent.copy(alpha = .7f))) {
+                Surface(shape = CircleShape, color = accent.copy(alpha = .18f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = .7f))) {
                     Text("Lyrics", Modifier.padding(horizontal = 28.dp, vertical = 8.dp), fontWeight = FontWeight.SemiBold)
                 }
                 TextButton(onClick = { queue = true }) { Text("Queue", color = Color.White.copy(alpha = .65f)) }
@@ -87,7 +90,7 @@ internal fun LyricsPlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit,
             BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
                 val lyrics = lyricsState.lyrics.takeIf { lyricsState.trackId == track.videoId }
                 when {
-                    lyricsState.loading || lyricsState.trackId != track.videoId -> CircularProgressIndicator(Modifier.align(Alignment.Center), color = PyteAccent)
+                    lyricsState.loading || lyricsState.trackId != track.videoId -> CircularProgressIndicator(Modifier.align(Alignment.Center), color = accent)
                     lyrics?.instrumental == true -> Text("Instrumental · no lyrics", Modifier.align(Alignment.Center), color = Color.White.copy(alpha = .7f))
                     lyrics?.synced == true -> key(track.videoId) {
                         val listState = rememberLazyListState()
@@ -121,7 +124,7 @@ internal fun LyricsPlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit,
                                     viewModel.seekTo(line.timeMs); follow = true
                                 }.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                                     Box(Modifier.width(4.dp).height(56.dp).clip(CircleShape)
-                                        .background(if (selected) PyteAccent else Color.Transparent))
+                                        .background(if (selected) accent else Color.Transparent))
                                     Text(line.text.ifBlank { "♪" }, Modifier.padding(start = 16.dp, end = 4.dp)
                                         .graphicsLayer { scaleX = scale; scaleY = scale; transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, .5f) },
                                         color = color, fontSize = 27.sp, lineHeight = 34.sp, fontWeight = FontWeight.Bold)
@@ -134,7 +137,7 @@ internal fun LyricsPlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit,
                     }
                     !lyrics?.plain.isNullOrBlank() -> {
                         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 28.dp)) {
-                            item { Text("No synchronized timing available", color = PyteAccent,
+                            item { Text("No synchronized timing available", color = accent,
                                 style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(bottom = 20.dp)) }
                             item { Text(lyrics!!.plain!!, fontSize = 25.sp, lineHeight = 36.sp,
                                 fontWeight = FontWeight.SemiBold, color = Color.White.copy(alpha = .85f)) }
@@ -153,19 +156,19 @@ internal fun LyricsPlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit,
             Row(Modifier.fillMaxWidth().padding(bottom = 12.dp), horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = viewModel::toggleShuffle) {
-                    Icon(Icons.Default.Shuffle, "Shuffle", tint = if (state.shuffle) PyteAccent else Color.White.copy(alpha = .6f))
+                    Icon(Icons.Default.Shuffle, "Shuffle", tint = if (state.shuffle) accent else Color.White.copy(alpha = .6f))
                 }
                 IconButton(onClick = viewModel::previous) { Icon(Icons.Default.SkipPrevious, "Previous", Modifier.size(34.dp)) }
                 FilledIconButton(onClick = viewModel::togglePlayPause,
-                    modifier = Modifier.size(72.dp).background(PyteBrandGradient, CircleShape),
+                    modifier = Modifier.size(72.dp).background(Brush.linearGradient(listOf(accent, MaterialTheme.colorScheme.tertiary)), CircleShape),
                     colors = IconButtonDefaults.filledIconButtonColors(containerColor = Color.Transparent)) {
                     Icon(if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        if (state.isPlaying) "Pause" else "Play", Modifier.size(36.dp))
+                        if (state.isPlaying) "Pause" else "Play", Modifier.size(36.dp), tint = MaterialTheme.colorScheme.onPrimary)
                 }
                 IconButton(onClick = viewModel::next) { Icon(Icons.Default.SkipNext, "Next", Modifier.size(34.dp)) }
                 IconButton(onClick = viewModel::cycleRepeat) {
                     Icon(if (state.repeat == Player.REPEAT_MODE_ONE) Icons.Default.RepeatOne else Icons.Default.Repeat,
-                        "Repeat", tint = if (state.repeat != Player.REPEAT_MODE_OFF) PyteAccent else Color.White.copy(alpha = .6f))
+                        "Repeat", tint = if (state.repeat != Player.REPEAT_MODE_OFF) accent else Color.White.copy(alpha = .6f))
                 }
             }
         }
@@ -174,6 +177,7 @@ internal fun LyricsPlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit,
 
 @Composable
 private fun LyricWave(animate: Boolean, modifier: Modifier) {
+    val accent = MaterialTheme.colorScheme.primary
     val phase = if (animate) {
         val transition = rememberInfiniteTransition(label = "lyricWave")
         transition.animateFloat(0f, (2 * PI).toFloat(), infiniteRepeatable(tween(6000, easing = LinearEasing)), label = "phase").value
@@ -186,11 +190,11 @@ private fun LyricWave(animate: Boolean, modifier: Modifier) {
                 val y = size.height / 2 + sin(step / 100f * PI * 3 + phase + layer * .65).toFloat() * size.height * .26f
                 if (step == 0) path.moveTo(x, y) else path.lineTo(x, y)
             }
-            drawPath(path, PyteAccent.copy(alpha = .07f / (layer + 1)),
+            drawPath(path, accent.copy(alpha = .07f / (layer + 1)),
                 style = androidx.compose.ui.graphics.drawscope.Stroke(12.dp.toPx()))
-            drawPath(path, PyteAccent.copy(alpha = .15f / (layer + 1)),
+            drawPath(path, accent.copy(alpha = .15f / (layer + 1)),
                 style = androidx.compose.ui.graphics.drawscope.Stroke(5.dp.toPx()))
-            drawPath(path, PyteAccent.copy(alpha = .75f / (layer + 1)),
+            drawPath(path, accent.copy(alpha = .75f / (layer + 1)),
                 style = androidx.compose.ui.graphics.drawscope.Stroke((2f - layer * .4f).dp.toPx()))
         }
     }

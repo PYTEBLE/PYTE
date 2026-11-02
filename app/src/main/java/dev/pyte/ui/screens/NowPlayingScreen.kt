@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -64,10 +65,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
 import dev.pyte.ui.components.Artwork
 import dev.pyte.ui.components.formatDuration
-import dev.pyte.ui.theme.PyteAccent
-import dev.pyte.ui.theme.PyteBrandStart
-import dev.pyte.ui.theme.PyteBrandGradient
-import dev.pyte.ui.theme.PyteOnBrand
 import dev.pyte.R
 import dev.pyte.ui.viewmodels.PlayerViewModel
 
@@ -81,6 +78,8 @@ fun NowPlayingScreen(
     val track = state.current
     var queueOpen by rememberSaveable { mutableStateOf(false) }
     var lyricsOpen by rememberSaveable { mutableStateOf(false) }
+    var equalizerOpen by rememberSaveable { mutableStateOf(false) }
+    if (equalizerOpen) EqualizerSheet(onDismiss = { equalizerOpen = false })
 
     if (lyricsOpen && track != null) {
         LyricsPlayerScreen(viewModel, onClose, onCover = { lyricsOpen = false })
@@ -97,7 +96,7 @@ fun NowPlayingScreen(
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    listOf(PyteBrandStart.copy(alpha = 0.20f), androidx.compose.ui.graphics.Color.Transparent),
+                    listOf(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.background),
                 ),
             )
             .statusBarsPadding()
@@ -112,10 +111,10 @@ fun NowPlayingScreen(
             IconButton(onClick = onClose) {
                 Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Close player")
             }
-            Spacer(Modifier.weight(1f))
-            Text("NOW PLAYING", style = MaterialTheme.typography.labelMedium, color = PyteAccent, letterSpacing = 2.sp)
-            Spacer(Modifier.weight(1f))
+            Text("NOW PLAYING", modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, letterSpacing = 2.sp)
             TextButton(onClick = { lyricsOpen = true }, enabled = track != null) { Text("Lyrics") }
+            IconButton(onClick = { equalizerOpen = true }) { Icon(Icons.Default.Equalizer, "Open equalizer") }
             IconButton(onClick = { queueOpen = true }) {
                 Icon(Icons.Default.QueueMusic, contentDescription = "Open queue")
             }
@@ -140,7 +139,7 @@ fun NowPlayingScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
-                .shadow(24.dp, RoundedCornerShape(26.dp), ambientColor = PyteBrandStart, spotColor = PyteBrandStart)
+                .shadow(24.dp, RoundedCornerShape(26.dp), ambientColor = MaterialTheme.colorScheme.primary, spotColor = MaterialTheme.colorScheme.primary)
                 .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(26.dp)),
             shape = RoundedCornerShape(26.dp),
         )
@@ -169,7 +168,7 @@ fun NowPlayingScreen(
                 Icon(
                     imageVector = if (isFav) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                     contentDescription = if (isFav) "Remove from favorites" else "Add to favorites",
-                    tint = if (isFav) PyteAccent else MaterialTheme.colorScheme.onSurface,
+                    tint = if (isFav) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                 )
             }
         }
@@ -193,7 +192,7 @@ fun NowPlayingScreen(
                 Icon(
                     Icons.Default.Shuffle,
                     contentDescription = "Shuffle",
-                    tint = if (state.shuffle) PyteAccent else MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = if (state.shuffle) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             IconButton(onClick = viewModel::previous, modifier = Modifier.size(56.dp)) {
@@ -201,14 +200,14 @@ fun NowPlayingScreen(
             }
             FilledIconButton(
                 onClick = viewModel::togglePlayPause,
-                modifier = Modifier.size(80.dp).background(PyteBrandGradient, CircleShape),
+                modifier = Modifier.size(80.dp).background(Brush.linearGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary)), CircleShape),
                 colors = IconButtonDefaults.filledIconButtonColors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
             ) {
                 Icon(
                     imageVector = if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = if (state.isPlaying) "Pause" else "Play",
                     modifier = Modifier.size(40.dp),
-                    tint = PyteOnBrand,
+                    tint = MaterialTheme.colorScheme.onPrimary,
                 )
             }
             IconButton(onClick = viewModel::next, modifier = Modifier.size(56.dp)) {
@@ -219,7 +218,7 @@ fun NowPlayingScreen(
                 Icon(
                     repeatIcon,
                     contentDescription = "Repeat",
-                    tint = if (state.repeat == Player.REPEAT_MODE_OFF) MaterialTheme.colorScheme.onSurfaceVariant else PyteAccent,
+                    tint = if (state.repeat == Player.REPEAT_MODE_OFF) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
                 )
             }
         }
@@ -254,8 +253,8 @@ internal fun SeekBar(positionMs: Long, durationMs: Long, onSeek: (Long) -> Unit)
                 dragging = false
             },
             colors = SliderDefaults.colors(
-                thumbColor = PyteAccent,
-                activeTrackColor = PyteAccent,
+                thumbColor = MaterialTheme.colorScheme.primary,
+                activeTrackColor = MaterialTheme.colorScheme.primary,
             ),
         )
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {

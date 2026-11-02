@@ -47,6 +47,8 @@ fun SettingsScreen(contentPadding: PaddingValues, viewModel: SettingsViewModel =
     val loadFailed by viewModel.loadFailed.collectAsStateWithLifecycle()
     val offlineBytes by viewModel.offlineBytes.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    var equalizerOpen by rememberSaveable { mutableStateOf(false) }
+    if (equalizerOpen) EqualizerSheet(onDismiss = { equalizerOpen = false })
     LaunchedEffect(message) {
         message?.let { snackbar.showSnackbar(it); viewModel.dismissMessage() }
     }
@@ -59,6 +61,15 @@ fun SettingsScreen(contentPadding: PaddingValues, viewModel: SettingsViewModel =
                 SettingsContent(settings, busy, viewModel::skipSilence, viewModel::recordHistory, viewModel::clearHistory)
                 settings?.let { value ->
                     Column(Modifier.padding(20.dp)) {
+                        SettingsSection("Sound") {
+                            TextButton(onClick = { equalizerOpen = true }, modifier = Modifier.padding(8.dp)) {
+                                Text("Equalizer & sound profiles")
+                            }
+                        }
+                        SettingsSection("Appearance") {
+                            SettingsSwitch("Dynamic cover theme", "Match player, lyrics and mini-player colors to the song cover. Your library keeps its violet theme.",
+                                value.dynamicCoverTheme, !busy, viewModel::dynamicCoverTheme)
+                        }
                         SettingsSection("Offline downloads") {
                             Text("${offlineBytes / (1024 * 1024)} MB used · ${value.downloadLimitMb} MB limit",
                                 Modifier.padding(16.dp), style = MaterialTheme.typography.titleMedium)
