@@ -29,6 +29,11 @@ import javax.inject.Inject
 import dev.pyte.data.offline.OfflineStore
 import dev.pyte.data.lyrics.Lyrics
 import dev.pyte.data.lyrics.LyricsRepository
+import dev.pyte.data.remote.CoverPaletteRepository
+import dev.pyte.data.settings.SettingsRepository
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.transformLatest
 
 private const val SHARE_TIMEOUT_MS = 5_000L
 
@@ -191,14 +196,25 @@ class LibraryViewModel @Inject constructor(
 }
 
 @HiltViewModel
+@OptIn(ExperimentalCoroutinesApi::class)
 class PlayerViewModel @Inject constructor(
     private val player: PlayerController,
     private val repo: LibraryRepository,
     private val diagnostics: PlaybackDiagnostics,
     private val lyricsRepository: LyricsRepository,
+    settings: SettingsRepository,
+    palette: CoverPaletteRepository,
 ) : ViewModel() {
 
     val state: StateFlow<PlayerUiState> = player.state
+    val coverColors = combine(player.state.map { it.current }.distinctUntilChanged(),
+        settings.settings.map { it.dynamicCoverTheme }.distinctUntilChanged()) { track, enabled -> track.takeIf { enabled } }
+        .transformLatest { track ->
+            emit(null)
+            if (track != null) emit(palette.colors(track))
+        }
+        .catch { emit(null) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SHARE_TIMEOUT_MS), null)
     private val _lyrics = MutableStateFlow(LyricsUiState())
     val lyrics = _lyrics.asStateFlow()
     suspend fun loadLyrics(track: Track) {

@@ -45,6 +45,7 @@ import dev.pyte.ui.screens.PlaylistScreen
 import dev.pyte.ui.screens.SearchScreen
 import dev.pyte.ui.screens.SettingsScreen
 import dev.pyte.ui.viewmodels.PlayerViewModel
+import dev.pyte.ui.theme.PlayerCoverTheme
 
 private object Routes {
     const val HOME = "home"
@@ -70,6 +71,7 @@ private val tabs = listOf(
 fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel()) {
     val nav = rememberNavController()
     val playerState by playerViewModel.state.collectAsStateWithLifecycle()
+    val coverColors by playerViewModel.coverColors.collectAsStateWithLifecycle()
     val report by playerViewModel.diagnosticReport.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val backStack by nav.currentBackStackEntryAsState()
@@ -108,6 +110,7 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel()) {
                 Column {
                     val current = playerState.current
                     if (current != null) {
+                        PlayerCoverTheme(coverColors) {
                         MiniPlayer(
                             title = current.title,
                             artist = current.artist,
@@ -121,7 +124,9 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel()) {
                             onOpen = { nav.navigate(Routes.NOW_PLAYING) },
                             onToggle = playerViewModel::togglePlayPause,
                             onNext = playerViewModel::next,
+                            videoId = current.videoId,
                         )
+                        }
                     }
                     NavigationBar(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)) {
                         tabs.forEach { tab ->
@@ -185,7 +190,7 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel()) {
                 popEnterTransition = { slideInVertically(initialOffsetY = { it }) },
                 popExitTransition = { slideOutVertically(targetOffsetY = { it }) },
             ) {
-                NowPlayingScreen(onClose = { nav.popBackStack() })
+                PlayerCoverTheme(coverColors) { NowPlayingScreen(onClose = { nav.popBackStack() }) }
             }
         }
     }

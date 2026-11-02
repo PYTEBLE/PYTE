@@ -38,6 +38,7 @@ class SettingsViewModel @Inject constructor(
     fun pauseDownloads(paused: Boolean) = update { repository.pauseDownloads(paused); if (!paused) offline.schedule() }
 
     fun skipSilence(enabled: Boolean) = update { repository.setSkipSilence(enabled) }
+    fun dynamicCoverTheme(enabled: Boolean) = update { repository.setDynamicCoverTheme(enabled) }
     fun recordHistory(enabled: Boolean) = update { library.setHistoryEnabled(enabled) }
     fun clearHistory() = update {
         library.clearHistory()
