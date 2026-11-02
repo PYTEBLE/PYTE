@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.0-alpha.4
+
+- Obtain an anonymous YouTube visitor session before requesting playback through the VISIONOS client.
+- Use a fresh playback nonce in the player request and its audio URLs; retain the matching User-Agent.
+- Prefer the session-backed player, keeping the previous clients as fallbacks. No login, account cookies,
+  third-party extraction backend, or NewPipe library dependency is added.
+- Include a copyable service-side diagnostic dialog so error details survive the Media3 controller boundary.
+- Stop automatic retry loops when every extraction client is exhausted.
+- Add anonymous-session tests and an opt-in real-device/emulator playback test.
+
+Verified: 31 unit tests, debug APK build, Android lint, and the live/background Android 11
+emulator test for the reported track `schönhauser (feat. Gustav)` (`YGr2G2fc48U`). The
+same track failed before session support. Background progress was checked over five seconds;
+long-running screen-off operation and the affected physical phone still need verification.
+
 ## 0.1.0-alpha.3
 
 - Probe audio URLs with a small byte-range request before selecting a YouTube client.

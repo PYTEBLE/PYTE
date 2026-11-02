@@ -28,7 +28,7 @@ playback remains active and its position advances. To reproduce a particular tra
 
 Without `livePlayback=true`, this network-dependent test is skipped.
 
-## Observed results (2026-11-02)
+## Observed results before anonymous session support (2026-11-02)
 
 - Android 11 emulator: the default public test track passed the live/background test.
 - The reported track, `schönhauser (feat. Gustav)` (`YGr2G2fc48U`), failed the live test.
@@ -48,5 +48,23 @@ Stages: `player-api` (API request), `audio-format` (player status/format selecti
 `audio-probe` (actual media access), `client` (temporarily excluded after a rejection).
 
 Do not treat repeated `LOGIN_REQUIRED`/HTTP 403 responses as transient connectivity.
-The current direct-client resolver is not a reliable general YouTube extraction solution;
-it needs a maintained extraction strategy that accounts for current YouTube challenges.
+The original direct-client resolver was not a reliable general YouTube extraction solution.
+The anonymous visitor session and playback-nonce flow added for alpha.4 addresses missing
+request context, but does not remove YouTube restrictions or guarantee future availability.
+
+## Verified with alpha.4
+
+- 31 unit tests passed; debug APK and instrumentation APK compiled; Android lint passed.
+- The live/background test for `YGr2G2fc48U` passed on the Android 11 emulator (one test,
+  zero failures, zero skipped). It required real audio playback to start, then checked that
+  playback stayed active and its position advanced after opening the Home screen.
+- The background interval in that test is five seconds, not a long-running battery/Doze test.
+- The affected physical phone and its WLAN/mobile networks have not been tested locally.
+
+## Protocol references
+
+The anonymous bootstrap flow was checked against the current behavior described by
+[NewPipeExtractor's YoutubeStreamHelper](https://github.com/TeamNewPipe/NewPipeExtractor/blob/dev/extractor/src/main/java/org/schabi/newpipe/extractor/services/youtube/YoutubeStreamHelper.java):
+obtain a valid visitor identifier, use the VISIONOS player endpoint, and accompany media
+URLs with the playback nonce. PYTE implements this protocol in its existing Kotlin/OkHttp
+client; NewPipeExtractor is not bundled as an application dependency.
