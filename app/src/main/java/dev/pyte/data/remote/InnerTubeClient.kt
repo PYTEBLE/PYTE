@@ -148,6 +148,19 @@ class InnerTubeClient @Inject constructor(
         )
     }
 
+    suspend fun search(query: String, continuation: String? = null): JsonObject {
+        val body = buildJsonObject {
+            putJsonObject("context") { putWebRemix() }
+            if (continuation == null) {
+                put("query", query)
+                put("params", "EgWKAQIIAWoKEAkQBRAKEAMQBA%3D%3D") // Songs, not albums/artists/playlists.
+            } else {
+                put("continuation", continuation)
+            }
+        }
+        return post("$WEB_REMIX_HOST/youtubei/v1/search?prettyPrint=false&key=$WEB_REMIX_KEY", WEB_UA, body)
+    }
+
     private suspend fun post(
         url: String,
         userAgent: String,

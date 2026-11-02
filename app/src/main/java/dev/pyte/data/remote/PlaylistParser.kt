@@ -31,7 +31,7 @@ object PlaylistParser {
         val owner = header?.get("straplineTextOne")?.let(::runsText)?.takeIf { it.isNotBlank() }
         val thumbnail = header?.let { thumbnailUrl(it) }
 
-        val tracks = findObjects(root, "musicResponsiveListItemRenderer").mapNotNull(::parseTrack)
+        val tracks = findObjects(root, "musicResponsiveListItemRenderer").mapNotNull { parseTrack(it) }
 
         val continuation = findObjects(root, "continuationItemRenderer")
             .firstNotNullOfOrNull { renderer ->
@@ -43,9 +43,16 @@ object PlaylistParser {
         return PlaylistPage(title, owner, thumbnail, tracks, continuation)
     }
 
-    private fun parseTrack(item: JsonObject): Track? {
-        val videoId = item["playlistItemData"]?.asObject()?.get("videoId")?.asString() ?: return null
+    internal fun parseTrack(item: JsonObject, searchResult: Boolean = false): Track? {
         val flex = item["flexColumns"]?.asArray().orEmpty()
+        val titleText = flex.getOrNull(0)?.asObject()?.get("musicResponsiveListItemFlexColumnRenderer")
+            ?.asObject()?.get("text")?.asObject()
+        val searchVideoId = if (searchResult) titleText?.get("runs")?.asArray()?.firstOrNull()
+            ?.asObject()?.get("navigationEndpoint")?.asObject()?.get("watchEndpoint")
+            ?.asObject()?.get("videoId")?.asString() else null
+        val videoId = item["playlistItemData"]?.asObject()?.get("videoId")?.asString()
+            ?: searchVideoId ?: return null
+        if (!Regex("[A-Za-z0-9_-]{11}").matches(videoId)) return null
 
         val titleRuns = flex.getOrNull(0)?.columnText()
         val title = titleRuns?.let { runs -> runs.joinToString("") { it.text } }?.trim().orEmpty()
@@ -56,7 +63,8 @@ object PlaylistParser {
 
         val durationText = (flex.drop(1) + item["fixedColumns"]?.asArray().orEmpty())
             .asSequence()
-            .mapNotNull { it.columnText()?.firstOrNull()?.text?.trim() }
+            .flatMap { it.columnText().orEmpty().asSequence() }
+            .map { it.text.trim() }
             .firstOrNull { durationPattern.matches(it) }
 
         return Track(
@@ -102,7 +110,7 @@ object PlaylistParser {
     }
 
     /** Depth-first search for every object stored under [key], in document order. */
-    private fun findObjects(root: JsonElement, key: String): List<JsonObject> {
+    internal fun findObjects(root: JsonElement, key: String): List<JsonObject> {
         val out = mutableListOf<JsonObject>()
         fun visit(element: JsonElement) {
             when (element) {
