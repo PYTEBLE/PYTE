@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.2.0-alpha.4
+
+**Installation warning:** this release uses a different debug signing key from earlier
+releases. Uninstall the previous app before installing; this deletes its local library,
+favorites, history and settings. No export/restore is available yet.
 
 - Opt individual library playlists into durable offline downloads on unmetered Wi-Fi. Reuse
   shared songs, resume validated partial files, and play completed audio without online URL resolution.
