@@ -85,7 +85,7 @@ fun PlaylistScreen(
 
     Scaffold(
         modifier = Modifier.padding(contentPadding),
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(snackbar) },
     ) { inner ->
@@ -104,7 +104,7 @@ fun PlaylistScreen(
                                 renameText = (detail as PlaylistUiState.Loaded).summary.title
                                 renameOpen = true
                             })
-                            DropdownMenuItem(text = { Text("Refresh from YouTube") }, onClick = {
+                            if (!(detail as PlaylistUiState.Loaded).summary.isLocal) DropdownMenuItem(text = { Text("Refresh from YouTube") }, onClick = {
                                 menuOpen = false; viewModel.refresh()
                             })
                             DropdownMenuItem(text = { Text("Delete playlist") }, onClick = {

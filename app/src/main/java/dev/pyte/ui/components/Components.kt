@@ -96,6 +96,7 @@ fun TrackRow(
     modifier: Modifier = Modifier,
     onPlayNext: (() -> Unit)? = null,
     onAddToQueue: (() -> Unit)? = null,
+    onAddToPlaylist: (() -> Unit)? = null,
 ) {
     var menuOpen by remember(track.videoId) { mutableStateOf(false) }
     Row(
@@ -141,12 +142,15 @@ fun TrackRow(
                 tint = if (isFavorite) PyteAccent else MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        if (onPlayNext != null || onAddToQueue != null) {
+        if (onPlayNext != null || onAddToQueue != null || onAddToPlaylist != null) {
             Box {
                 IconButton(onClick = { menuOpen = true }) {
                     Icon(Icons.Default.MoreVert, contentDescription = "Options for ${track.title}")
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    onAddToPlaylist?.let { action ->
+                        DropdownMenuItem(text = { Text("Add to local playlist") }, onClick = { menuOpen = false; action() })
+                    }
                     onPlayNext?.let { action ->
                         DropdownMenuItem(text = { Text("Play next") }, onClick = { menuOpen = false; action() })
                     }

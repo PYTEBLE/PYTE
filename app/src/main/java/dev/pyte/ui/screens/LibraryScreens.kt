@@ -1,6 +1,9 @@
 package dev.pyte.ui.screens
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,9 +19,25 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -30,6 +49,8 @@ import dev.pyte.ui.components.ScreenHeading
 import dev.pyte.ui.viewmodels.LibraryViewModel
 import dev.pyte.playback.PlayerUiState
 import dev.pyte.ui.viewmodels.PlayerViewModel
+import dev.pyte.ui.viewmodels.MusicSearchViewModel
+import dev.pyte.ui.components.AddToPlaylistDialog
 
 @Composable
 fun FavoritesScreen(
@@ -67,17 +88,35 @@ fun SearchScreen(
     contentPadding: PaddingValues,
     viewModel: LibraryViewModel = hiltViewModel(),
     playerViewModel: PlayerViewModel = hiltViewModel(),
+    musicViewModel: MusicSearchViewModel = hiltViewModel(),
 ) {
-    val query by viewModel.query.collectAsStateWithLifecycle()
-    val results by viewModel.results.collectAsStateWithLifecycle()
+    val query by musicViewModel.query.collectAsStateWithLifecycle()
+    val localResults by viewModel.results.collectAsStateWithLifecycle()
+    val online by musicViewModel.online.collectAsStateWithLifecycle()
     val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
     val playerState by playerViewModel.state.collectAsStateWithLifecycle()
+    val playlists by musicViewModel.playlists.collectAsStateWithLifecycle()
+    val selected by musicViewModel.selected.collectAsStateWithLifecycle()
+    val saving by musicViewModel.saving.collectAsStateWithLifecycle()
+    val message by musicViewModel.message.collectAsStateWithLifecycle()
+    val saveError by musicViewModel.saveError.collectAsStateWithLifecycle()
+    var onlineMode by rememberSaveable { mutableStateOf(true) }
+    val results = if (onlineMode) online.tracks else localResults
+    val snackbar = remember { SnackbarHostState() }
+    val keyboard = LocalSoftwareKeyboardController.current
+    LaunchedEffect(query) { viewModel.setQuery(query) }
+    LaunchedEffect(message) { message?.let { snackbar.showSnackbar(it); musicViewModel.consumeMessage() } }
 
-    Column(modifier = Modifier.fillMaxSize().padding(contentPadding).statusBarsPadding()) {
-        ScreenHeading("Find your sound", "Search songs and artists in your library")
+    Box(Modifier.fillMaxSize().padding(contentPadding).statusBarsPadding()) {
+    Column(Modifier.fillMaxSize()) {
+        ScreenHeading("Find your sound", if (onlineMode) "Discover songs on YouTube Music" else "Search your on-device library")
+        Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(selected = onlineMode, onClick = { onlineMode = true }, label = { Text("YouTube Music") })
+            FilterChip(selected = !onlineMode, onClick = { onlineMode = false }, label = { Text("Your library") })
+        }
         OutlinedTextField(
             value = query,
-            onValueChange = viewModel::setQuery,
+            onValueChange = musicViewModel::setQuery,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
@@ -87,19 +126,32 @@ fun SearchScreen(
                 focusedContainerColor = MaterialTheme.colorScheme.surface,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
             ),
-            placeholder = { Text("Songs and artists in your library") },
+            placeholder = { Text(if (onlineMode) "Search songs and artists online" else "Songs and artists in your library") },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            trailingIcon = {
+                if (onlineMode) IconButton(onClick = { keyboard?.hide(); musicViewModel.submit() }, enabled = query.isNotBlank() && !online.loading) {
+                    Icon(Icons.Default.Search, contentDescription = "Search YouTube Music")
+                }
+            },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = { keyboard?.hide(); if (onlineMode) musicViewModel.submit() }),
         )
+        if (onlineMode && online.loading) LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 8.dp))
+        if (onlineMode && online.error != null) {
+            Text(online.error!!, Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error)
+            TextButton(onClick = { musicViewModel.submit(loadMore = online.tracks.isNotEmpty()) }) { Text("Try again") }
+        }
         when {
-            query.isBlank() -> EmptyState(
-                title = "Search your library",
-                body = "Find any song or artist across all your imported playlists.",
+            query.isBlank() || (onlineMode && !online.searched) -> EmptyState(
+                title = if (onlineMode) "Your next favorite is out there" else "Search your library",
+                body = if (onlineMode) "Search YouTube Music, then use a song's menu to add it to a local playlist. No account needed."
+                    else "Find songs across your playlists, favorites and listening history.",
             )
-            results.isEmpty() -> EmptyState(
+            results.isEmpty() && !(onlineMode && (online.loading || online.error != null)) -> EmptyState(
                 title = "No matches",
-                body = "Nothing in your library matches \"$query\".",
+                body = if (onlineMode) "No songs found. Try another title or artist." else "Nothing in your library matches \"$query\".",
             )
-            else -> TrackList(
+            results.isNotEmpty() -> TrackList(
                 tracks = results,
                 playerState = playerState,
                 favoriteIds = favoriteIds,
@@ -107,8 +159,18 @@ fun SearchScreen(
                 onToggleFavorite = { track -> viewModel.toggleFavorite(track, track.videoId !in favoriteIds) },
                 onPlayNext = viewModel::enqueueNext,
                 onAddToQueue = viewModel::enqueueLater,
+                onAddToPlaylist = musicViewModel::select,
+                onLoadMore = if (onlineMode && online.continuation != null) ({ musicViewModel.submit(loadMore = true) }) else null,
+                loading = onlineMode && online.loading,
             )
         }
+    }
+    SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(16.dp))
+    }
+    selected?.let { track ->
+        AddToPlaylistDialog(track, playlists, saving, saveError, musicViewModel::dismissSelection,
+            onChoose = { musicViewModel.addToPlaylist(id = it) },
+            onCreate = { musicViewModel.addToPlaylist(newTitle = it) })
     }
 }
 
@@ -121,6 +183,9 @@ private fun TrackList(
     onToggleFavorite: (Track) -> Unit,
     onPlayNext: (Track) -> Unit,
     onAddToQueue: (Track) -> Unit,
+    onAddToPlaylist: ((Track) -> Unit)? = null,
+    onLoadMore: (() -> Unit)? = null,
+    loading: Boolean = false,
 ) {
     LazyColumn(contentPadding = PaddingValues(bottom = 120.dp)) {
         itemsIndexed(tracks, key = { _, t -> t.videoId }) { index, track ->
@@ -132,7 +197,13 @@ private fun TrackList(
                 onFavoriteClick = { onToggleFavorite(track) },
                 onPlayNext = { onPlayNext(track) },
                 onAddToQueue = { onAddToQueue(track) },
+                onAddToPlaylist = onAddToPlaylist?.let { action -> { action(track) } },
             )
+        }
+        if (onLoadMore != null) item(key = "load-more") {
+            TextButton(onClick = onLoadMore, enabled = !loading, modifier = Modifier.fillMaxWidth()) {
+                Text(if (loading) "Loading…" else "Load more songs")
+            }
         }
     }
 }
