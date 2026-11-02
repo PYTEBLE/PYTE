@@ -37,6 +37,7 @@ class PlaybackService : MediaSessionService() {
     @Inject lateinit var streamCache: SimpleCache
     @Inject lateinit var resolver: StreamResolver
     @Inject lateinit var okHttp: OkHttpClient
+    @Inject lateinit var diagnostics: PlaybackDiagnostics
 
     private var session: MediaSession? = null
     private var player: ExoPlayer? = null
@@ -82,10 +83,14 @@ class PlaybackService : MediaSessionService() {
         exo.addListener(object : Player.Listener {
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 retriesForItem = 0
+                diagnostics.clear()
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
-                if (playbackState == Player.STATE_READY) retriesForItem = 0
+                if (playbackState == Player.STATE_READY) {
+                    retriesForItem = 0
+                    diagnostics.clear()
+                }
             }
 
             override fun onPlayerError(error: PlaybackException) {
@@ -128,6 +133,7 @@ class PlaybackService : MediaSessionService() {
      */
     private fun recoverFromError(exo: ExoPlayer, error: PlaybackException) {
         if (retriesForItem >= MAX_RETRIES_PER_ITEM) {
+            diagnostics.record(error)
             retriesForItem = 0
             exo.pause()
             return

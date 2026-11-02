@@ -9,6 +9,7 @@ import dev.pyte.data.repository.LibraryRepository
 import dev.pyte.domain.PlaylistSummary
 import dev.pyte.domain.Track
 import dev.pyte.playback.PlayerController
+import dev.pyte.playback.PlaybackDiagnostics
 import dev.pyte.playback.PlayerUiState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -132,9 +133,13 @@ class LibraryViewModel @Inject constructor(
 class PlayerViewModel @Inject constructor(
     private val player: PlayerController,
     private val repo: LibraryRepository,
+    private val diagnostics: PlaybackDiagnostics,
 ) : ViewModel() {
 
     val state: StateFlow<PlayerUiState> = player.state
+    val diagnosticReport: StateFlow<String?> = diagnostics.report
+
+    fun dismissDiagnostics() = diagnostics.clear()
 
     val favoriteIds: StateFlow<Set<String>> = repo.observeFavoriteIds()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SHARE_TIMEOUT_MS), emptySet())

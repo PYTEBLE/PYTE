@@ -9,6 +9,12 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.ui.platform.LocalContext
+import android.content.ClipData
+import android.content.ClipboardManager
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -59,6 +65,8 @@ private val tabs = listOf(
 fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel()) {
     val nav = rememberNavController()
     val playerState by playerViewModel.state.collectAsStateWithLifecycle()
+    val report by playerViewModel.diagnosticReport.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     val backStack by nav.currentBackStackEntryAsState()
     val route = backStack?.destination?.route
     val onNowPlaying = route == Routes.NOW_PLAYING
@@ -66,6 +74,23 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel()) {
 
     LaunchedEffect(playerState.errorMessage) {
         playerState.errorMessage?.let { snackbar.showSnackbar(it) }
+    }
+
+    report?.let { details ->
+        AlertDialog(
+            onDismissRequest = playerViewModel::dismissDiagnostics,
+            title = { Text("Wiedergabe-Diagnose") },
+            text = { SelectionContainer { Text(details) } },
+            confirmButton = {
+                TextButton(onClick = {
+                    context.getSystemService(ClipboardManager::class.java)
+                        .setPrimaryClip(ClipData.newPlainText("PYTE Diagnose", details))
+                }) { Text("Kopieren") }
+            },
+            dismissButton = {
+                TextButton(onClick = playerViewModel::dismissDiagnostics) { Text("Schließen") }
+            },
+        )
     }
 
     Scaffold(
