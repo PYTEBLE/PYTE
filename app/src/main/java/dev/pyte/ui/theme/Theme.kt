@@ -2,20 +2,25 @@ package dev.pyte.ui.theme
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.Typography
+import androidx.compose.material3.Shapes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-
-val PyteAccent = Color(0xFFFF3B5C)
-val PyteBackground = Color(0xFF0B0B0F)
-val PyteSurface = Color(0xFF141418)
-val PyteSurfaceHigh = Color(0xFF1E1E24)
-val PyteTextPrimary = Color(0xFFF2F2F5)
-val PyteTextMuted = Color(0xFFA0A0AB)
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.dp
 
 private val PyteDarkColors = darkColorScheme(
     primary = PyteAccent,
-    onPrimary = Color.White,
+    onPrimary = PyteOnAccent,
+    primaryContainer = PyteSurfaceHigh,
+    onPrimaryContainer = PyteAccent,
     secondary = PyteAccent,
+    onSecondary = PyteOnAccent,
+    secondaryContainer = PyteSurfaceHigh,
+    onSecondaryContainer = PyteAccent,
     background = PyteBackground,
     onBackground = PyteTextPrimary,
     surface = PyteSurface,
@@ -24,7 +29,23 @@ private val PyteDarkColors = darkColorScheme(
     onSurfaceVariant = PyteTextMuted,
     surfaceContainer = PyteSurface,
     surfaceContainerHigh = PyteSurfaceHigh,
-    outlineVariant = Color(0x14FFFFFF),
+    surfaceContainerHighest = PyteSurfaceHigh,
+    surfaceContainerLow = PyteSurface,
+    surfaceContainerLowest = PyteBackground,
+    surfaceTint = PyteAccent,
+    outline = PyteOutline,
+    outlineVariant = PyteOutline.copy(alpha = 0.65f),
+    inverseSurface = PyteSurfaceHigh,
+    inverseOnSurface = PyteTextPrimary,
+)
+
+private val PyteTypography = Typography(
+    headlineLarge = TextStyle(fontWeight = FontWeight.Bold, fontSize = 34.sp, lineHeight = 40.sp, letterSpacing = (-1).sp),
+    headlineMedium = TextStyle(fontWeight = FontWeight.Bold, fontSize = 29.sp, lineHeight = 36.sp, letterSpacing = (-0.7).sp),
+    headlineSmall = TextStyle(fontWeight = FontWeight.Bold, fontSize = 25.sp, lineHeight = 32.sp),
+    titleLarge = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 22.sp, lineHeight = 28.sp),
+    titleMedium = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 17.sp, lineHeight = 24.sp),
+    labelLarge = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 20.sp),
 )
 
 /** Dark-only by design: the product direction is a Spotify / YouTube Music style player. */
@@ -32,6 +53,13 @@ private val PyteDarkColors = darkColorScheme(
 fun PyteTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = PyteDarkColors,
+        typography = PyteTypography,
+        shapes = Shapes(
+            small = RoundedCornerShape(12.dp),
+            medium = RoundedCornerShape(18.dp),
+            large = RoundedCornerShape(24.dp),
+            extraLarge = RoundedCornerShape(30.dp),
+        ),
         content = content,
     )
 }
