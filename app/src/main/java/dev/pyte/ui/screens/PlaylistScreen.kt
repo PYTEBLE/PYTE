@@ -57,7 +57,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pyte.ui.components.Artwork
 import dev.pyte.ui.components.EmptyState
 import dev.pyte.ui.components.TrackRow
+import dev.pyte.ui.components.BrandButton
 import dev.pyte.ui.theme.PyteAccent
+import dev.pyte.ui.theme.PyteBrandStart
 import dev.pyte.ui.viewmodels.PlaylistUiState
 import dev.pyte.ui.viewmodels.PlaylistViewModel
 
@@ -125,7 +127,7 @@ fun PlaylistScreen(
                         item(key = "header") {
                             Column(
                                 Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(
-                                    PyteAccent.copy(alpha = 0.45f), MaterialTheme.colorScheme.background,
+                                    PyteBrandStart.copy(alpha = 0.30f), MaterialTheme.colorScheme.background,
                                 ))).padding(20.dp),
                             ) {
                                 Artwork(playlist.thumbnailUrl, Modifier.size(200.dp).align(Alignment.CenterHorizontally), RoundedCornerShape(16.dp))
@@ -135,11 +137,10 @@ fun PlaylistScreen(
                                 Text(listOfNotNull(playlist.owner, "${playlist.trackCount} tracks").joinToString(" • "),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Spacer(Modifier.height(16.dp))
-                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    Button(onClick = { viewModel.play(tracks, 0) }, enabled = tracks.isNotEmpty()) {
-                                        Icon(Icons.Default.PlayArrow, null); Spacer(Modifier.width(6.dp)); Text("Play")
-                                    }
-                                    OutlinedButton(onClick = { viewModel.shuffleAll(tracks) }, enabled = tracks.isNotEmpty()) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    BrandButton("Play", { viewModel.play(tracks, 0) }, enabled = tracks.isNotEmpty(), icon = Icons.Default.PlayArrow)
+                                    OutlinedButton(onClick = { viewModel.shuffleAll(tracks) }, enabled = tracks.isNotEmpty(),
+                                        modifier = Modifier.height(56.dp), shape = RoundedCornerShape(18.dp)) {
                                         Icon(Icons.Default.Shuffle, null); Spacer(Modifier.width(6.dp)); Text("Shuffle")
                                     }
                                 }

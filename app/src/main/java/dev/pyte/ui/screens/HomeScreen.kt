@@ -49,6 +49,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import dev.pyte.ui.components.EmptyState
 import dev.pyte.ui.components.PlaylistCard
 import dev.pyte.ui.components.Artwork
+import dev.pyte.ui.components.ScreenHeading
+import dev.pyte.ui.components.LibraryWelcome
 import dev.pyte.ui.theme.PyteAccent
 import dev.pyte.ui.viewmodels.HomeViewModel
 import dev.pyte.ui.viewmodels.ImportUiState
@@ -73,21 +75,20 @@ fun HomeScreen(
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
+            if (playlists.isNotEmpty() || recent.isNotEmpty()) {
             ExtendedFloatingActionButton(
                 onClick = { showImport = true },
                 containerColor = PyteAccent,
-                contentColor = androidx.compose.ui.graphics.Color.White,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
                 text = { Text("Import", fontWeight = FontWeight.SemiBold) },
             )
+            }
         },
     ) { inner ->
         if (playlists.isEmpty() && recent.isEmpty()) {
-            EmptyState(
-                title = "Bring your playlists",
-                body = "Paste any public YouTube Music playlist link. No account, no ads, stored only on this device.",
-                actionLabel = "Import a playlist",
-                onAction = { showImport = true },
+            LibraryWelcome(
+                onImport = { showImport = true },
                 modifier = Modifier.padding(inner).statusBarsPadding(),
             )
         } else {
@@ -96,12 +97,7 @@ fun HomeScreen(
                     .padding(inner)
                     .statusBarsPadding(),
             ) {
-                Text(
-                    text = "Your library",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(start = 20.dp, top = 24.dp, end = 20.dp, bottom = 8.dp),
-                )
+                ScreenHeading("Your library", "${playlists.size} playlists · A space for your sound")
                 LazyVerticalGrid(
                     columns = GridCells.Adaptive(minSize = 160.dp),
                     contentPadding = PaddingValues(12.dp, 8.dp, 12.dp, 120.dp),

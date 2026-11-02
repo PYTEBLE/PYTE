@@ -1,6 +1,8 @@
 package dev.pyte.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
@@ -28,6 +31,7 @@ import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.QueueMusic
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -46,17 +50,24 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
 import dev.pyte.ui.components.Artwork
 import dev.pyte.ui.components.formatDuration
 import dev.pyte.ui.theme.PyteAccent
+import dev.pyte.ui.theme.PyteBrandStart
+import dev.pyte.ui.theme.PyteBrandGradient
+import dev.pyte.ui.theme.PyteOnBrand
+import dev.pyte.R
 import dev.pyte.ui.viewmodels.PlayerViewModel
 
 @Composable
@@ -79,7 +90,7 @@ fun NowPlayingScreen(
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    listOf(PyteAccent.copy(alpha = 0.45f), MaterialTheme.colorScheme.background),
+                    listOf(PyteBrandStart.copy(alpha = 0.28f), MaterialTheme.colorScheme.background),
                 ),
             )
             .statusBarsPadding()
@@ -92,10 +103,10 @@ fun NowPlayingScreen(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = onClose) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Close player")
+                Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Close player")
             }
             Spacer(Modifier.weight(1f))
-            Text("Now playing", style = MaterialTheme.typography.labelLarge)
+            Text("NOW PLAYING", style = MaterialTheme.typography.labelMedium, color = PyteAccent, letterSpacing = 2.sp)
             Spacer(Modifier.weight(1f))
             IconButton(onClick = { queueOpen = true }) {
                 Icon(Icons.Default.QueueMusic, contentDescription = "Open queue")
@@ -119,8 +130,10 @@ fun NowPlayingScreen(
             url = track.thumbnailUrl,
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(1f),
-            shape = RoundedCornerShape(20.dp),
+                .aspectRatio(1f)
+                .shadow(24.dp, RoundedCornerShape(26.dp), ambientColor = PyteBrandStart, spotColor = PyteBrandStart)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(26.dp)),
+            shape = RoundedCornerShape(26.dp),
         )
 
         Spacer(Modifier.height(28.dp))
@@ -129,9 +142,9 @@ fun NowPlayingScreen(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = track.title,
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
@@ -179,14 +192,14 @@ fun NowPlayingScreen(
             }
             FilledIconButton(
                 onClick = viewModel::togglePlayPause,
-                modifier = Modifier.size(72.dp),
-                colors = IconButtonDefaults.filledIconButtonColors(containerColor = PyteAccent),
+                modifier = Modifier.size(80.dp).background(PyteBrandGradient, CircleShape),
+                colors = IconButtonDefaults.filledIconButtonColors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
             ) {
                 Icon(
                     imageVector = if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = if (state.isPlaying) "Pause" else "Play",
                     modifier = Modifier.size(40.dp),
-                    tint = androidx.compose.ui.graphics.Color.White,
+                    tint = PyteOnBrand,
                 )
             }
             IconButton(onClick = viewModel::next, modifier = Modifier.size(56.dp)) {
@@ -203,6 +216,12 @@ fun NowPlayingScreen(
         }
 
         Spacer(Modifier.height(24.dp))
+        Row(Modifier.fillMaxWidth().padding(bottom = 12.dp), horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically) {
+            Image(painterResource(R.drawable.pyte_symbol), null, Modifier.size(28.dp))
+            Text("  YOUR MUSIC. YOUR SPACE.", style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.sp)
+        }
     }
 }
 

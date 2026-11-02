@@ -1,6 +1,9 @@
 package dev.pyte.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,6 +28,8 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -40,13 +45,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import dev.pyte.domain.Track
 import dev.pyte.domain.PlaylistSummary
 import dev.pyte.ui.theme.PyteAccent
+import dev.pyte.ui.theme.PyteOnAccent
+import dev.pyte.R
 
 @Composable
 fun Artwork(
@@ -71,7 +80,7 @@ fun Artwork(
             Icon(
                 imageVector = Icons.Default.MusicNote,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = PyteAccent,
             )
         }
     }
@@ -154,16 +163,18 @@ fun TrackRow(
 fun PlaylistCard(playlist: PlaylistSummary, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(22.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(22.dp))
             .clickable(onClick = onClick)
-            .padding(8.dp),
+            .padding(12.dp),
     ) {
         Artwork(
             url = playlist.thumbnailUrl,
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(16.dp),
         )
         Spacer(Modifier.height(10.dp))
         Text(
@@ -195,14 +206,16 @@ fun MiniPlayer(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(22.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        tonalElevation = 2.dp,
+        tonalElevation = 0.dp,
     ) {
         Column {
             LinearProgressIndicator(
                 progress = { progress.coerceIn(0f, 1f) },
-                modifier = Modifier.fillMaxWidth().height(2.dp),
+                modifier = Modifier.fillMaxWidth().height(3.dp),
                 color = PyteAccent,
                 trackColor = MaterialTheme.colorScheme.surfaceVariant,
             )
@@ -234,7 +247,8 @@ fun MiniPlayer(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                IconButton(onClick = onToggle) {
+                FilledIconButton(onClick = onToggle,
+                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = PyteAccent, contentColor = PyteOnAccent)) {
                     Icon(
                         imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                         contentDescription = if (isPlaying) "Pause" else "Play",
@@ -263,19 +277,19 @@ fun EmptyState(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Icon(
-            imageVector = Icons.Default.MusicNote,
+        Image(
+            painter = painterResource(R.drawable.pyte_symbol),
             contentDescription = null,
-            tint = PyteAccent,
-            modifier = Modifier.size(56.dp),
+            modifier = Modifier.size(88.dp),
         )
         Spacer(Modifier.height(16.dp))
-        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         Spacer(Modifier.height(8.dp))
         Text(
             body,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
         )
         if (actionLabel != null && onAction != null) {
             Spacer(Modifier.height(24.dp))

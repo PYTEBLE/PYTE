@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.AlertDialog
@@ -18,6 +18,7 @@ import android.content.ClipboardManager
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -56,7 +57,7 @@ private object Routes {
 private data class Tab(val route: String, val label: String, val icon: ImageVector)
 
 private val tabs = listOf(
-    Tab(Routes.HOME, "Library", Icons.Default.Home),
+    Tab(Routes.HOME, "Library", Icons.Default.LibraryMusic),
     Tab(Routes.SEARCH, "Search", Icons.Default.Search),
     Tab(Routes.FAVORITES, "Favorites", Icons.Default.Favorite),
 )
@@ -117,10 +118,17 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel()) {
                             onNext = playerViewModel::next,
                         )
                     }
-                    NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+                    NavigationBar(containerColor = MaterialTheme.colorScheme.background) {
                         tabs.forEach { tab ->
                             NavigationBarItem(
-                                selected = route == tab.route,
+                                selected = route == tab.route || (route == Routes.PLAYLIST && tab.route == Routes.HOME),
+                                colors = NavigationBarItemDefaults.colors(
+                                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                                    indicatorColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                ),
                                 onClick = {
                                     nav.navigate(tab.route) {
                                         popUpTo(Routes.HOME) { saveState = true }

@@ -13,6 +13,8 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -24,6 +26,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pyte.domain.Track
 import dev.pyte.ui.components.EmptyState
 import dev.pyte.ui.components.TrackRow
+import dev.pyte.ui.components.ScreenHeading
 import dev.pyte.ui.viewmodels.LibraryViewModel
 import dev.pyte.playback.PlayerUiState
 import dev.pyte.ui.viewmodels.PlayerViewModel
@@ -39,12 +42,7 @@ fun FavoritesScreen(
     val playerState by playerViewModel.state.collectAsStateWithLifecycle()
 
     Column(modifier = Modifier.fillMaxSize().padding(contentPadding).statusBarsPadding()) {
-        Text(
-            text = "Favorites",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 20.dp, top = 24.dp, end = 20.dp, bottom = 8.dp),
-        )
+        ScreenHeading("Favorites", "${favorites.size} tracks · The ones you come back to")
         if (favorites.isEmpty()) {
             EmptyState(
                 title = "No favorites yet",
@@ -76,12 +74,7 @@ fun SearchScreen(
     val playerState by playerViewModel.state.collectAsStateWithLifecycle()
 
     Column(modifier = Modifier.fillMaxSize().padding(contentPadding).statusBarsPadding()) {
-        Text(
-            text = "Search",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 20.dp, top = 24.dp, end = 20.dp, bottom = 12.dp),
-        )
+        ScreenHeading("Find your sound", "Search songs and artists in your library")
         OutlinedTextField(
             value = query,
             onValueChange = viewModel::setQuery,
@@ -89,6 +82,11 @@ fun SearchScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
             singleLine = true,
+            shape = RoundedCornerShape(18.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+            ),
             placeholder = { Text("Songs and artists in your library") },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
         )
