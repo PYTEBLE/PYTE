@@ -22,6 +22,7 @@ import dev.pyte.data.remote.StreamResolver
 import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import javax.inject.Inject
+import java.io.IOException
 
 /**
  * Owns the ExoPlayer and the media session. Runs as a foreground service so playback
@@ -45,7 +46,11 @@ class PlaybackService : MediaSessionService() {
             OkHttpDataSource.Factory(okHttp).setUserAgent(STREAM_USER_AGENT),
         ) { spec: DataSpec ->
             val videoId = spec.uri.lastPathSegment ?: throw IllegalArgumentException("Bad stream uri")
-            val url = runBlocking { resolver.resolve(videoId) }
+            val url = try {
+                runBlocking { resolver.resolve(videoId) }
+            } catch (e: Exception) {
+                throw IOException("Could not resolve track $videoId", e)
+            }
             spec.buildUpon().setUri(url).build()
         }
 
@@ -69,6 +74,10 @@ class PlaybackService : MediaSessionService() {
             .build()
 
         exo.addListener(object : Player.Listener {
+            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                retriesForItem = 0
+            }
+
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState == Player.STATE_READY) retriesForItem = 0
             }
@@ -114,8 +123,7 @@ class PlaybackService : MediaSessionService() {
     private fun recoverFromError(exo: ExoPlayer) {
         if (retriesForItem >= MAX_RETRIES_PER_ITEM) {
             retriesForItem = 0
-            exo.seekToNext()
-            exo.prepare()
+            exo.pause()
             return
         }
         retriesForItem++

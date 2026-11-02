@@ -13,8 +13,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -58,8 +62,14 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel()) {
     val backStack by nav.currentBackStackEntryAsState()
     val route = backStack?.destination?.route
     val onNowPlaying = route == Routes.NOW_PLAYING
+    val snackbar = remember { SnackbarHostState() }
+
+    LaunchedEffect(playerState.errorMessage) {
+        playerState.errorMessage?.let { snackbar.showSnackbar(it) }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbar) },
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {

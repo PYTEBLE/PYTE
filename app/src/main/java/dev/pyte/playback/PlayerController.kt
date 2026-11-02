@@ -6,6 +6,7 @@ import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
+import androidx.media3.common.PlaybackException
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -31,6 +32,7 @@ data class PlayerUiState(
     val durationMs: Long = 0L,
     val shuffle: Boolean = false,
     val repeat: Int = Player.REPEAT_MODE_OFF,
+    val errorMessage: String? = null,
 ) {
     val hasItems: Boolean get() = queue.isNotEmpty()
 }
@@ -54,18 +56,31 @@ class PlayerController @Inject constructor(
         override fun onEvents(player: Player, events: Player.Events) {
             refresh(player)
         }
+
+        override fun onPlayerError(error: PlaybackException) {
+            _state.value = _state.value.copy(
+                errorMessage = "Wiedergabe fehlgeschlagen (${error.errorCodeName}). Bitte erneut versuchen.",
+            )
+        }
     }
 
     init {
         val token = SessionToken(context, ComponentName(context, PlaybackService::class.java))
         val future = MediaController.Builder(context, token).buildAsync()
         future.addListener({
-            val c = future.get()
-            controller = c
-            c.addListener(listener)
-            pendingAction?.invoke(c)
-            pendingAction = null
-            refresh(c)
+            try {
+                val c = future.get()
+                controller = c
+                c.addListener(listener)
+                pendingAction?.invoke(c)
+                pendingAction = null
+                refresh(c)
+            } catch (e: Exception) {
+                pendingAction = null
+                _state.value = _state.value.copy(
+                    errorMessage = "Player konnte nicht verbunden werden. Bitte die App neu öffnen.",
+                )
+            }
         }, ContextCompat.getMainExecutor(context))
 
         scope.launch {
@@ -91,6 +106,7 @@ class PlayerController @Inject constructor(
     fun togglePlayPause() = act { c ->
         if (c.isPlaying) c.pause() else {
             if (c.playbackState == Player.STATE_ENDED) c.seekToDefaultPosition()
+            if (c.playbackState == Player.STATE_IDLE) c.prepare()
             c.play()
         }
     }
@@ -111,6 +127,7 @@ class PlayerController @Inject constructor(
     }
 
     private fun act(block: (MediaController) -> Unit) {
+        _state.value = _state.value.copy(errorMessage = null)
         val c = controller
         if (c != null) block(c) else pendingAction = block
     }
@@ -128,6 +145,7 @@ class PlayerController @Inject constructor(
             durationMs = player.duration.coerceAtLeast(0),
             shuffle = player.shuffleModeEnabled,
             repeat = player.repeatMode,
+            errorMessage = _state.value.errorMessage,
         )
     }
 
