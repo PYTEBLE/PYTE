@@ -1,5 +1,8 @@
 package dev.pyte.data.remote
 
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.JsonObject
@@ -8,80 +11,115 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.longOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
-class StreamUnavailableException(message: String) : Exception(message)
+class StreamUnavailableException(message: String, cause: Throwable? = null) : IOException(message, cause)
 
-/**
- * Resolves a videoId to a direct, playable audio URL. URLs are IP-bound and expire,
- * so they are cached per videoId until shortly before their `expire` timestamp.
- * Concurrent requests for the same videoId are coalesced into one network call.
- */
-@Singleton
-class StreamResolver @Inject constructor(
-    private val innerTube: InnerTubeClient,
+data class ResolvedStream(
+    val url: String,
+    val client: PlayerClient,
+    val formatId: String,
+    val expiresAtMs: Long,
 ) {
-    private data class CachedUrl(val url: String, val expiresAtMs: Long)
+    val userAgent: String get() = client.userAgent
+    fun cacheKey(videoId: String): String = "audio-v2:$videoId:$formatId"
+}
 
-    private val cache = ConcurrentHashMap<String, CachedUrl>()
+/** A player response is not proof of access: validate the audio URL before caching it. */
+@Singleton
+class StreamResolver internal constructor(
+    private val loadPlayer: suspend (String, PlayerClient) -> JsonObject,
+    private val http: OkHttpClient,
+    private val now: () -> Long,
+) {
+    @Inject constructor(innerTube: InnerTubeClient, http: OkHttpClient) :
+        this(innerTube::player, http, System::currentTimeMillis)
+
+    private val cache = ConcurrentHashMap<String, ResolvedStream>()
     private val locks = ConcurrentHashMap<String, Mutex>()
+    private val rejected = ConcurrentHashMap<Pair<String, PlayerClient>, Long>()
 
-    suspend fun resolve(videoId: String): String {
+    suspend fun resolve(videoId: String): ResolvedStream {
         fresh(videoId)?.let { return it }
         return locks.getOrPut(videoId) { Mutex() }.withLock {
-            fresh(videoId) ?: fetch(videoId).url
+            fresh(videoId) ?: fetch(videoId)
         }
     }
 
-    fun invalidate(videoId: String) {
-        cache.remove(videoId)
+    /** Reject the client too, not just its URL, when its actual audio request was denied. */
+    fun invalidate(videoId: String, rejectClient: Boolean = false) {
+        val previous = cache.remove(videoId)
+        if (rejectClient && previous != null) {
+            rejected[videoId to previous.client] = now() + REJECTION_TTL_MS
+        }
     }
 
-    private fun fresh(videoId: String): String? =
-        cache[videoId]?.takeIf { it.expiresAtMs - SAFETY_MARGIN_MS > System.currentTimeMillis() }?.url
+    private fun fresh(videoId: String): ResolvedStream? =
+        cache[videoId]?.takeIf { it.expiresAtMs - SAFETY_MARGIN_MS > now() }
 
-    private suspend fun fetch(videoId: String): CachedUrl {
-        var lastError: Exception? = null
+    private suspend fun fetch(videoId: String): ResolvedStream {
+        var lastError: IOException? = null
         for (client in listOf(PlayerClient.ANDROID_VR, PlayerClient.IOS)) {
+            if ((rejected[videoId to client] ?: 0L) > now()) continue
             try {
-                val url = pickAudioUrl(innerTube.player(videoId, client))
-                    ?: throw StreamUnavailableException("No audio stream from ${client.name}")
-                return CachedUrl(url, expiryOf(url)).also { cache[videoId] = it }
+                val stream = pickAudio(loadPlayer(videoId, client), client)
+                validateAccess(stream)
+                return stream.also { cache[videoId] = it }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                lastError = e
+                lastError = if (e is IOException) e else StreamUnavailableException(
+                    "${client.name}: keine abspielbare Audioquelle", e,
+                )
             }
         }
-        throw StreamUnavailableException(lastError?.message ?: "Could not resolve stream for $videoId")
+        throw StreamUnavailableException(
+            "Audio konnte über keinen YouTube-Client geladen werden. ${lastError?.message.orEmpty()}",
+            lastError,
+        )
     }
 
-    private fun pickAudioUrl(response: JsonObject): String? {
+    private fun pickAudio(response: JsonObject, client: PlayerClient): ResolvedStream {
         val status = response["playabilityStatus"]?.jsonObject?.get("status")?.jsonPrimitive?.contentOrNull
-        if (status != null && status != "OK") {
-            val reason = response["playabilityStatus"]?.jsonObject?.get("reason")?.jsonPrimitive?.contentOrNull
-            throw StreamUnavailableException(reason ?: "Track is not playable ($status)")
-        }
+        if (status != "OK") throw StreamUnavailableException("${client.name}: Track nicht verfügbar ($status)")
         val formats = response["streamingData"]?.jsonObject?.get("adaptiveFormats")?.jsonArray.orEmpty()
-        return formats
             .mapNotNull { it as? JsonObject }
             .filter { it["mimeType"]?.jsonPrimitive?.contentOrNull?.startsWith("audio/") == true }
-            .mapNotNull { format ->
-                val url = format["url"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
-                val bitrate = format["bitrate"]?.jsonPrimitive?.longOrNull ?: 0L
-                url to bitrate
-            }
-            .maxByOrNull { it.second }
-            ?.first
+            .filter { it["url"]?.jsonPrimitive?.contentOrNull != null }
+        // Prefer a common AAC format across clients. Format-specific cache keys protect other formats.
+        val chosen = formats.firstOrNull { it["itag"]?.jsonPrimitive?.contentOrNull == "140" }
+            ?: formats.maxByOrNull { it["bitrate"]?.jsonPrimitive?.longOrNull ?: 0L }
+            ?: throw StreamUnavailableException("${client.name}: kein direkter Audiostream")
+        val url = chosen.getValue("url").jsonPrimitive.content
+        val format = chosen["itag"]?.jsonPrimitive?.contentOrNull
+            ?: throw StreamUnavailableException("${client.name}: fehlende Audioformat-ID")
+        val expiry = Regex("""[?&]expire=(\d+)""").find(url)?.groupValues?.get(1)?.toLongOrNull()
+        return ResolvedStream(url, client, format, expiry?.times(1000) ?: (now() + 30 * 60 * 1000))
     }
 
-    /** googlevideo URLs carry an `expire` query param (unix seconds). Fall back to 30 min. */
-    private fun expiryOf(url: String): Long {
-        val expire = Regex("""[?&]expire=(\d+)""").find(url)?.groupValues?.get(1)?.toLongOrNull()
-        return expire?.times(1000) ?: (System.currentTimeMillis() + 30 * 60 * 1000)
+    private suspend fun validateAccess(stream: ResolvedStream) = withContext(Dispatchers.IO) {
+        val request = Request.Builder().url(stream.url)
+            .header("User-Agent", stream.userAgent)
+            .header("Range", "bytes=0-0")
+            .build()
+        http.newCall(request).execute().use { response ->
+            if (response.code != 200 && response.code != 206) {
+                // Never include signed URLs or response bodies in diagnostics.
+                throw StreamUnavailableException("${stream.client.name}: Audio-Server HTTP ${response.code}")
+            }
+            if (response.body?.source()?.readByteArray(1)?.size != 1) {
+                throw StreamUnavailableException("${stream.client.name}: leere Audioantwort")
+            }
+        }
     }
 
     private companion object {
         const val SAFETY_MARGIN_MS = 60_000L
+        const val REJECTION_TTL_MS = 5 * 60_000L
     }
 }
