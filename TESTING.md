@@ -2,6 +2,11 @@
 
 ## Cover-quality correction, dynamic themes and equalizer
 
+Final validation: all 91 unit tests passed, none skipped, with `PYTE_LIVE_ARTWORK=true` and
+`PYTE_LIVE_SEARCH=true` (including real artwork resolution and search pagination). Debug APK,
+instrumentation APK and Android lint tasks passed. Alpha.5 uses versionCode 9 and its signing
+certificate matches the published alpha.4 APK; a physical update-install test is still pending.
+
 - Reproduced the reported song's artwork source through live YouTube Music search:
   `7y0c6q5QoWA` uses `yt3.googleusercontent.com`, which the previous host allowlist missed.
   Actual decoded responses are 120×120 for the old URL and 1200×1200 for the corrected URL.

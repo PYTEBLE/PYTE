@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.2.0-alpha.5
+
+Install as an update over alpha.4: the signing certificate is unchanged and versionCode is 9.
+Versions before alpha.4 used the unavailable old key and still require a clean installation.
 
 - Fix the reported 120×120 cover for “Nur ein Wort” (Noah Kraus & Wir sind Helden): handle
   `yt3.googleusercontent.com` resizing and verify real decoded image dimensions. Upgrade old

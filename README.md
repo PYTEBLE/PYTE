@@ -45,9 +45,9 @@ Android cloud backup and automatic device transfer are disabled. Keep the app in
 updating APKs: uninstalling or clearing app storage removes your local library and downloads.
 Manual library export is not implemented yet.
 
-**0.2.0-alpha.4 signing change:** the previous signing key is unavailable. This APK cannot
-update earlier releases in place: uninstalling the old app is required and deletes its local
-library and settings. This exception takes precedence over the normal update advice above.
+**Signing compatibility:** alpha.5 can update alpha.4 in place; keep the app installed to
+preserve its library. Versions before alpha.4 used an unavailable old key and require
+uninstalling first, which deletes their local library and settings.
 
 > Personal use only. Extracting streams is against YouTube's Terms of Service. Do not publish this app to the Play Store or run it as a public service.
 
