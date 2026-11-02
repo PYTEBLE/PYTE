@@ -7,6 +7,7 @@ import androidx.compose.ui.graphics.Color
 val PyteAccent = Color(0xFFC4A0FF)
 val PyteOnAccent = Color(0xFF241039)
 val PyteBackground = Color(0xFF09070F)
+val PyteBackgroundScrim = PyteBackground.copy(alpha = 0.80f)
 val PyteSurface = Color(0xFF14101E)
 val PyteSurfaceHigh = Color(0xFF21182F)
 val PyteTextPrimary = Color(0xFFF4EFFB)

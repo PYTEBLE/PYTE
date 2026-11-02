@@ -100,7 +100,8 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel()) {
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.onBackground,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             if (!onNowPlaying) {
@@ -122,7 +123,7 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel()) {
                             onNext = playerViewModel::next,
                         )
                     }
-                    NavigationBar(containerColor = MaterialTheme.colorScheme.background) {
+                    NavigationBar(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)) {
                         tabs.forEach { tab ->
                             NavigationBarItem(
                                 selected = route == tab.route || (route == Routes.PLAYLIST && tab.route == Routes.HOME),

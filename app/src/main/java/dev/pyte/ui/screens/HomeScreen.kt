@@ -72,7 +72,7 @@ fun HomeScreen(
 
     Scaffold(
         modifier = Modifier.padding(contentPadding),
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
             if (playlists.isNotEmpty() || recent.isNotEmpty()) {

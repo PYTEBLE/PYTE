@@ -2,10 +2,25 @@ package dev.pyte.ui.theme
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.compositeOver
+import java.io.File
+import javax.imageio.ImageIO
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class BrandContrastTest {
+    @Test fun `background artwork remains readable behind the shared scrim`() {
+        val image = ImageIO.read(File("src/main/res/drawable-nodpi/pyte_background.png"))
+        var brightest = PyteBackground
+        for (y in 0 until image.height) for (x in 0 until image.width) {
+            val background = PyteBackgroundScrim.compositeOver(Color(image.getRGB(x, y)))
+            if (background.luminance() > brightest.luminance()) brightest = background
+        }
+        for (text in listOf(PyteTextPrimary, PyteTextMuted, PyteAccent)) {
+            assertTrue("Artwork text contrast must be >= 4.5:1", contrast(text, brightest) >= 4.5f)
+        }
+    }
+
     private fun contrast(a: Color, b: Color): Float {
         val light = maxOf(a.luminance(), b.luminance())
         val dark = minOf(a.luminance(), b.luminance())

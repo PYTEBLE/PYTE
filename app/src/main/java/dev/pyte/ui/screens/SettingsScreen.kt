@@ -3,6 +3,7 @@ package dev.pyte.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -48,7 +49,7 @@ fun SettingsScreen(contentPadding: PaddingValues, viewModel: SettingsViewModel =
     LaunchedEffect(message) {
         message?.let { snackbar.showSnackbar(it); viewModel.dismissMessage() }
     }
-    Box(Modifier.fillMaxSize().padding(contentPadding)) {
+    Box(Modifier.fillMaxSize().padding(contentPadding).statusBarsPadding()) {
         Column(Modifier.verticalScroll(rememberScrollState())) {
             if (loadFailed) {
                 ScreenHeading("Settings", "Could not load settings")
@@ -90,7 +91,7 @@ internal fun SettingsContent(
         SettingsSection("Your privacy") {
             Text("Your playlists, favorites, history and settings stay on this device. No Google login. Android cloud backup and device transfer are disabled.",
                 Modifier.padding(16.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Streaming and playlist imports connect to YouTube; artwork may load from its image servers. An internet connection is required. The streaming cache is not an offline download.",
+            Text("Online searches, streaming and playlist imports connect to YouTube; artwork may load from its image servers. An internet connection is required. The streaming cache is not an offline download.",
                 Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         SettingsSection("About PYTE") {

@@ -90,7 +90,7 @@ fun NowPlayingScreen(
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    listOf(PyteBrandStart.copy(alpha = 0.28f), MaterialTheme.colorScheme.background),
+                    listOf(PyteBrandStart.copy(alpha = 0.20f), androidx.compose.ui.graphics.Color.Transparent),
                 ),
             )
             .statusBarsPadding()
