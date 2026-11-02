@@ -59,7 +59,7 @@ class PlayerController @Inject constructor(
 
         override fun onPlayerError(error: PlaybackException) {
             _state.value = _state.value.copy(
-                errorMessage = "Wiedergabe fehlgeschlagen (${error.errorCodeName}). Bitte erneut versuchen.",
+                errorMessage = playbackErrorMessage(error.errorCodeName, error.cause),
             )
         }
     }
