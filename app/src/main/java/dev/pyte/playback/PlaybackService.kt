@@ -3,6 +3,10 @@
 package dev.pyte.playback
 
 import android.util.Log
+import android.media.AudioDeviceCallback
+import android.media.AudioDeviceInfo
+import android.media.AudioManager
+import android.os.Handler
 import androidx.media3.common.MediaItem
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -53,12 +57,21 @@ class PlaybackService : MediaSessionService() {
     @Inject lateinit var library: LibraryRepository
     @Inject lateinit var settings: SettingsRepository
     @Inject lateinit var offline: OfflineStore
+    @Inject lateinit var equalizer: EqualizerController
 
     private var session: MediaSession? = null
     private var player: ExoPlayer? = null
     private var retriesForItem = 0
     private val historyScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var lastRecordedMediaId: String? = null
+    private val audioDevices = object : AudioDeviceCallback() {
+        override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>) {
+            if (player != null) equalizer.retry()
+        }
+        override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>) {
+            if (player != null) equalizer.retry()
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -92,6 +105,7 @@ class PlaybackService : MediaSessionService() {
             .build()
 
         exo.addListener(object : Player.Listener {
+            override fun onAudioSessionIdChanged(audioSessionId: Int) { equalizer.attach(audioSessionId) }
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 retriesForItem = 0
                 lastRecordedMediaId = null
@@ -117,10 +131,15 @@ class PlaybackService : MediaSessionService() {
         })
 
         player = exo
+        getSystemService(AudioManager::class.java).registerAudioDeviceCallback(audioDevices, Handler(mainLooper))
+        equalizer.attach(exo.audioSessionId)
+        historyScope.launch(Dispatchers.Main.immediate) {
+            equalizer.state.collect { exo.volume = it.headroom }
+        }
         historyScope.launch(Dispatchers.Main.immediate) {
             settings.settings
                 .catch { Log.w(TAG, "Could not read playback settings", it) }
-                .collect { exo.skipSilenceEnabled = it.skipSilence }
+                .collect { exo.skipSilenceEnabled = it.skipSilence; equalizer.apply(it.equalizer) }
         }
         session = MediaSession.Builder(this, exo)
             .setCallback(object : MediaSession.Callback {
@@ -140,7 +159,9 @@ class PlaybackService : MediaSessionService() {
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = session
 
     override fun onDestroy() {
+        getSystemService(AudioManager::class.java).unregisterAudioDeviceCallback(audioDevices)
         historyScope.cancel()
+        equalizer.release()
         session?.run {
             release()
         }
