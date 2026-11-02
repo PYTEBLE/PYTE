@@ -30,4 +30,6 @@ Signed release builds: copy `keystore.properties.example` to `keystore.propertie
 | Storage | `data/local/` | Room: playlists, tracks, playlist order, favorites |
 | Cache | `di/AppModule.kt` | Media3 `SimpleCache`, LRU, 1.5 GB |
 
-Stream URLs are resolved lazily, when the player requests bytes, and cached until shortly before their `expire` time. On HTTP errors the service drops the cached URL and retries at the same position.
+Stream URLs are resolved lazily, when the player requests bytes, and cached until shortly before their `expire` time. A one-byte range probe checks audio access before selecting a client; if it fails, the resolver tries the next client. Each stream uses its originating client's User-Agent. Late HTTP 403/410 responses temporarily exclude that client during recovery. Audio cache keys include the format ID so fallback cannot mix different encodings.
+
+See [CHANGELOG.md](CHANGELOG.md) for test-build changes and verification limits.

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.0-alpha.3
+
+- Probe audio URLs with a small byte-range request before selecting a YouTube client.
+- Fall back to iOS when Android VR returns a URL but its audio server rejects access.
+- Send the selected client's User-Agent on actual audio requests, not a hard-coded Android value.
+- Skip a rejected client briefly after a late HTTP 403/410 and use format-specific audio cache keys.
+- Show concrete HTTP status codes without exposing signed URLs.
+- Add eight resolver tests and three error-message tests (25 tests total).
+
+Validated with a debug APK build, unit tests, and Android lint (no errors).
+Both clients served audio ranges in a development-machine smoke test; the reported
+phone-specific HTTP failure could not be reproduced there. Physical-device confirmation is pending.
+
 ## 0.1.0-alpha.2
 
 - Reconstruct playback URIs inside the media session when the controller supplies track IDs.
