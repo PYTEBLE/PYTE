@@ -75,7 +75,7 @@ class StreamResolver internal constructor(
     private suspend fun fetch(videoId: String): ResolvedStream {
         var lastError: IOException? = null
         val attempts = mutableListOf<StreamAttemptFailure>()
-        for (client in listOf(PlayerClient.ANDROID_VR, PlayerClient.IOS)) {
+        for (client in listOf(PlayerClient.VISIONOS, PlayerClient.ANDROID_VR, PlayerClient.IOS)) {
             if ((rejected[videoId to client] ?: 0L) > now()) {
                 attempts += StreamAttemptFailure(client.name, "client", "COOLDOWN")
                 continue

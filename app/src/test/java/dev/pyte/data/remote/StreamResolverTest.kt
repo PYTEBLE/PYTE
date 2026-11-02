@@ -34,24 +34,24 @@ class StreamResolverTest {
         }.build()
 
     @Test
-    fun `HTTP 403 on VR audio falls back to iOS with matching headers`() = runBlocking {
+    fun `HTTP 403 on initial clients falls back to iOS with matching headers`() = runBlocking {
         val loaded = mutableListOf<PlayerClient>()
         val headers = mutableListOf<String?>()
         val resolver = StreamResolver({ _, client -> loaded += client; player(client) }, http { path, ua ->
             headers += ua
-            if (path.contains("ANDROID_VR")) 403 else 206
+            if (path.contains("IOS")) 206 else 403
         }, { 0L })
 
         val result = resolver.resolve(videoId)
 
-        assertEquals(listOf(PlayerClient.ANDROID_VR, PlayerClient.IOS), loaded)
-        assertEquals(listOf(PlayerClient.ANDROID_VR.userAgent, PlayerClient.IOS.userAgent), headers)
+        assertEquals(listOf(PlayerClient.VISIONOS, PlayerClient.ANDROID_VR, PlayerClient.IOS), loaded)
+        assertEquals(loaded.map { it.userAgent }, headers)
         assertEquals(PlayerClient.IOS, result.client)
         assertEquals(PlayerClient.IOS.userAgent, result.userAgent)
     }
 
     @Test
-    fun `successful player response does not hide denied audio on both clients`() = runBlocking {
+    fun `successful player response does not hide denied audio on all clients`() = runBlocking {
         val resolver = StreamResolver({ _, client -> player(client) }, http { _, _ -> 403 }, { 0L })
         try {
             resolver.resolve(videoId)
@@ -59,8 +59,8 @@ class StreamResolverTest {
         } catch (e: StreamUnavailableException) {
             assertTrue(e.message!!.contains("HTTP 403"))
             assertFalse(e.message!!.contains("https://"))
-            assertEquals(listOf("ANDROID_VR", "IOS"), e.attempts.map { it.client })
-            assertEquals(listOf("audio-probe", "audio-probe"), e.attempts.map { it.stage })
+            assertEquals(listOf("VISIONOS", "ANDROID_VR", "IOS"), e.attempts.map { it.client })
+            assertTrue(e.attempts.all { it.stage == "audio-probe" })
             assertTrue(e.attempts.all { it.reason == "HTTP 403" })
         }
     }
@@ -74,7 +74,7 @@ class StreamResolverTest {
             resolver.resolve(videoId)
             fail("Expected player rejection")
         } catch (e: StreamUnavailableException) {
-            assertEquals(2, e.attempts.size)
+            assertEquals(3, e.attempts.size)
             assertTrue(e.attempts.all { it.stage == "audio-format" && it.reason == "LOGIN_REQUIRED" })
         }
     }
@@ -105,8 +105,8 @@ class StreamResolverTest {
         val resolver = StreamResolver({ _, client -> loaded += client; player(client) }, http { _, _ -> 206 }, { 0L })
         resolver.resolve(videoId)
         resolver.invalidate(videoId, rejectClient = true)
-        assertEquals(PlayerClient.IOS, resolver.resolve(videoId).client)
-        assertEquals(listOf(PlayerClient.ANDROID_VR, PlayerClient.IOS), loaded)
+        assertEquals(PlayerClient.ANDROID_VR, resolver.resolve(videoId).client)
+        assertEquals(listOf(PlayerClient.VISIONOS, PlayerClient.ANDROID_VR), loaded)
     }
 
     @Test
@@ -116,7 +116,7 @@ class StreamResolverTest {
         resolver.resolve(videoId)
         resolver.invalidate(videoId, rejectClient = true)
         now = 6 * 60_000L
-        assertEquals(PlayerClient.ANDROID_VR, resolver.resolve(videoId).client)
+        assertEquals(PlayerClient.VISIONOS, resolver.resolve(videoId).client)
     }
 
     @Test
