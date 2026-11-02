@@ -10,7 +10,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
@@ -37,11 +42,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.navigation.compose.hiltViewModel
 import dev.pyte.ui.components.EmptyState
 import dev.pyte.ui.components.PlaylistCard
+import dev.pyte.ui.components.Artwork
 import dev.pyte.ui.theme.PyteAccent
 import dev.pyte.ui.viewmodels.HomeViewModel
 import dev.pyte.ui.viewmodels.ImportUiState
@@ -54,6 +61,7 @@ fun HomeScreen(
 ) {
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
     val pendingLink by viewModel.pendingLink.collectAsStateWithLifecycle()
+    val recent by viewModel.recentTracks.collectAsStateWithLifecycle()
     var showImport by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(pendingLink) {
@@ -61,6 +69,7 @@ fun HomeScreen(
     }
 
     Scaffold(
+        modifier = Modifier.padding(contentPadding),
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
@@ -73,18 +82,17 @@ fun HomeScreen(
             )
         },
     ) { inner ->
-        if (playlists.isEmpty()) {
+        if (playlists.isEmpty() && recent.isEmpty()) {
             EmptyState(
                 title = "Bring your playlists",
                 body = "Paste any public YouTube Music playlist link. No account, no ads, stored only on this device.",
                 actionLabel = "Import a playlist",
                 onAction = { showImport = true },
-                modifier = Modifier.padding(contentPadding).padding(inner),
+                modifier = Modifier.padding(inner).statusBarsPadding(),
             )
         } else {
             Column(
                 modifier = Modifier
-                    .padding(contentPadding)
                     .padding(inner)
                     .statusBarsPadding(),
             ) {
@@ -100,6 +108,28 @@ fun HomeScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    if (recent.isNotEmpty()) {
+                        item(key = "recent", span = { GridItemSpan(maxLineSpan) }) {
+                            Column {
+                                Text("Recently played", style = MaterialTheme.typography.titleMedium,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp))
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp)) {
+                                    itemsIndexed(recent, key = { _, track -> track.videoId }) { index, track ->
+                                        Column(Modifier.width(136.dp).clickable { viewModel.playRecent(recent, index) }.padding(bottom = 16.dp)) {
+                                            Artwork(track.thumbnailUrl, Modifier.fillMaxWidth().aspectRatio(1f))
+                                            Spacer(Modifier.height(8.dp))
+                                            Text(track.title, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                                style = MaterialTheme.typography.bodyMedium)
+                                            Text(track.artist, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                     items(playlists, key = { it.id }) { playlist ->
                         PlaylistCard(playlist = playlist, onClick = { onOpenPlaylist(playlist.id) })
                     }
