@@ -52,3 +52,12 @@ places the headphones/play mark inside the adaptive-icon safe area. Generated PN
 Playlist headers and full player content scroll on short screens. System bar icons stay light
 because the app deliberately uses a dark-only theme. A captured Android welcome screen is in
 `docs/screenshots/welcome.png`; it is not a browser mockup.
+
+## App background (alpha.3)
+
+`app/src/img/background.png` is the supplied original. Its unchanged resource copy is
+`app/src/main/res/drawable-nodpi/pyte_background.png`. `AppBackground` draws it once behind
+the navigation root using a center crop and the shared `PyteBackgroundScrim` token. Main
+scaffolds are transparent with an explicit light content color; cards, dialogs and inputs
+retain solid semantic surfaces. A unit test checks text contrast over every artwork pixel
+after the scrim. `docs/screenshots/search.png` shows the actual Android search screen.

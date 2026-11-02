@@ -3,6 +3,7 @@
 A local-first Android music player for public YouTube Music playlists.
 
 <img src="docs/screenshots/welcome.png" width="260" alt="PYTE violet welcome screen captured on Android" />
+<img src="docs/screenshots/search.png" width="260" alt="PYTE online song search with the supplied background artwork" />
 
 - Paste a public playlist link once. No account, no login.
 - Plays audio directly, so there are no ads.
@@ -10,8 +11,13 @@ A local-first Android music player for public YouTube Music playlists.
 - All data stays on the device (Room database, on-device stream cache).
 - Rename and refresh playlists without losing local names or favorites; deletion asks for confirmation.
 - Search titles and artists locally with Unicode-aware full-text prefix matching.
+- Search YouTube Music songs online, load more results, and save songs to existing local
+  playlist copies or create a new on-device playlist. YouTube account playlists are never modified.
+- Locally added tracks survive refreshes from YouTube; adding the same song twice is prevented.
 - Add songs next/later, open the queue from Now Playing, move entries up/down, or remove them.
 - Recently played songs are recorded locally only after playback starts.
+- Settings: skip silence, enable/disable history recording, clear history with confirmation,
+  and view app/privacy information. Preferences are stored locally with DataStore.
 
 Android cloud backup and automatic device transfer are disabled. Keep the app installed when
 updating APKs: uninstalling or clearing app storage removes your local library. Explicit offline
@@ -36,7 +42,7 @@ Signed release builds: copy `keystore.properties.example` to `keystore.propertie
 |---|---|---|
 | UI | `ui/` | Jetpack Compose, Material 3, dark only |
 | Playback | `playback/` | `PlaybackService` (Media3 `MediaSessionService`) owns ExoPlayer. The UI only sends commands through a `MediaController`. |
-| Extraction | `data/remote/` | Anonymous visitor bootstrap + `VISIONOS` player, with `ANDROID_VR` / `IOS` fallbacks. `WEB_REMIX` playlist browsing with continuation tokens. |
+| Extraction | `data/remote/` | Anonymous visitor bootstrap + `VISIONOS` player, with `ANDROID_VR` / `IOS` fallbacks. `WEB_REMIX` playlist browsing and song search with continuation tokens. |
 | Storage | `data/local/` | Room: playlists, tracks, playlist order, favorites, history, FTS4 search |
 | Cache | `di/AppModule.kt` | Media3 `SimpleCache`, LRU, 1.5 GB |
 
@@ -52,8 +58,14 @@ See [CHANGELOG.md](CHANGELOG.md) and [TESTING.md](TESTING.md) for changes and ve
 ## Current development phase
 
 Phase 4 adds library management, a local FTS4 index, history, and queue editing using
-accessible move buttons (not drag-and-drop). The database migrates from version 1 to 2
-without destructive fallback; tests cover pre-existing playlists, order, and favorites.
+accessible move buttons (not drag-and-drop). Settings, online song search, and local playlist
+additions extend that baseline. The database migrates from versions 1/2 to 3 without
+destructive fallback; tests cover pre-existing playlists, order, favorites, history and local additions.
 Phase 5 remains offline downloads, cache management, and longer-running device resilience checks.
+
+To add a song: **Search → YouTube Music → enter a title/artist → press Search → song menu
+→ Add to local playlist**. Choose an existing playlist or enter a new local playlist name.
+The search uses YouTube Music's unofficial service; region, age, account restrictions and
+future upstream changes can affect results and playback. Finding a song does not guarantee playback.
 
 The violet design and original-logo asset pipeline are documented in [docs/DESIGN.md](docs/DESIGN.md).

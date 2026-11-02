@@ -69,12 +69,31 @@ obtain a valid visitor identifier, use the VISIONOS player endpoint, and accompa
 URLs with the playback nonce. PYTE implements this protocol in its existing Kotlin/OkHttp
 client; NewPipeExtractor is not bundled as an application dependency.
 
-## Settings (0.2.0-alpha.2)
+## Online search + local playlist additions (0.2.0-alpha.3)
+
+- 55 unit tests passed (zero skipped), including live anonymous song search and continuation,
+  Room v1/v2 → v3 migrations, local additions surviving repeated source refreshes, duplicate
+  prevention, local-only playlist creation, settings persistence and history controls.
+- Contrast tests check semantic tokens plus every pixel of the supplied background after
+  its shared dark scrim. APK, Android test APK and lint builds passed.
+- Eight Android 11 emulator tests passed (zero skipped): queue controls, track action menu,
+  settings toggles/clear confirmation, local-playlist dialog interactions, live search →
+  create local playlist → open in library → delete, and live/background playback.
+- Welcome and search screens were visually checked with the new background; captures are
+  in `docs/screenshots/`. Published alpha.1 and the new APK have matching signing certificates.
+- Physical-phone update, long-duration screen-off/Doze playback and restricted/region-specific
+  catalog coverage still need checking. No guarantee of access to every YouTube Music track.
+
+Run the optional live unit search check with `PYTE_LIVE_SEARCH=true ./gradlew :app:testDebugUnitTest`.
+For Android tests, enable `-Pandroid.testInstrumentationRunnerArguments.liveSearch=true` as well
+as the existing live playback arguments.
+
+## Settings (0.2.0-alpha.2; included in alpha.3)
 
 - Unit tests cover settings defaults/persistence and independent switches, disabled history
   recording, re-enabling recording, and history deletion preserving playlists and favorites.
-- `SettingsUiTest` covers switch actions and the cancel/confirm deletion flow. The test APK
-  compiles; this new UI test has not yet been run on an emulator or physical device.
+- `SettingsUiTest` covers switch actions and the cancel/confirm deletion flow. It passed on
+  the Android 11 emulator as part of alpha.3 validation.
 - Manual device checks still needed: toggle skip silence while playing a track with quiet gaps,
   restart the app to check persistence, and clear history while retaining the current queue.
 

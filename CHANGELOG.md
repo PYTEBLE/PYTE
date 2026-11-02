@@ -1,6 +1,17 @@
 # Changelog
 
-## 0.2.0-alpha.2
+## 0.2.0-alpha.3
+
+- Search songs on YouTube Music without an account, load additional result pages, and play
+  results or add them to the queue. The original on-device search remains available.
+- Add songs to existing on-device playlist copies or create a new local playlist directly
+  from a search result. Nothing is written to a YouTube account; duplicate adds are prevented.
+- Migrate Room v1/v2 libraries to v3 without resetting data. Mark local additions so they
+  survive refreshes from YouTube, including when a song temporarily appears in the source.
+- Use the supplied background artwork throughout the app with a shared readability scrim.
+- Include the Settings tab from the previously unpublished alpha.2 changes below.
+
+## 0.2.0-alpha.2 (not published separately)
 
 - Add a violet Settings tab with locally persisted skip-silence and listening-history switches.
 - Apply skip-silence changes to active playback. Allow history recording to be disabled without
