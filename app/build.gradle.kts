@@ -23,6 +23,7 @@ android {
         targetSdk = 36
         versionCode = 3
         versionName = "0.1.0-alpha.3"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
@@ -108,4 +109,6 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation("org.robolectric:robolectric:4.16.1")
+    androidTestImplementation("androidx.test:runner:1.7.0")
+    androidTestImplementation("androidx.test.ext:junit:1.3.0")
 }
