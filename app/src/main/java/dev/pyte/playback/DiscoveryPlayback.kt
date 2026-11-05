@@ -43,13 +43,13 @@ internal class PreviewPlayback {
     fun restore(player: Player) {
         val original = snapshot ?: return
         snapshot = null // Clear before events fire while restoring the original timeline.
+        player.shuffleModeEnabled = original.shuffle
+        player.repeatMode = original.repeat
         if (original.items.isEmpty()) {
             player.stop()
             player.clearMediaItems()
         } else {
             player.setMediaItems(original.items, original.index.coerceIn(original.items.indices), original.position)
-            player.shuffleModeEnabled = original.shuffle
-            player.repeatMode = original.repeat
             player.prepare()
             player.playWhenReady = original.playWhenReady
         }

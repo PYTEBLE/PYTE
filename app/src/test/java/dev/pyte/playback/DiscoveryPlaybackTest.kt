@@ -76,10 +76,14 @@ class DiscoveryPlaybackTest {
         val player = ExoPlayer.Builder(RuntimeEnvironment.getApplication()).build()
         try {
             val preview = PreviewPlayback()
+            player.shuffleModeEnabled = true
+            player.repeatMode = Player.REPEAT_MODE_ALL
             preview.play(player, first)
             preview.restore(player)
             assertEquals(0, player.mediaItemCount)
             assertFalse(player.isPlaying)
+            assertTrue(player.shuffleModeEnabled)
+            assertEquals(Player.REPEAT_MODE_ALL, player.repeatMode)
             preview.play(player, first)
             preview.discard()
             player.setMediaItem(last.toMediaItem())
