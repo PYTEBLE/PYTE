@@ -12,6 +12,7 @@ local.properties
 keystore.properties
 *.jks
 *.keystore
+*.keystore.password
 
 # OS / editor
 .DS_Store
