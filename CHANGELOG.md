@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+- Discover similar songs from a playlist or the full-screen player using anonymous YouTube
+  Music song radios. Sample up to four playlist seeds, combine shared matches, and exclude
+  existing songs and duplicate results with per-artist diversity limits.
+- Open suggestions automatically when the final original playlist queue entry starts,
+  once per playback run, only with shuffle/repeat off and the app focused/unlocked. Add a
+  persisted Settings toggle; background or obstructed runs never create delayed popups.
+- Preview recommendations through the existing media session without losing the original
+  queue, position or playback modes. Return explicitly, close the sheet, or finish a preview
+  to restore playback. Add directly to the source local playlist or choose/create a playlist
+  for single-song recommendations; selected offline playlists keep their download constraints.
+- Add a cover-aware discovery sheet with animated save feedback, accessible Listen/Add
+  controls, retry/partial/empty states and a persistent preview-return action.
+
 ## 0.2.0-alpha.6
 
 Install as an update over alpha.5 (same signing certificate, versionCode 10).

@@ -14,6 +14,10 @@ A local-first Android music player for public YouTube Music playlists.
 - Search YouTube Music songs online, load more results, and save songs to existing local
   playlist copies or create a new on-device playlist. YouTube account playlists are never modified.
 - Locally added tracks survive refreshes from YouTube; adding the same song twice is prevented.
+- **Find similar songs** in a playlist or **Similar to this song** in the full player: preview
+  suggestions without losing your queue and save them to local playlists. Recommendations
+  can also open at the start of the last playlist song, with shuffle/repeat off and the app
+  focused. Turn automatic prompts off in Settings → Discover. [Details](docs/DISCOVERY.md).
 - Add songs next/later, open the queue from Now Playing, move entries up/down, or remove them.
 - Recently played songs are recorded locally only after playback starts.
 - Settings: skip silence, enable/disable history recording, clear history with confirmation,

@@ -1,5 +1,39 @@
 # Playback verification
 
+## Similar songs (unreleased)
+
+- All 115 unit tests passed, zero skipped, with `PYTE_LIVE_RECOMMENDATIONS=true`,
+  `PYTE_LIVE_ARTWORK=true` and `PYTE_LIVE_SEARCH=true`. Includes real anonymous radio/search
+  requests, seed sampling, ranking, duplicate/existing-song filtering and partial failures.
+- Playback fixtures verify once-per-run gating, suppression for shuffle/repeat, disabled,
+  background and obstructed states, stable original queue identities, repeated preview
+  switching, position/play-intent/mode restoration and empty-queue cleanup.
+- Three `RecommendationsUiTest` cases cover Listen/Add feedback, preview return/close,
+  retry and empty states. The opt-in `LiveRecommendationsUiTest` has passed individually
+  through automatic opening, real preview audio, direct local addition, exact queue identity
+  restoration, manual playlist discovery and full-player discovery with a playlist chooser.
+- The live discovery test uses UI Automator and real time rather than a Compose virtual clock,
+  so real audio and window focus are exercised together. Dismiss emulator system-ANR dialogs
+  before testing; a covered activity is deliberately not eligible for automatic suggestions.
+- Final debug APK, instrumentation APK and Android lint builds passed. Full connected-suite
+  revalidation did not complete: the software-rendered Android 11 emulator became unresponsive
+  during effect-enabled testing and later retries. Individual discovery/UI checks above passed,
+  but this is **not** an all-green final device-suite or animation-performance qualification.
+- Phone checks still needed: TalkBack/large-font layouts, rotation during previews, subjective
+  recommendation quality across mixed genres, long playback sessions and low-end performance.
+  Restoring shuffle does not guarantee the same randomized future traversal order.
+
+```bash
+PYTE_LIVE_RECOMMENDATIONS=true PYTE_LIVE_ARTWORK=true PYTE_LIVE_SEARCH=true \
+  ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug
+
+./gradlew :app:connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.liveRecommendations=true \
+  -Pandroid.testInstrumentationRunnerArguments.liveSearch=true \
+  -Pandroid.testInstrumentationRunnerArguments.livePlayback=true \
+  -Pandroid.testInstrumentationRunnerArguments.videoId=YGr2G2fc48U
+```
+
 ## Living UI (0.2.0-alpha.6)
 
 - Unit tests cover the reduced-motion/battery-saver/background policy, cover-color contrast at
