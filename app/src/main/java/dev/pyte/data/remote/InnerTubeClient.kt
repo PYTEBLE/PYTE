@@ -148,6 +148,19 @@ class InnerTubeClient @Inject constructor(
         )
     }
 
+    /** Anonymous song radio: suggestions, not a mutation of an account playlist. */
+    suspend fun songRadio(videoId: String): JsonObject {
+        require(videoId.matches(Regex("[A-Za-z0-9_-]{11}")))
+        val body = buildJsonObject {
+            putJsonObject("context") { putWebRemix() }
+            put("videoId", videoId)
+            put("playlistId", "RDAMVM$videoId")
+            put("isAudioOnly", true)
+            put("enablePersistentPlaylistPanel", true)
+        }
+        return post("$WEB_REMIX_HOST/youtubei/v1/next?prettyPrint=false&key=$WEB_REMIX_KEY", WEB_UA, body)
+    }
+
     suspend fun search(query: String, continuation: String? = null): JsonObject {
         val body = buildJsonObject {
             putJsonObject("context") { putWebRemix() }
