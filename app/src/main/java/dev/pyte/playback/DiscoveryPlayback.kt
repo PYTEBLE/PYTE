@@ -51,8 +51,8 @@ internal class PreviewPlayback {
         } else {
             player.setMediaItems(original.items, original.index.coerceIn(original.items.indices), original.position)
             player.prepare()
-            player.playWhenReady = original.playWhenReady
         }
+        player.playWhenReady = original.playWhenReady
     }
 
     fun discard() { snapshot = null }

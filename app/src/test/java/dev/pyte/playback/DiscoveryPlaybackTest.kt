@@ -82,6 +82,7 @@ class DiscoveryPlaybackTest {
             preview.restore(player)
             assertEquals(0, player.mediaItemCount)
             assertFalse(player.isPlaying)
+            assertFalse(player.playWhenReady)
             assertTrue(player.shuffleModeEnabled)
             assertEquals(Player.REPEAT_MODE_ALL, player.repeatMode)
             preview.play(player, first)
