@@ -68,6 +68,10 @@ fun SettingsScreen(contentPadding: PaddingValues, viewModel: SettingsViewModel =
                                 Text("Equalizer & sound profiles")
                             }
                         }
+                        SettingsSection("Discover") {
+                            SettingsSwitch("Playlist recommendations", "Show similar songs when the last playlist song starts. Only with shuffle and repeat off; never opens in the background.",
+                                value.autoRecommendations, !busy, viewModel::autoRecommendations)
+                        }
                         SettingsSection("Appearance") {
                             SettingsSwitch("Dynamic cover theme", "Let your entire app follow the current cover. Without artwork, PYTE stays violet.",
                                 value.dynamicCoverTheme, !busy, viewModel::dynamicCoverTheme)
@@ -135,7 +139,7 @@ internal fun SettingsContent(
         SettingsSection("Your privacy") {
             Text("Your playlists, favorites, history and settings stay on this device. No Google login. Android cloud backup and device transfer are disabled.",
                 Modifier.padding(16.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Online searches, streaming and playlist imports connect to YouTube; artwork may load from its image servers. Lyrics requests send song title, artist and duration to LRCLIB. Available lyrics are cached locally. Only completed playlist downloads guarantee offline playback; the streaming cache does not.",
+            Text("Online searches, song recommendations, streaming and playlist imports connect to YouTube; artwork may load from its image servers. Recommendations send up to four seed song IDs, not your playlist name or full library. Lyrics requests send song title, artist and duration to LRCLIB. Available lyrics are cached locally. Only completed playlist downloads guarantee offline playback; the streaming cache does not.",
                 Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         SettingsSection("About PYTE") {

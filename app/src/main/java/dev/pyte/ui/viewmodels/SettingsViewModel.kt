@@ -41,6 +41,7 @@ class SettingsViewModel @Inject constructor(
     fun dynamicCoverTheme(enabled: Boolean) = update { repository.setDynamicCoverTheme(enabled) }
     fun effectLevel(level: dev.pyte.data.settings.EffectLevel) = update { repository.setEffectLevel(level) }
     fun hapticFeedback(enabled: Boolean) = update { repository.setHapticFeedback(enabled) }
+    fun autoRecommendations(enabled: Boolean) = update { repository.setAutoRecommendations(enabled) }
     fun recordHistory(enabled: Boolean) = update { library.setHistoryEnabled(enabled) }
     fun clearHistory() = update {
         library.clearHistory()

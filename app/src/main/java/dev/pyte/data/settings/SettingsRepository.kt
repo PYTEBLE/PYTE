@@ -29,6 +29,7 @@ data class AppSettings(
     val equalizer: EqualizerSettings = EqualizerSettings(),
     val effectLevel: EffectLevel = EffectLevel.LIVELY,
     val hapticFeedback: Boolean = true,
+    val autoRecommendations: Boolean = true,
 )
 
 @Singleton
@@ -42,13 +43,14 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     private val equalizerKey = stringPreferencesKey("equalizer_v1")
     private val effectLevelKey = stringPreferencesKey("effect_level")
     private val hapticKey = booleanPreferencesKey("haptic_feedback")
+    private val recommendationsKey = booleanPreferencesKey("auto_recommendations")
     private val json = Json { ignoreUnknownKeys = true }
 
     val settings = store.data.map { values ->
         AppSettings(values[silenceKey] ?: false, values[historyKey] ?: true,
             values[limitKey] ?: 2048, values[pauseKey] ?: false, values[coverThemeKey] ?: true,
             runCatching { json.decodeFromString<EqualizerSettings>(values[equalizerKey] ?: "{}").normalized() }.getOrDefault(EqualizerSettings()),
-            EffectLevel.fromStored(values[effectLevelKey]), values[hapticKey] ?: true)
+            EffectLevel.fromStored(values[effectLevelKey]), values[hapticKey] ?: true, values[recommendationsKey] ?: true)
     }
 
     suspend fun setSkipSilence(enabled: Boolean) { store.edit { it[silenceKey] = enabled } }
@@ -58,6 +60,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     suspend fun setDynamicCoverTheme(enabled: Boolean) { store.edit { it[coverThemeKey] = enabled } }
     suspend fun setEffectLevel(level: EffectLevel) { store.edit { it[effectLevelKey] = level.name } }
     suspend fun setHapticFeedback(enabled: Boolean) { store.edit { it[hapticKey] = enabled } }
+    suspend fun setAutoRecommendations(enabled: Boolean) { store.edit { it[recommendationsKey] = enabled } }
     private suspend fun editEqualizer(change: (EqualizerSettings) -> EqualizerSettings) {
         store.edit { values ->
             val old = runCatching { json.decodeFromString<EqualizerSettings>(values[equalizerKey] ?: "{}").normalized() }

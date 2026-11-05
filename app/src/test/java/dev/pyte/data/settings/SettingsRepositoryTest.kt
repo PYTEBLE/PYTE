@@ -12,6 +12,18 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class SettingsRepositoryTest {
+    @Test fun `automatic discovery preference persists without affecting manual playback preferences`() = runBlocking {
+        val context = RuntimeEnvironment.getApplication()
+        val repository = SettingsRepository(context)
+        try {
+            assertTrue(repository.settings.first().autoRecommendations)
+            repository.setAutoRecommendations(false)
+            val reopened = SettingsRepository(context).settings.first()
+            assertFalse(reopened.autoRecommendations)
+            assertFalse(reopened.skipSilence)
+            assertTrue(reopened.recordHistory)
+        } finally { repository.setAutoRecommendations(true) }
+    }
     @Test fun `effect intensity and haptics persist independently of cover colors`() = runBlocking {
         val context = RuntimeEnvironment.getApplication()
         val repository = SettingsRepository(context)
