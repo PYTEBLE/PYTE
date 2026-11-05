@@ -140,10 +140,10 @@ class PlaylistViewModel @Inject constructor(
 
     val playerState: StateFlow<PlayerUiState> = player.state
 
-    fun play(tracks: List<Track>, index: Int) = player.playQueue(tracks, index)
+    fun play(tracks: List<Track>, index: Int) = player.playQueue(tracks, index, sourcePlaylistId = playlistId)
 
     fun shuffleAll(tracks: List<Track>) {
-        if (tracks.isNotEmpty()) player.playQueue(tracks, tracks.indices.random(), shuffle = true)
+        if (tracks.isNotEmpty()) player.playQueue(tracks, tracks.indices.random(), shuffle = true, sourcePlaylistId = playlistId)
     }
 
     fun enqueueNext(track: Track) = player.enqueueNext(track)

@@ -35,6 +35,8 @@ data class PlayerUiState(
     val repeat: Int = Player.REPEAT_MODE_OFF,
     val errorMessage: String? = null,
     val queueEntryIds: List<String> = emptyList(),
+    val playlistOrigin: PlaylistPlaybackOrigin? = null,
+    val isPreview: Boolean = false,
 ) {
     val hasItems: Boolean get() = queue.isNotEmpty()
 }
@@ -53,9 +55,11 @@ class PlayerController @Inject constructor(
 
     private var controller: MediaController? = null
     private var pendingAction: ((MediaController) -> Unit)? = null
+    private val preview = PreviewPlayback()
 
     private val listener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) {
+            if (preview.active && player.playbackState == Player.STATE_ENDED) preview.restore(player)
             refresh(player)
         }
 
@@ -95,15 +99,24 @@ class PlayerController @Inject constructor(
         }
     }
 
-    fun playQueue(tracks: List<Track>, startIndex: Int = 0, shuffle: Boolean = false) {
+    fun playQueue(tracks: List<Track>, startIndex: Int = 0, shuffle: Boolean = false, sourcePlaylistId: String? = null) {
         if (tracks.isEmpty()) return
         act { c ->
-            c.setMediaItems(tracks.map { it.toMediaItem() }, startIndex.coerceIn(0, tracks.lastIndex), 0L)
+            preview.discard()
+            val items = tracks.map { it.toMediaItem() }
+            val origin = sourcePlaylistId?.let {
+                PlaylistPlaybackOrigin(it, java.util.UUID.randomUUID().toString(),
+                    checkNotNull(items.last().mediaMetadata.extras?.getString("queueEntryId")))
+            }
+            c.setMediaItems(items.map { it.withPlaylistOrigin(origin) }, startIndex.coerceIn(0, tracks.lastIndex), 0L)
             c.shuffleModeEnabled = shuffle
             c.prepare()
             c.play()
         }
     }
+
+    fun preview(track: Track) = act { c -> preview.play(c, track); refresh(c) }
+    fun finishPreview() = act { c -> preview.restore(c); refresh(c) }
 
     fun togglePlayPause() = act { c ->
         if (c.isPlaying) c.pause() else {
@@ -157,6 +170,8 @@ class PlayerController @Inject constructor(
             queueEntryIds = (0 until player.mediaItemCount).map { index ->
                 player.getMediaItemAt(index).mediaMetadata.extras?.getString("queueEntryId") ?: "external:$index"
             },
+            playlistOrigin = player.currentMediaItem?.playlistOrigin(),
+            isPreview = preview.active,
         )
     }
 
@@ -190,3 +205,19 @@ internal fun MediaItem.toTrack(): Track = Track(
     durationMs = mediaMetadata.extras?.getLong("durationMs", 0L) ?: 0L,
     thumbnailUrl = mediaMetadata.artworkUri?.toString(),
 )
+
+internal fun MediaItem.withPlaylistOrigin(origin: PlaylistPlaybackOrigin?): MediaItem {
+    if (origin == null) return this
+    val extras = Bundle(mediaMetadata.extras ?: Bundle()).apply {
+        putString("sourcePlaylistId", origin.playlistId)
+        putString("playbackRunId", origin.runId)
+        putString("playlistLastEntryId", origin.lastEntryId)
+    }
+    return buildUpon().setMediaMetadata(mediaMetadata.buildUpon().setExtras(extras).build()).build()
+}
+
+private fun MediaItem.playlistOrigin(): PlaylistPlaybackOrigin? {
+    val extras = mediaMetadata.extras ?: return null
+    return PlaylistPlaybackOrigin(extras.getString("sourcePlaylistId") ?: return null,
+        extras.getString("playbackRunId") ?: return null, extras.getString("playlistLastEntryId") ?: return null)
+}
