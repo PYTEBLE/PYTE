@@ -1,6 +1,6 @@
 # Playback verification
 
-## Similar songs (unreleased)
+## Similar songs (0.2.0-alpha.7)
 
 - All 115 unit tests passed, zero skipped, with `PYTE_LIVE_RECOMMENDATIONS=true`,
   `PYTE_LIVE_ARTWORK=true` and `PYTE_LIVE_SEARCH=true`. Includes real anonymous radio/search
@@ -19,6 +19,10 @@
   revalidation did not complete: the software-rendered Android 11 emulator became unresponsive
   during effect-enabled testing and later retries. Individual discovery/UI checks above passed,
   but this is **not** an all-green final device-suite or animation-performance qualification.
+- Alpha.7 uses versionCode 11 and a new dedicated certificate, not the unavailable alpha.6 key.
+  The debug-variant APK is re-signed and verified by `tools/sign-apk.sh`; its public fingerprint
+  is pinned in the script and documented in `docs/SIGNING.md`. An in-place alpha.6 update is
+  intentionally incompatible. Users must be warned about uninstalling and losing local data.
 - Phone checks still needed: TalkBack/large-font layouts, rotation during previews, subjective
   recommendation quality across mixed genres, long playback sessions and low-end performance.
   Restoring shuffle does not guarantee the same randomized future traversal order.

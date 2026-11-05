@@ -49,9 +49,10 @@ Android cloud backup and automatic device transfer are disabled. Keep the app in
 updating APKs: uninstalling or clearing app storage removes your local library and downloads.
 Manual library export is not implemented yet.
 
-**Signing compatibility:** alpha.5 can update alpha.4 in place; keep the app installed to
-preserve its library. Versions before alpha.4 used an unavailable old key and require
-uninstalling first, which deletes their local library and settings.
+**Signing compatibility:** alpha.7 uses a new dedicated signing key because the earlier key
+is unavailable. It requires uninstalling previous versions first, which deletes the local
+library, settings and downloads. No export/restore is implemented yet. Future published APKs
+must keep this dedicated key. [Signing and backup instructions](docs/SIGNING.md).
 
 > Personal use only. Extracting streams is against YouTube's Terms of Service. Do not publish this app to the Play Store or run it as a public service.
 
@@ -65,6 +66,9 @@ Requirements: JDK 17, Android SDK with platform 37.0 and build-tools 37.0.0.
 ```
 
 Signed release builds: copy `keystore.properties.example` to `keystore.properties` and point it at your keystore. Without it, `assembleRelease` uses the debug key.
+
+Published alpha.7 APKs use the debug build variant, re-signed with the dedicated PYTE key via
+`tools/sign-apk.sh`; do not publish the raw automatically debug-signed APK as a later update.
 
 ## Architecture
 

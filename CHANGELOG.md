@@ -1,6 +1,12 @@
 # Changelog
 
-## Unreleased
+## 0.2.0-alpha.7
+
+**Installation warning:** the alpha.6 signing key is unavailable. This release uses a new,
+dedicated PYTE signing key and cannot update previous installations in place. Uninstalling
+the old app deletes local playlists, favorites, history, settings and downloads. No manual
+export/restore is currently implemented. The signing key/password stay outside the repository
+and must be backed up securely for future compatible releases. versionCode 11.
 
 - Discover similar songs from a playlist or the full-screen player using anonymous YouTube
   Music song radios. Sample up to four playlist seeds, combine shared matches, and exclude
@@ -14,6 +20,10 @@
   for single-song recommendations; selected offline playlists keep their download constraints.
 - Add a cover-aware discovery sheet with animated save feedback, accessible Listen/Add
   controls, retry/partial/empty states and a persistent preview-return action.
+
+Validation: 115 unit tests, debug APK, instrumentation APK and lint passed. The live discovery
+flow and UI checks passed individually. Final connected-suite revalidation was incomplete
+because the software-rendered emulator became unresponsive; device/performance checks remain pending.
 
 ## 0.2.0-alpha.6
 
