@@ -33,6 +33,8 @@ import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Equalizer
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -79,6 +81,7 @@ import dev.pyte.ui.viewmodels.PlayerViewModel
 fun NowPlayingScreen(
     onClose: () -> Unit,
     viewModel: PlayerViewModel = hiltViewModel(),
+    onDiscover: (dev.pyte.domain.Track) -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
@@ -196,6 +199,11 @@ fun NowPlayingScreen(
         }
 
         Spacer(Modifier.height(24.dp))
+        OutlinedButton(onClick = { onDiscover(track) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp)) {
+            Icon(Icons.Default.AutoAwesome, null, Modifier.size(20.dp))
+            Spacer(Modifier.size(8.dp))
+            Text("Similar to this song")
+        }
         Row(Modifier.fillMaxWidth().padding(bottom = 12.dp), horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically) {
             Image(painterResource(R.drawable.pyte_symbol), null, Modifier.size(28.dp))

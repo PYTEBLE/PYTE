@@ -23,6 +23,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -72,6 +74,7 @@ fun PlaylistScreen(
     onBack: () -> Unit,
     contentPadding: PaddingValues,
     viewModel: PlaylistViewModel = hiltViewModel(),
+    onDiscover: (String, String) -> Unit = { _, _ -> },
 ) {
     val detail by viewModel.detail.collectAsStateWithLifecycle()
     val action by viewModel.action.collectAsStateWithLifecycle()
@@ -183,6 +186,13 @@ fun PlaylistScreen(
                                         modifier = Modifier.height(56.dp), shape = RoundedCornerShape(18.dp)) {
                                         Icon(Icons.Default.Shuffle, null); Spacer(Modifier.width(6.dp)); Text("Shuffle")
                                     }
+                                }
+                                Spacer(Modifier.height(12.dp))
+                                FilledTonalButton(onClick = { onDiscover(playlist.id, playlist.title) },
+                                    enabled = tracks.isNotEmpty(), modifier = Modifier.fillMaxWidth()) {
+                                    Icon(Icons.Default.AutoAwesome, null, Modifier.size(20.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Find similar songs")
                                 }
                             }
                         }

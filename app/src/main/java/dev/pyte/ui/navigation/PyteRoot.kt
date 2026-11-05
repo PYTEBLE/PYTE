@@ -21,6 +21,12 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.currentStateAsState
+import android.os.PowerManager
+import android.app.KeyguardManager
 import android.content.ClipData
 import android.content.ClipboardManager
 import androidx.compose.material3.MaterialTheme
@@ -51,6 +57,9 @@ import dev.pyte.ui.screens.NowPlayingScreen
 import dev.pyte.ui.screens.PlaylistScreen
 import dev.pyte.ui.screens.SearchScreen
 import dev.pyte.ui.screens.SettingsScreen
+import dev.pyte.ui.screens.RecommendationsSheet
+import dev.pyte.ui.components.AddToPlaylistDialog
+import dev.pyte.ui.viewmodels.RecommendationsViewModel
 import dev.pyte.ui.viewmodels.PlayerViewModel
 import dev.pyte.ui.theme.AppCoverTheme
 import dev.pyte.ui.theme.LocalLivingUi
@@ -82,7 +91,7 @@ private val tabs = listOf(
 )
 
 @Composable
-fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel()) {
+fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel(), recommendationsViewModel: RecommendationsViewModel = hiltViewModel()) {
     val nav = rememberNavController()
     val playerState by playerViewModel.state.collectAsStateWithLifecycle()
     val coverColors by playerViewModel.coverColors.collectAsStateWithLifecycle()
@@ -95,6 +104,17 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel()) {
     val onNowPlaying = route == Routes.NOW_PLAYING
     val snackbar = remember { SnackbarHostState() }
     val morph = remember { PlayerMorphState() }
+    val discovery by recommendationsViewModel.state.collectAsStateWithLifecycle()
+    val discoveryPlaylists by recommendationsViewModel.playlists.collectAsStateWithLifecycle()
+    val lifecycle by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
+    val windowFocused = LocalWindowInfo.current.isWindowFocused
+    LaunchedEffect(lifecycle, windowFocused, report, morph.hiddenId) {
+        // UI eligibility is separate from the decorative animation policy.
+        val foreground = lifecycle.isAtLeast(Lifecycle.State.RESUMED) && windowFocused &&
+            context.getSystemService(PowerManager::class.java).isInteractive &&
+            !context.getSystemService(KeyguardManager::class.java).isKeyguardLocked
+        recommendationsViewModel.visibility(foreground, report == null && morph.hiddenId == null)
+    }
     val openPlayer = {
         if (nav.currentDestination?.route != Routes.NOW_PLAYING) {
             morph.begin(playerState.current, opening = true, animate = motion.animate)
@@ -217,6 +237,7 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel()) {
                 PlaylistScreen(
                     onBack = { nav.popBackStack() },
                     contentPadding = padding,
+                    onDiscover = { id, title -> recommendationsViewModel.openPlaylist(id, title) },
                 )
             }
             composable(
@@ -226,11 +247,19 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel()) {
                 popEnterTransition = { fadeIn(tween(motion.duration(380))) },
                 popExitTransition = { fadeOut(tween(motion.duration(300))) },
             ) {
-                NowPlayingScreen(onClose = closePlayer)
+                NowPlayingScreen(onClose = closePlayer, onDiscover = recommendationsViewModel::openSong)
             }
         }
     }
     PlayerMorphOverlay(morph, playerState.current?.videoId)
+    RecommendationsSheet(discovery, playerState, recommendationsViewModel::dismiss,
+        recommendationsViewModel::retry, recommendationsViewModel::listen,
+        recommendationsViewModel::returnToPlayback, recommendationsViewModel::add)
+    discovery.picker?.let { song ->
+        AddToPlaylistDialog(song, discoveryPlaylists, discovery.savingId != null, discovery.saveError,
+            recommendationsViewModel::dismissPicker, recommendationsViewModel::choosePlaylist,
+            recommendationsViewModel::createPlaylist)
+    }
     BackHandler(enabled = onNowPlaying) { closePlayer() }
     }
     }
