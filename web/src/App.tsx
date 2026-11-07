@@ -32,6 +32,7 @@ import {
   FileText,
   ChevronRight,
   Globe2,
+  Maximize2,
 } from "lucide-react";
 import type { Library, Playlist, Track } from "./domain.ts";
 import {
@@ -46,6 +47,8 @@ import { WebPlayer } from "./player.ts";
 import { api } from "./api.ts";
 import "./desktop.ts";
 import { Artwork, Empty, IconButton, Modal, TrackRows } from "./components.tsx";
+import { LyricsView } from "./LyricsView.tsx";
+import { ImmersivePlayer } from "./Immersive.tsx";
 
 type View = "library" | "search" | "favorites" | "settings" | "playlist";
 type Editor =
@@ -94,8 +97,7 @@ export default function App() {
   const [panel, setPanel] = useState<"queue" | "lyrics" | null>(() =>
       window.innerWidth >= 1190 ? "queue" : null,
     ),
-    [lyrics, setLyrics] = useState(""),
-    [lyricsLoading, setLyricsLoading] = useState(false);
+    [immersive, setImmersive] = useState(false);
   const [notice, setNotice] = useState(""),
     [player, setPlayer] = useState<WebPlayer | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null),
@@ -300,35 +302,6 @@ export default function App() {
       }
     };
   }, [current?.id, player]);
-  useEffect(() => {
-    if (panel !== "lyrics" || !current) {
-      setLyrics("");
-      return;
-    }
-    const abort = new AbortController();
-    setLyricsLoading(true);
-    setLyrics("");
-    api<{ plainLyrics: string | null; instrumental?: boolean }>(
-      "lyrics",
-      current,
-      abort.signal,
-    )
-      .then((value) =>
-        setLyrics(
-          value.instrumental
-            ? "Instrumental · keine Lyrics vorhanden."
-            : value.plainLyrics ||
-                "Für diesen Song sind keine Lyrics verfügbar.",
-        ),
-      )
-      .catch((error) => {
-        if (!abort.signal.aborted) setLyrics(message(error));
-      })
-      .finally(() => {
-        if (!abort.signal.aborted) setLyricsLoading(false);
-      });
-    return () => abort.abort();
-  }, [panel, current?.id]);
 
   function openEditor(value: Editor, text = "") {
     setFormError("");
@@ -1490,15 +1463,20 @@ export default function App() {
             <div className="lyrics-panel">
               {current ? (
                 <>
-                  <Artwork track={current} />
-                  <h2>{current.title}</h2>
-                  <p className="muted">{current.artist}</p>
-                  <p className="lyrics-text" role="status">
-                    {lyricsLoading ? "Lyrics werden geladen …" : lyrics}
-                  </p>
-                  <span className="small muted">
-                    Lyrics von LRCLIB · nicht synchronisiert
-                  </span>
+                  <div className="lyrics-panel-head">
+                    <Artwork track={current} />
+                    <div>
+                      <h2>{current.title}</h2>
+                      <p className="muted">{current.artist}</p>
+                    </div>
+                  </div>
+                  <LyricsView
+                    track={current}
+                    position={playback?.position ?? 0}
+                    playing={!!playback?.playing}
+                    onSeek={(seconds) => player?.seek(seconds)}
+                    variant="panel"
+                  />
                 </>
               ) : (
                 <Empty title="Worte zu deinem Sound">
@@ -1632,6 +1610,13 @@ export default function App() {
             onClick={() => setPanel(panel === "lyrics" ? null : "lyrics")}
           >
             <FileText />
+          </IconButton>
+          <IconButton
+            label="Vollbild-Player öffnen"
+            disabled={!current}
+            onClick={() => setImmersive(true)}
+          >
+            <Maximize2 />
           </IconButton>
           <IconButton
             label="Queue anzeigen"
@@ -1933,6 +1918,26 @@ export default function App() {
             </button>
           </form>
         </Modal>
+      )}
+      {immersive && current && (
+        <ImmersivePlayer
+          track={current}
+          position={playback?.position ?? 0}
+          duration={playback?.duration ?? 0}
+          playing={!!playback?.playing}
+          loading={!!playback?.loading}
+          shuffle={!!playback?.shuffle}
+          repeat={playback?.repeat ?? "off"}
+          favorite={!!library?.favorites.some((t) => t.id === current.id)}
+          onClose={() => setImmersive(false)}
+          onToggle={() => player?.toggle()}
+          onNext={() => player?.next()}
+          onPrevious={() => player?.previous()}
+          onSeek={(seconds) => player?.seek(seconds)}
+          onShuffle={() => player?.setShuffle(!playback?.shuffle)}
+          onRepeat={() => player?.setRepeat()}
+          onFavorite={() => toggleFavorite(current)}
+        />
       )}
     </div>
   );

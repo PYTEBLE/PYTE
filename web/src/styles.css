@@ -1834,3 +1834,391 @@ html[data-motion="reduced"] *::after {
   animation-iteration-count: 1 !important;
   transition-duration: 0.01ms !important;
 }
+
+/* Lyrics — shared by the side panel and the immersive player */
+.lyrics-view {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  color: var(--text);
+}
+.lyrics-view.panel {
+  padding: 0 22px 18px;
+}
+.lyrics-scroll {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scroll-behavior: auto;
+  mask-image: linear-gradient(transparent, #000 12%, #000 88%, transparent);
+  scrollbar-width: none;
+}
+.lyrics-scroll::-webkit-scrollbar {
+  display: none;
+}
+.lyrics-spacer {
+  height: 42%;
+}
+.lyric-line {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.55em 0.2em;
+  border-radius: 14px;
+  color: color-mix(in srgb, var(--text) 42%, transparent);
+  transition:
+    color 360ms cubic-bezier(0.2, 0, 0, 1),
+    transform 360ms cubic-bezier(0.2, 0, 0, 1),
+    background-color 240ms;
+  transform-origin: left center;
+}
+.lyric-line:hover {
+  background: var(--accent-wash);
+  color: color-mix(in srgb, var(--text) 75%, transparent);
+}
+.lyric-line .lyric-text {
+  font-size: 1.22rem;
+  font-weight: 650;
+  line-height: 1.38;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+.lyric-line.past {
+  color: color-mix(in srgb, var(--text) 30%, transparent);
+}
+.lyric-line.active {
+  color: var(--text);
+  transform: scale(1.02);
+  background: linear-gradient(90deg, var(--cover-glow, var(--accent-glow)), transparent 80%);
+  box-shadow: inset 4px 0 0 var(--cover-accent, var(--accent));
+}
+.lyric-line.active .lyric-text {
+  text-shadow: 0 0 28px var(--cover-glow, var(--accent-glow));
+}
+.lyrics-follow {
+  position: absolute;
+  left: 50%;
+  bottom: 56px;
+  transform: translateX(-50%);
+  min-height: 40px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: var(--cover-accent, var(--accent));
+  color: var(--on-accent);
+  font-weight: 650;
+  font-size: 0.78rem;
+  box-shadow: 0 10px 30px var(--accent-glow);
+}
+.lyrics-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 30px 6px;
+}
+.lyrics-skeleton span {
+  display: block;
+  height: 22px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--elevated), var(--border), var(--elevated));
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+.lyrics-message {
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.7;
+  padding: 24px 6px;
+}
+.lyrics-plain-note {
+  color: var(--accent);
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  font-weight: 650;
+  text-transform: uppercase;
+  margin: 8px 0 14px;
+}
+.lyrics-plain p {
+  font-size: 1.1rem;
+  line-height: 1.85;
+  white-space: pre-wrap;
+  color: color-mix(in srgb, var(--text) 85%, transparent);
+  margin: 0;
+}
+.lyrics-credit {
+  margin: 10px 0 0;
+  text-align: center;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  opacity: 0.7;
+}
+.lyric-wave {
+  width: 100%;
+  height: 46px;
+  margin-top: 6px;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+.lyric-wave path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-width: 2.2;
+  vector-effect: non-scaling-stroke;
+}
+.lyric-wave .wave-back {
+  stroke: var(--cover-glow, var(--accent-glow));
+  stroke-width: 9;
+  opacity: 0.6;
+}
+.lyric-wave .wave-mid {
+  stroke: color-mix(in srgb, var(--cover-accent, var(--accent)) 55%, transparent);
+  stroke-width: 4;
+}
+.lyric-wave .wave-front {
+  stroke: var(--cover-accent, var(--accent));
+}
+.lyric-wave path {
+  transform-box: view-box;
+  transform-origin: center;
+  animation: drift 9s ease-in-out infinite alternate;
+  animation-play-state: paused;
+}
+.lyric-wave.playing path {
+  animation-play-state: running;
+}
+.lyric-wave .wave-mid {
+  animation-duration: 7s;
+  animation-direction: alternate-reverse;
+}
+.lyric-wave .wave-front {
+  animation-duration: 5.5s;
+}
+@keyframes drift {
+  from {
+    transform: translateX(-6px) scaleY(0.92);
+  }
+  to {
+    transform: translateX(6px) scaleY(1.05);
+  }
+}
+.lyrics-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 22px 14px;
+}
+.lyrics-panel-head > .artwork {
+  width: 52px;
+  height: 52px;
+}
+.lyrics-panel-head h2 {
+  font-size: 1rem;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.lyrics-panel-head p {
+  margin: 2px 0 0;
+  font-size: 0.75rem;
+}
+.lyrics-panel .lyrics-view.panel .lyric-line .lyric-text {
+  font-size: 1rem;
+}
+.lyrics-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Immersive full-screen player */
+.immersive {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--text);
+  background: #07050c;
+  animation: immersive-in 360ms cubic-bezier(0.2, 0, 0, 1);
+  --cover-accent: var(--accent);
+  --cover-glow: var(--accent-glow);
+}
+@keyframes immersive-in {
+  from {
+    opacity: 0;
+    transform: scale(1.01);
+  }
+}
+.immersive-backdrop {
+  position: absolute;
+  inset: -12%;
+  width: 124%;
+  height: 124%;
+  object-fit: cover;
+  filter: blur(70px) saturate(1.25);
+  opacity: 0.55;
+  transform: translateZ(0);
+  transition: opacity 600ms;
+}
+.immersive-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 20%, var(--cover-glow), transparent 60%),
+    linear-gradient(180deg, rgba(7, 5, 12, 0.35), rgba(7, 5, 12, 0.92) 70%);
+}
+.immersive-top {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 22px;
+}
+.immersive-top .eyebrow {
+  color: var(--cover-accent);
+}
+.immersive-main {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(300px, 0.95fr) minmax(0, 1.05fr);
+  gap: clamp(24px, 4.5vw, 72px);
+  padding: 0 clamp(24px, 4vw, 64px) clamp(20px, 3vh, 40px);
+}
+.immersive-now {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+  gap: 18px;
+}
+.immersive-cover {
+  width: min(100%, calc(100vh - 360px), 480px);
+  aspect-ratio: 1;
+  border-radius: 28px;
+  box-shadow:
+    0 40px 90px -20px rgba(0, 0, 0, 0.7),
+    0 0 80px -10px var(--cover-glow);
+  overflow: hidden;
+}
+.immersive-cover .artwork {
+  width: 100%;
+  height: 100%;
+  border-radius: 28px;
+}
+.immersive-cover .artwork svg {
+  width: 96px;
+  height: 96px;
+}
+.immersive-meta h2 {
+  font-size: clamp(1.6rem, 2.6vw, 2.6rem);
+  letter-spacing: -0.04em;
+  margin: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.12;
+}
+.immersive-meta p {
+  margin: 8px 0 0;
+  font-size: 1rem;
+  color: color-mix(in srgb, var(--text) 70%, transparent);
+}
+.immersive-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+.immersive-progress input {
+  flex: 1;
+  accent-color: var(--cover-accent);
+}
+.immersive-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.immersive-controls .icon-button {
+  width: 48px;
+  height: 48px;
+}
+.immersive-play {
+  display: grid;
+  place-items: center;
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  background: var(--cover-accent);
+  color: var(--on-accent);
+  box-shadow: 0 18px 45px -10px var(--cover-glow);
+}
+.immersive-play svg {
+  width: 30px;
+  height: 30px;
+}
+.immersive-play:not(:disabled):hover {
+  transform: scale(1.05);
+}
+.immersive-play:disabled {
+  opacity: 0.5;
+}
+.immersive-lyrics {
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+}
+.immersive-lyrics .lyrics-view.immersive {
+  padding: 0;
+}
+.immersive-lyrics .lyric-line .lyric-text {
+  font-size: clamp(1.4rem, 2.3vw, 2.4rem);
+  line-height: 1.22;
+  font-weight: 700;
+}
+.immersive-lyrics .lyrics-message {
+  font-size: 1.1rem;
+  padding: 24px 0;
+}
+.immersive-lyrics .lyric-wave {
+  height: 70px;
+  margin-top: 14px;
+}
+.immersive-lyrics .lyrics-credit {
+  text-align: left;
+}
+@media (max-width: 900px) {
+  .immersive-main {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+    overflow: hidden;
+  }
+  .immersive-cover {
+    width: min(58vw, 280px);
+  }
+  .immersive-lyrics .lyric-line .lyric-text {
+    font-size: 1.2rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lyric-wave path,
+  .lyrics-skeleton span {
+    animation: none;
+  }
+}
+html[data-motion="reduced"] .lyric-wave path,
+html[data-motion="reduced"] .lyrics-skeleton span {
+  animation: none;
+}
