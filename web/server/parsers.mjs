@@ -60,7 +60,11 @@ const thumbnail = (value) =>
     .slice()
     .sort((a, b) => (b.width ?? 0) - (a.width ?? 0))[0]?.url;
 export function continuation(root) {
+  // Same order as the Android parser: the list's own continuation item comes first.
   return (
+    objects(root, "continuationItemRenderer")
+      .map((renderer) => renderer.continuationEndpoint?.continuationCommand?.token)
+      .find((token) => typeof token === "string" && token.length > 0) ??
     objects(root, "nextContinuationData")[0]?.continuation ??
     objects(root, "continuationCommand")[0]?.token ??
     null
@@ -175,4 +179,20 @@ export function rankRadios(radios, excluded) {
     })
     .slice(0, 30)
     .map(({ track, seed }) => ({ track, seed }));
+}
+
+const ART_HOSTS = /^(?:[a-z0-9-]+\.)*(?:ytimg\.com|googleusercontent\.com)$/i;
+export function artworkUrl(value) {
+  if (typeof value !== "string" || value.length > 2048)
+    throw new Error("Ungültige Cover-Adresse.");
+  const url = new URL(value);
+  if (
+    url.protocol !== "https:" ||
+    url.username ||
+    url.password ||
+    (url.port && url.port !== "443") ||
+    !ART_HOSTS.test(url.hostname)
+  )
+    throw new Error("Cover-Quelle nicht erlaubt.");
+  return url.href;
 }

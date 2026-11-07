@@ -159,9 +159,14 @@ export class Youtube {
           "Die Playlist konnte nicht vollständig geladen werden.",
         );
       seen.add(page.continuation);
+      const previous = page.continuation;
       page = playlistPage(
-        await this.post("browse", { continuation: page.continuation }),
+        await this.post("browse", { continuation: previous }),
       );
+      if (page.tracks.length === 0 && !page.continuation)
+        throw new Error(
+          "Die Playlist konnte nicht vollständig geladen werden.",
+        );
       tracks.push(...page.tracks);
       if (tracks.length > 5000)
         throw new Error(
