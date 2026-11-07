@@ -6,7 +6,19 @@ import { fileURLToPath } from "node:url";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { Youtube, fetchAudio, boundedJson } from "./youtube.mjs";
-import { VIDEO_ID, playlistId } from "./parsers.mjs";
+import { VIDEO_ID, playlistId, artworkUrl } from "./parsers.mjs";
+import { parseLrc } from "./lrc.mjs";
+
+async function readBounded(response, limit) {
+  let size = 0;
+  const chunks = [];
+  for await (const chunk of response.body) {
+    size += chunk.length;
+    if (size > limit) throw new HttpError(502, "Cover ist zu groß.");
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
+}
 
 class HttpError extends Error {
   constructor(status, message) {
@@ -57,7 +69,14 @@ export function createServer({
   fetcher = fetch,
 } = {}) {
   let activeApi = 0,
-    activeAudio = 0;
+    activeAudio = 0,
+    lyricsBackoff = 0;
+  const lyricsCache = new Map();
+  const rememberLyrics = (key, value, ttl) => {
+    lyricsCache.delete(key);
+    lyricsCache.set(key, { value, until: Date.now() + ttl });
+    while (lyricsCache.size > 300) lyricsCache.delete(lyricsCache.keys().next().value);
+  };
   return http.createServer(async (req, res) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Referrer-Policy", "no-referrer");
@@ -91,6 +110,32 @@ export function createServer({
             status: "ok",
             localOnly: true,
           });
+        if (url.pathname === "/api/art" && req.method === "GET") {
+          let source;
+          try {
+            source = artworkUrl(url.searchParams.get("url") ?? "");
+          } catch (error) {
+            throw new HttpError(400, error.message);
+          }
+          const response = await fetcher(source, {
+            signal: AbortSignal.timeout(10000),
+            redirect: "manual",
+          });
+          if (
+            !response.ok ||
+            !(response.headers.get("content-type") ?? "").startsWith("image/")
+          ) {
+            await response.body?.cancel();
+            throw new HttpError(404, "Cover nicht verfügbar.");
+          }
+          const bytes = await readBounded(response, 3 * 1024 * 1024);
+          res.writeHead(200, {
+            "Content-Type": response.headers.get("content-type"),
+            "Content-Length": bytes.length,
+            "Cache-Control": "public, max-age=86400",
+          });
+          return res.end(bytes);
+        }
         if (
           url.pathname.startsWith("/api/audio/") &&
           ["GET", "HEAD"].includes(req.method)
@@ -212,6 +257,12 @@ export function createServer({
           });
           if (Number.isFinite(data.durationMs) && data.durationMs > 0)
             query.set("duration", String(Math.round(data.durationMs / 1000)));
+          const cacheKey = query.toString();
+          const cached = lyricsCache.get(cacheKey);
+          if (cached && cached.until > Date.now())
+            return json(res, 200, cached.value);
+          if (lyricsBackoff > Date.now())
+            throw new HttpError(503, "Lyrics-Dienst ausgelastet. Bitte später erneut versuchen.");
           const response = await fetcher(
             `https://lrclib.net/api/get?${query}`,
             {
@@ -221,15 +272,26 @@ export function createServer({
               },
             },
           );
+          if (response.status === 429 || response.status === 503) {
+            await response.body?.cancel();
+            const seconds = Number(response.headers.get("retry-after"));
+            lyricsBackoff =
+              Date.now() + (Number.isFinite(seconds) && seconds > 0 ? seconds : 60) * 1000;
+            throw new HttpError(503, "Lyrics-Dienst ausgelastet. Bitte später erneut versuchen.");
+          }
           if (response.status === 404) {
             await response.body?.cancel();
-            return json(res, 200, { plainLyrics: null });
+            rememberLyrics(cacheKey, { lines: [], plainLyrics: null, instrumental: false }, 86_400_000);
+            return json(res, 200, { lines: [], plainLyrics: null, instrumental: false });
           }
           const lyrics = await boundedJson(response, 1024 * 1024);
-          return json(res, 200, {
-            plainLyrics: lyrics.plainLyrics ?? null,
+          const value = {
+            lines: parseLrc(lyrics.syncedLyrics ?? ""),
+            plainLyrics: typeof lyrics.plainLyrics === "string" ? lyrics.plainLyrics.slice(0, 20000) : null,
             instrumental: !!lyrics.instrumental,
-          });
+          };
+          rememberLyrics(cacheKey, value, 12 * 3_600_000);
+          return json(res, 200, value);
         }
         throw new HttpError(404, "API nicht gefunden.");
       }
