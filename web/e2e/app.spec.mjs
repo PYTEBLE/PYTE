@@ -60,7 +60,15 @@ async function fixtures(page) {
       : path.endsWith("recommendations")
         ? { songs: [{ track: extra, seed: first.id }], partial: false }
         : path.endsWith("lyrics")
-          ? { plainLyrics: "Ein neuer Tag\nEin neuer Klang" }
+          ? {
+              lines: [
+                { timeMs: 0, text: "Ein neuer Tag" },
+                { timeMs: 4000, text: "Ein neuer Klang" },
+                { timeMs: 8000, text: "" },
+              ],
+              plainLyrics: "Ein neuer Tag\nEin neuer Klang",
+              instrumental: false,
+            }
           : { tracks: [first, last], continuation: null };
     return route.fulfill({ json: value });
   });
@@ -124,7 +132,12 @@ test("desktop library, preview restore, local additions, persistence, lyrics and
   await page
     .getByRole("button", { name: "Lyrics anzeigen", exact: true })
     .click();
-  await expect(page.locator(".lyrics-text")).toContainText("Ein neuer Klang");
+  await expect(page.locator(".lyric-line.active")).toContainText(
+    "Ein neuer Tag",
+  );
+  await expect(
+    page.locator(".lyric-line", { hasText: "Ein neuer Klang" }),
+  ).toBeVisible();
   await page.reload();
   await page.getByRole("button", { name: "Nachtfahrten öffnen" }).click();
   await expect(page.locator("main")).toContainText("3 Songs");
@@ -414,4 +427,76 @@ test("real YouTube audio plays in Chromium @live", async ({ page }) => {
     path: "test-results/pyte-desktop-live.png",
     fullPage: true,
   });
+});
+
+test("synchronized lyrics highlight the current line and tap-to-seek moves playback", async ({
+  page,
+}) => {
+  await fixtures(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "Entdecken", exact: true }).click();
+  await page.getByLabel("Songs oder Künstler suchen").fill("Artist");
+  await page.getByRole("button", { name: "Suchen", exact: true }).click();
+  await page.locator(".track-main").first().click();
+  await page
+    .getByRole("button", { name: "Lyrics anzeigen", exact: true })
+    .click();
+  await expect(page.locator(".lyric-line.active")).toContainText(
+    "Ein neuer Tag",
+  );
+  await page.locator(".lyric-line", { hasText: "Ein neuer Klang" }).click();
+  await expect
+    .poll(() => page.locator("audio").evaluate((audio) => audio.currentTime))
+    .toBeGreaterThanOrEqual(3.9);
+  await expect(page.locator(".lyric-line.active")).toContainText(
+    "Ein neuer Klang",
+  );
+});
+
+test("immersive player shows cover, controls and lyrics, closes with Escape and keeps keyboard playback", async ({
+  page,
+}) => {
+  await fixtures(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "Entdecken", exact: true }).click();
+  await page.getByLabel("Songs oder Künstler suchen").fill("Artist");
+  await page.getByRole("button", { name: "Suchen", exact: true }).click();
+  await page.locator(".track-main").first().click();
+  await page
+    .getByRole("button", { name: "Vollbild-Player öffnen", exact: true })
+    .click();
+  const immersive = page.getByRole("dialog", { name: "Vollbild-Player" });
+  await expect(immersive).toBeVisible();
+  await expect(immersive.locator("h2")).toHaveText("schönhauser");
+  await expect(immersive.locator(".lyric-line.active")).toContainText(
+    "Ein neuer Tag",
+  );
+  await page.keyboard.press("Space");
+  await expect
+    .poll(() => page.locator("audio").evaluate((audio) => audio.paused))
+    .toBe(true);
+  await page.keyboard.press("Escape");
+  await expect(immersive).toHaveCount(0);
+});
+
+test("immersive player and lyrics pass automated accessibility checks", async ({
+  page,
+}) => {
+  await fixtures(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "Entdecken", exact: true }).click();
+  await page.getByLabel("Songs oder Künstler suchen").fill("Artist");
+  await page.getByRole("button", { name: "Suchen", exact: true }).click();
+  await page.locator(".track-main").first().click();
+  await page
+    .getByRole("button", { name: "Vollbild-Player öffnen", exact: true })
+    .click();
+  await expect(page.locator(".lyric-line.active")).toContainText(
+    "Ein neuer Tag",
+  );
+  const accessibility = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+    .include(".immersive")
+    .analyze();
+  expect(accessibility.violations).toEqual([]);
 });
