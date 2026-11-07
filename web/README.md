@@ -1,76 +1,66 @@
-# PYTE Web · Desktop preview
+# PYTE für Windows
 
-Die Desktop-Web-App läuft lokal auf deinem Computer, ohne Konto und ohne serverseitige
-Bibliothek. Sie ist ein eigenständiges Gegenstück zur Android-App, kein Ersatz für die APK.
+Die Desktop-Version von PYTE ist ein eigenes Windows-Programm. Sie öffnet die Oberfläche in einem
+eigenen Fenster und spielt auch weiter, wenn das Fenster minimiert ist oder eine andere App im
+Vordergrund steht. Browser-Tabs können Musik im Hintergrund dagegen drosseln oder pausieren.
 
-## Fertigen ZIP-Download starten
+## Herunterladen und starten
 
-1. **Node.js 22 oder neuer** von <https://nodejs.org/> installieren (LTS empfohlen).
-2. Das gesamte ZIP in einen Ordner entpacken.
-3. Windows: `Start-PYTE.bat` doppelklicken. Linux/macOS: im Ordner `sh Start-PYTE.sh` ausführen.
-4. Der Starter öffnet `http://127.0.0.1:3080`. Terminal offen lassen; mit Strg+C beenden.
+1. `PYTE-vX.Y.Z-windows.zip` von der [Release-Seite](https://github.com/PYTEBLE/PYTE/releases) laden.
+2. ZIP vollständig entpacken (nicht direkt aus dem ZIP starten).
+3. `PYTE.exe` im Ordner `PYTE` starten.
 
-Im fertigen ZIP ist **kein `npm install` nötig**. Die Oberfläche ist bereits gebaut; der Server
-verwendet ausschließlich Node-Bordmittel. Node selbst ist nicht im ZIP enthalten. Die Starter
-sind noch nicht auf einem echten Windows-/macOS-Gerät qualifiziert.
+Die Version ist **nicht digital signiert**. Windows SmartScreen zeigt beim ersten Start deshalb
+eventuell eine Warnung: „Weitere Informationen“ → „Trotzdem ausführen“.
 
-Die Adresse/Portnummer möglichst beibehalten: Browserdaten sind an den Ursprung gebunden.
-Bei einem Portkonflikt kann `PORT` gesetzt werden; eine andere Adresse hat aber eine getrennte
-Browser-Bibliothek. Der Dienst bindet ausschließlich `127.0.0.1`, nicht das Heimnetzwerk.
+Ein Installer ist noch nicht vorhanden; das Programm ist portabel. Es benötigt kein Node.js.
 
-## Bereits umgesetzt
+## Hintergrundwiedergabe
 
-- Desktop-Bibliothek mit linkem Menü, Queue/Lyrics rechts und dauerhaftem Audioplayer.
-- Öffentliche Playlist-Links importieren; lokale Playlists erstellen, umbenennen, aktualisieren,
-  löschen; lokale Ergänzungen bleiben beim Aktualisieren erhalten.
-- Online-Suche mit Folgeseiten, lokale Suche, Favoriten und optionaler Hörverlauf.
-- Audiostreaming über den lokalen Dienst, Seek/Volume/Shuffle/Repeat und editierbare Queue.
-- Ähnliche Songs zu einem Titel oder einer Playlist, vorhören mit Rückkehr zur ursprünglichen
-  Queue/Position, lokal hinzufügen. Automatische Empfehlungen am letzten Originaltitel nur bei
-  ausgeschaltetem Shuffle/Repeat und fokussiertem Browser ohne offenen Dialog.
-- Normale LRCLIB-Lyrics, reduzierte Bewegung, Tastatur- und unterstützte Media-Session-Steuerung.
-- Browserlokale IndexedDB-Speicherung, Web-JSON-Export und validierter Import mit Bestätigung.
+- Die Wiedergabe läuft weiter, wenn das Fenster minimiert ist oder andere Programme im Vordergrund sind.
+- Während Musik spielt, verhindert PYTE, dass Windows die App anhält.
+- Wenn du das Fenster schließt, beendet sich PYTE. Musik spielt dann nicht mehr weiter.
+- Die Medientasten der Tastatur funktionieren, sobald PYTE läuft und Musik abspielt.
 
-## Noch keine vollständige Android-Parität
+Nicht garantiert: Ein Ruhezustand oder Standby des Computers kann die Wiedergabe trotzdem stoppen.
+Bitte im Windows-Energiesparplan prüfen, falls das bei dir passiert. Ich habe das noch nicht auf
+echten Windows-Geräten geprüft.
 
-**Offline-Audiodownloads, Equalizer, Stille überspringen, synchronisierte Lyrics und die native
-Android-Hintergrund-Service-Garantie fehlen in dieser ersten Web-Version.** Es gibt dafür keine
-funktionslosen Schalter. Ein geschlossener Browser, Schlafmodus oder Energiesparen können Musik
-stoppen. Audio startet erst nach einer Benutzeraktion; OS-Medientasten hängen vom Browser ab.
+## Bibliothek und Daten
 
-Die Sammlung bleibt in diesem Browserprofil. Löschen von Website-Daten, privater Modus oder
-Speicherbeschränkungen können Daten entfernen. Regelmäßig unter Einstellungen exportieren.
-Kein automatischer Android-Sync und kein Android-Backup-Import. Der Browser speichert keine
-Google-Account-Cookies; Suche/Import/Empfehlungen/Audio verbinden den lokalen Dienst mit YouTube.
-Lyrics übertragen Titel, Interpret und Dauer an LRCLIB. Artwork lädt von YouTube-Bildservern.
+- Playlists, Favoriten, Verlauf und Einstellungen werden lokal im Browserspeicher der App gespeichert.
+- PYTE nutzt immer den Port `47380`. Nur so bleiben deine Daten erhalten.
+- Ist dieser Port belegt, startet PYTE nicht. Dann bitte eine laufende PYTE-Instanz schließen.
+- Der lokale Dienst lauscht nur auf `127.0.0.1` und ist nicht im Netzwerk erreichbar.
+- Exportiere regelmäßig eine Sicherung unter **Einstellungen → Web-Sicherung exportieren**.
+  Bei einer Neuinstallation oder Deinstallation mit Datenlöschung geht die Bibliothek sonst verloren.
 
-YouTube verwendet inoffizielle Schnittstellen: Verfügbarkeit/Region/Altersbeschränkungen können
-die Wiedergabe verhindern. Nur für persönlichen Gebrauch; Stream-Extraktion widerspricht den
-YouTube-Nutzungsbedingungen. Den lokalen Dienst nicht öffentlich oder im LAN freigeben.
+## Was (noch) nicht enthalten ist
 
-## Entwicklung im Repository
+Offline-Downloads, Equalizer, „Stille überspringen“ und synchronisierte Lyrics fehlen in der
+Windows-Version. Es gibt keine funktionslosen Schalter dafür.
 
-Node.js 24 LTS für Entwicklung/Tests empfohlen (die Tests importieren TypeScript direkt).
+Musik wird gestreamt und braucht eine Internetverbindung. YouTube-Schnittstellen sind inoffiziell;
+Verfügbarkeit, Region und Altersbeschränkungen können die Wiedergabe verhindern.
+
+Nur für persönlichen Gebrauch. Stream-Extraktion widerspricht den YouTube-Nutzungsbedingungen.
+
+## Entwicklung
 
 ```sh
 npm ci
-npm run build
-npm start
-```
-
-Entwicklung mit Hot Reload: in einem Terminal `npm run dev:server`, im zweiten `npm run dev`.
-Danach `http://127.0.0.1:5173` öffnen. Dieser Entwicklungs-Ursprung hat getrennte Browserdaten.
-
-```sh
-npm test
+npm run build         # Oberfläche bauen (dist/)
+npm test              # Unit- und Server-Tests
 npx playwright install chromium
-npm run test:browser
-PYTE_WEB_LIVE=true npm test
-PYTE_WEB_LIVE=true npm run test:browser
-npm run package
+npm run test:browser  # Browser-Tests (PYTE_WEB_LIVE=true für echte YouTube-Wiedergabe)
+npm run package       # Windows-ZIP erzeugen: release/PYTE-vX.Y.Z-windows.zip
 ```
 
-`npm run package` erzeugt `release/PYTE-v<VERSION>-web.zip` und prüft die gemeinsame Versionsnummer
-gegen `app/build.gradle.kts`. Ein gemeinsames GitHub-Release kann Android-APK und Web-ZIP enthalten;
-die Feature-Unterschiede müssen in den Release-Notizen stehen. Private Android-Signierschlüssel,
-Browser-Bibliotheken, Node-Abhängigkeiten und Entwicklerquellcode gelangen nicht ins Web-ZIP.
+`npm run package` lädt das offizielle Electron-Windows-Paket, prüft dessen SHA-256-Summe und
+baut daraus die portable Struktur. Die Electron-Version ist in `scripts/package-windows.mjs` festgelegt.
+
+Architektur:
+- `desktop/main.cjs` startet den lokalen Server im Electron-Hauptprozess und öffnet das Fenster.
+- `desktop/preload.cjs` gibt der Oberfläche nur eine eng begrenzte Funktion zum Wachhalten frei.
+- `server/` enthält den lokalen Dienst für Suche, Playlist-Import, Empfehlungen und Audio-Streams.
+- `src/` enthält die Oberfläche (React, TypeScript).
