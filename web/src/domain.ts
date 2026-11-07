@@ -1,3 +1,5 @@
+import { defaultEqualizer, validateEqualizer } from "./equalizer.ts";
+import type { EqualizerSettings } from "./equalizer.ts";
 export interface Track {
   id: string;
   title: string;
@@ -18,6 +20,7 @@ export interface Settings {
   recordHistory: boolean;
   autoRecommendations: boolean;
   reducedMotion: boolean;
+  equalizer: EqualizerSettings;
 }
 export interface Library {
   version: 1;
@@ -36,6 +39,7 @@ export const emptyLibrary = (): Library => ({
     recordHistory: true,
     autoRecommendations: true,
     reducedMotion: false,
+    equalizer: defaultEqualizer(),
   },
 });
 export const isTrack = (value: unknown): value is Track => {
@@ -127,6 +131,7 @@ export function validateLibrary(value: unknown): Library {
       recordHistory: settings.recordHistory,
       autoRecommendations: settings.autoRecommendations,
       reducedMotion: settings.reducedMotion,
+      equalizer: validateEqualizer(settings.equalizer),
     },
   };
 }
