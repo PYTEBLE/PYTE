@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.0-alpha.8
+
+Shared release with two downloads:
+
+- **Windows (new):** `PYTE-v0.2.0-alpha.8-windows.zip` — a portable desktop version. It runs in its
+  own window and keeps playing while minimized or behind other apps (window background throttling
+  is disabled, and Windows is asked not to suspend the app during playback). Not digitally signed;
+  SmartScreen may ask for confirmation. Library data lives on port 47380; keep that port free.
+  Offline downloads, equalizer, skip-silence and synchronized lyrics are not available there yet.
+- **Android:** `PYTE-v0.2.0-alpha.8.apk` — same features as alpha.7, versionCode 12, signed with
+  the dedicated PYTE key. Update over alpha.7 in place; no data loss.
+
 ## 0.2.0-alpha.7
 
 **Installation warning:** the alpha.6 signing key is unavailable. This release uses a new,
