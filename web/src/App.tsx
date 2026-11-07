@@ -44,6 +44,7 @@ import {
 import { loadLibrary, saveLibrary } from "./storage.ts";
 import { WebPlayer } from "./player.ts";
 import { api } from "./api.ts";
+import "./desktop.ts";
 import { Artwork, Empty, IconButton, Modal, TrackRows } from "./components.tsx";
 
 type View = "library" | "search" | "favorites" | "settings" | "playlist";
@@ -106,6 +107,9 @@ export default function App() {
     WebPlayer["getSnapshot"]
   > | null>(null);
   const current = playback?.queue[playback.index]?.track;
+  useEffect(() => {
+    window.pyteDesktop?.setPlaying(!!playback?.playing);
+  }, [playback?.playing]);
   const pendingWrites = useRef(0),
     failedWrite = useRef(false);
   const [saving, setSaving] = useState(false);
