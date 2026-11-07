@@ -17,3 +17,11 @@ keystore.properties
 # OS / editor
 .DS_Store
 *.swp
+
+# Desktop web build/test output (source stays in web/)
+web/node_modules/
+web/dist/
+web/public/brand/
+web/release/
+web/test-results/
+web/playwright-report/
