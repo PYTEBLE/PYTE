@@ -1,4 +1,5 @@
 import type { Track } from "./domain.ts";
+import type { Equalizer, EqualizerSettings } from "./equalizer.ts";
 
 export interface Entry {
   uid: string;
@@ -61,6 +62,7 @@ export class WebPlayer {
   private visited = new Set<string>();
   private order: string[] = [];
   private generation = 0;
+  private equalizer?: Equalizer;
   private pendingSeek = 0;
   private audio: AudioPort;
   private foreground: () => boolean;
@@ -139,6 +141,14 @@ export class WebPlayer {
   private async play() {
     const generation = this.generation;
     try {
+      // Web Audio may only start from a user gesture; playback is one, so build the graph here.
+      if (this.equalizer) {
+        try {
+          this.equalizer.ensure();
+        } catch {
+          this.equalizer = undefined;
+        }
+      }
       await this.audio.play();
     } catch (error) {
       if (
@@ -260,7 +270,15 @@ export class WebPlayer {
     this.update({ position: value });
   }
   volume(value: number) {
-    this.audio.volume = Math.min(1, Math.max(0, value));
+    const clamped = Math.min(1, Math.max(0, value));
+    if (this.equalizer) this.equalizer.setVolume(clamped);
+    else this.audio.volume = clamped;
+  }
+  attachEqualizer(equalizer: Equalizer) {
+    this.equalizer = equalizer;
+  }
+  setEqualizer(settings: EqualizerSettings) {
+    this.equalizer?.apply(settings);
   }
   setRepeat() {
     this.update({
