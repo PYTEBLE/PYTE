@@ -500,3 +500,72 @@ test("immersive player and lyrics pass automated accessibility checks", async ({
     .analyze();
   expect(accessibility.violations).toEqual([]);
 });
+
+test("equalizer: presets persist, keyboard bands work, custom profiles save, and playback keeps running with the graph", async ({
+  page,
+}) => {
+  await fixtures(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "Entdecken", exact: true }).click();
+  await page.getByLabel("Songs oder Künstler suchen").fill("Artist");
+  await page.getByRole("button", { name: "Suchen", exact: true }).click();
+  await page.locator(".track-main").first().click();
+  await expect
+    .poll(() =>
+      page
+        .locator("audio")
+        .evaluate((audio) => !audio.paused && audio.currentTime > 0.2),
+    )
+    .toBe(true);
+
+  await page
+    .getByRole("button", { name: "Equalizer öffnen", exact: true })
+    .click();
+  const dialog = page.getByRole("dialog", { name: "Equalizer" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("slider")).toHaveCount(15);
+  await dialog.getByRole("checkbox", { name: /Equalizer aktiv/ }).check();
+  await dialog.getByRole("radio", { name: "Bass", exact: true }).click();
+  await expect(
+    dialog.getByRole("radio", { name: "Bass", exact: true }),
+  ).toHaveAttribute("aria-checked", "true");
+
+  // The graph is live: audio keeps advancing with the equalizer enabled and boosted.
+  const before = await page
+    .locator("audio")
+    .evaluate((audio) => audio.currentTime);
+  await page.waitForTimeout(600);
+  expect(
+    await page.locator("audio").evaluate((audio) => audio.currentTime),
+  ).toBeGreaterThan(before);
+
+  const band = dialog.getByRole("slider", { name: "Frequenzband 25 Hz" });
+  await band.focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(
+    dialog.getByRole("radio", { name: "Bass", exact: true }),
+  ).toHaveAttribute("aria-checked", "false");
+
+  await dialog.getByPlaceholder("Profilname").fill("Mein Kopfhörer");
+  await dialog
+    .getByRole("button", { name: "Profil speichern", exact: true })
+    .click();
+  await expect(
+    dialog.getByRole("radio", { name: "Mein Kopfhörer" }),
+  ).toHaveAttribute("aria-checked", "true");
+  await dialog.getByRole("button", { name: "Schließen", exact: true }).click();
+
+  await page.reload();
+  await page
+    .getByRole("button", { name: "Equalizer öffnen", exact: true })
+    .click();
+  await expect(
+    page.getByRole("checkbox", { name: /Equalizer aktiv/ }),
+  ).toBeChecked();
+  await expect(
+    page.getByRole("radio", { name: "Mein Kopfhörer" }),
+  ).toHaveAttribute("aria-checked", "true");
+  await expect(
+    page.getByRole("slider", { name: "Frequenzband 25 Hz" }),
+  ).toHaveAttribute("aria-valuetext", /\+/);
+});
