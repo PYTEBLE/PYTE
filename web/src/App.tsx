@@ -33,6 +33,7 @@ import {
   ChevronRight,
   Globe2,
   Maximize2,
+  SlidersHorizontal,
 } from "lucide-react";
 import type { Library, Playlist, Track } from "./domain.ts";
 import {
@@ -49,6 +50,8 @@ import "./desktop.ts";
 import { Artwork, Empty, IconButton, Modal, TrackRows } from "./components.tsx";
 import { LyricsView } from "./LyricsView.tsx";
 import { ImmersivePlayer } from "./Immersive.tsx";
+import { EqualizerPanel } from "./EqualizerPanel.tsx";
+import { Equalizer } from "./equalizer.ts";
 
 type View = "library" | "search" | "favorites" | "settings" | "playlist";
 type Editor =
@@ -97,7 +100,9 @@ export default function App() {
   const [panel, setPanel] = useState<"queue" | "lyrics" | null>(() =>
       window.innerWidth >= 1190 ? "queue" : null,
     ),
-    [immersive, setImmersive] = useState(false);
+    [immersive, setImmersive] = useState(false),
+    [eqOpen, setEqOpen] = useState(false),
+    [equalizer, setEqualizerInstance] = useState<Equalizer | null>(null);
   const [notice, setNotice] = useState(""),
     [player, setPlayer] = useState<WebPlayer | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null),
@@ -141,6 +146,9 @@ export default function App() {
         document.hasFocus() &&
         !document.querySelector("dialog[open]"),
     );
+    const eq = new Equalizer(audioRef.current!);
+    instance.attachEqualizer(eq);
+    setEqualizerInstance(eq);
     setPlayer(instance);
     setPlayback(instance.getSnapshot());
     const unsubscribe = instance.subscribe(() =>
@@ -180,6 +188,7 @@ export default function App() {
   useEffect(() => {
     if (!library || !player) return;
     player.volume(library.settings.volume);
+    player.setEqualizer(library.settings.equalizer);
     player.automatic = library.settings.autoRecommendations;
     document.documentElement.dataset.motion = library.settings.reducedMotion
       ? "reduced"
@@ -1185,6 +1194,13 @@ export default function App() {
               <div className="settings-grid">
                 <section className="settings-card">
                   <h2>Wiedergabe & Entdecken</h2>
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() => setEqOpen(true)}
+                  >
+                    Equalizer öffnen
+                  </button>
                   <label className="field-label">
                     Lautstärke
                     <input
@@ -1612,6 +1628,13 @@ export default function App() {
             <FileText />
           </IconButton>
           <IconButton
+            label="Equalizer öffnen"
+            active={!!library?.settings.equalizer.enabled}
+            onClick={() => setEqOpen(true)}
+          >
+            <SlidersHorizontal />
+          </IconButton>
+          <IconButton
             label="Vollbild-Player öffnen"
             disabled={!current}
             onClick={() => setImmersive(true)}
@@ -1918,6 +1941,22 @@ export default function App() {
             </button>
           </form>
         </Modal>
+      )}
+      {eqOpen && library && (
+        <EqualizerPanel
+          settings={library.settings.equalizer}
+          equalizer={equalizer}
+          playing={!!playback?.playing}
+          reducedMotion={library.settings.reducedMotion}
+          onChange={(next) =>
+            setLibrary((old) =>
+              old
+                ? { ...old, settings: { ...old.settings, equalizer: next } }
+                : old,
+            )
+          }
+          onClose={() => setEqOpen(false)}
+        />
       )}
       {immersive && current && (
         <ImmersivePlayer
