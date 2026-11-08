@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
@@ -70,6 +71,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import dev.pyte.domain.Track
 import dev.pyte.domain.PlaylistSummary
 import dev.pyte.R
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.interaction.MutableInteractionSource
 
 @Composable
 fun Artwork(
@@ -205,35 +209,41 @@ fun TrackRow(
 
 @Composable
 fun PlaylistCard(playlist: PlaylistSummary, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Column(
+    val interaction = remember { MutableInteractionSource() }
+    Box(
         modifier = modifier
-            .clip(RoundedCornerShape(22.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(22.dp))
-            .clickable(onClick = onClick)
-            .padding(12.dp),
+            .pressMotion(interaction)
+            .aspectRatio(.88f)
+            .clip(RoundedCornerShape(26.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(26.dp))
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
     ) {
         Artwork(
             url = playlist.thumbnailUrl,
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1f),
-            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxSize(),
+            shape = RoundedCornerShape(26.dp),
         )
-        Spacer(Modifier.height(10.dp))
-        Text(
-            text = playlist.title,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-            text = "${playlist.trackCount} tracks",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Box(Modifier.matchParentSize().background(Brush.verticalGradient(listOf(
+            Color.Black.copy(alpha = .05f), Color.Black.copy(alpha = .15f), Color.Black.copy(alpha = .92f)))))
+        Surface(Modifier.align(Alignment.TopEnd).padding(12.dp), shape = RoundedCornerShape(50), color = Color.Black.copy(alpha = .55f)) {
+            Icon(Icons.Default.LibraryMusic, null, Modifier.padding(8.dp).size(18.dp), tint = Color.White)
+        }
+        Column(Modifier.align(Alignment.BottomStart).padding(16.dp)) {
+            Text(
+                text = playlist.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                color = Color.White,
+            )
+            Text(
+                text = "${playlist.trackCount} tracks · Local collection",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White.copy(alpha = .8f),
+            )
+        }
     }
 }
 
@@ -269,6 +279,7 @@ fun MiniPlayer(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .background(Brush.horizontalGradient(listOf(MaterialTheme.colorScheme.primary.copy(alpha = .14f), Color.Transparent)))
                     .clickable(onClick = onOpen)
                     .semantics { contentDescription = "Open player" }
                     .padding(start = 12.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),

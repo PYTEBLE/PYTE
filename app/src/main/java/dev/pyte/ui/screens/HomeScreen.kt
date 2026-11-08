@@ -53,6 +53,13 @@ import dev.pyte.ui.components.ScreenHeading
 import dev.pyte.ui.components.LibraryWelcome
 import dev.pyte.ui.viewmodels.HomeViewModel
 import dev.pyte.ui.viewmodels.ImportUiState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.unit.sp
+import dev.pyte.ui.components.Reveal
+import dev.pyte.ui.theme.LocalLivingUi
+import androidx.compose.animation.core.tween
 
 @Composable
 fun HomeScreen(
@@ -61,6 +68,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
+    val motion = LocalLivingUi.current
     val pendingLink by viewModel.pendingLink.collectAsStateWithLifecycle()
     val recent by viewModel.recentTracks.collectAsStateWithLifecycle()
     var showImport by rememberSaveable { mutableStateOf(false) }
@@ -96,13 +104,27 @@ fun HomeScreen(
                     .padding(inner)
                     .statusBarsPadding(),
             ) {
-                ScreenHeading("Your library", "${playlists.size} playlists · A space for your sound")
                 LazyVerticalGrid(
                     columns = GridCells.Adaptive(minSize = 160.dp),
-                    contentPadding = PaddingValues(12.dp, 8.dp, 12.dp, 120.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(16.dp, 12.dp, 16.dp, 120.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
+                    item(key = "library-hero", span = { GridItemSpan(maxLineSpan) }) {
+                        Reveal("library-hero") {
+                            Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = .20f),
+                                MaterialTheme.colorScheme.tertiary.copy(alpha = .06f))), RoundedCornerShape(30.dp)).padding(24.dp)) {
+                                Text("YOUR MUSIC. YOUR SPACE.", style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary, letterSpacing = 2.sp)
+                                Spacer(Modifier.height(16.dp))
+                                Text("Find your\nnext feeling.", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
+                                Spacer(Modifier.height(12.dp))
+                                Text("${playlists.size} playlists. Endless possibilities.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                TextButton(onClick = { showImport = true }) { Icon(Icons.Default.Add, null); Text("  Grow your collection") }
+                            }
+                        }
+                    }
                     if (recent.isNotEmpty()) {
                         item(key = "recent", span = { GridItemSpan(maxLineSpan) }) {
                             Column {
@@ -111,8 +133,9 @@ fun HomeScreen(
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp),
                                     contentPadding = PaddingValues(horizontal = 8.dp)) {
                                     itemsIndexed(recent, key = { _, track -> track.videoId }) { index, track ->
-                                        Column(Modifier.width(136.dp).clickable { viewModel.playRecent(recent, index) }.padding(bottom = 16.dp)) {
-                                            Artwork(track.thumbnailUrl, Modifier.fillMaxWidth().aspectRatio(1f), videoId = track.videoId)
+                                        Column(Modifier.width(156.dp).clickable { viewModel.playRecent(recent, index) }.padding(bottom = 16.dp)) {
+                                            Artwork(track.thumbnailUrl, Modifier.fillMaxWidth().aspectRatio(1f),
+                                                shape = RoundedCornerShape(24.dp), videoId = track.videoId)
                                             Spacer(Modifier.height(8.dp))
                                             Text(track.title, maxLines = 1, overflow = TextOverflow.Ellipsis,
                                                 style = MaterialTheme.typography.bodyMedium)
@@ -125,8 +148,18 @@ fun HomeScreen(
                             }
                         }
                     }
+                    item(key = "collections-label", span = { GridItemSpan(maxLineSpan) }) {
+                        Text("Your collections", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
+                    }
                     items(playlists, key = { it.id }) { playlist ->
-                        PlaylistCard(playlist = playlist, onClick = { onOpenPlaylist(playlist.id) })
+                        Reveal(playlist.id, modifier = Modifier.animateItem(
+                            fadeInSpec = if (motion.animate) tween(motion.duration(220)) else null,
+                            placementSpec = if (motion.animate) tween(motion.duration(320)) else null,
+                            fadeOutSpec = if (motion.animate) tween(motion.duration(180)) else null,
+                        )) {
+                            PlaylistCard(playlist = playlist, onClick = { onOpenPlaylist(playlist.id) })
+                        }
                     }
                 }
             }
