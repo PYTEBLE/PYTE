@@ -69,6 +69,13 @@ import dev.pyte.ui.components.AppBackground
 import dev.pyte.ui.components.PlayerMorphState
 import dev.pyte.ui.components.LocalPlayerMorph
 import dev.pyte.ui.components.PlayerMorphOverlay
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.graphics.graphicsLayer
 
 private object Routes {
     const val HOME = "home"
@@ -98,6 +105,7 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel(), recommendations
     val appearance by playerViewModel.appearance.collectAsStateWithLifecycle()
     val motion = rememberLivingUiPolicy(appearance)
     val report by playerViewModel.diagnosticReport.collectAsStateWithLifecycle()
+    val playlistSave by playerViewModel.playlistSave.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val backStack by nav.currentBackStackEntryAsState()
     val route = backStack?.destination?.route
@@ -108,12 +116,12 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel(), recommendations
     val discoveryPlaylists by recommendationsViewModel.playlists.collectAsStateWithLifecycle()
     val lifecycle by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
     val windowFocused = LocalWindowInfo.current.isWindowFocused
-    LaunchedEffect(lifecycle, windowFocused, report, morph.hiddenId) {
+    LaunchedEffect(lifecycle, windowFocused, report, morph.hiddenId, playlistSave.track) {
         // UI eligibility is separate from the decorative animation policy.
         val foreground = lifecycle.isAtLeast(Lifecycle.State.RESUMED) && windowFocused &&
             context.getSystemService(PowerManager::class.java).isInteractive &&
             !context.getSystemService(KeyguardManager::class.java).isKeyguardLocked
-        recommendationsViewModel.visibility(foreground, report == null && morph.hiddenId == null)
+        recommendationsViewModel.visibility(foreground, report == null && morph.hiddenId == null && playlistSave.track == null)
     }
     val openPlayer = {
         if (nav.currentDestination?.route != Routes.NOW_PLAYING) {
@@ -131,6 +139,12 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel(), recommendations
 
     LaunchedEffect(playerState.errorMessage) {
         playerState.errorMessage?.let { snackbar.showSnackbar(it) }
+    }
+    LaunchedEffect(playlistSave.message) {
+        playlistSave.message?.let {
+            snackbar.showSnackbar(it)
+            playerViewModel.consumePlaylistMessage()
+        }
     }
 
     CompositionLocalProvider(LocalLivingUi provides motion, LocalPlayerMorph provides morph) {
@@ -180,14 +194,18 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel(), recommendations
                             videoId = current.videoId,
                         )
                     }
-                    NavigationBar(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)) {
+                    NavigationBar(modifier = Modifier.navigationBarsPadding().padding(start = 16.dp, end = 16.dp, bottom = 10.dp)
+                        .clip(RoundedCornerShape(28.dp)), windowInsets = WindowInsets(0, 0, 0, 0),
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.97f)) {
                         tabs.forEach { tab ->
+                            val selected = route == tab.route || (route == Routes.PLAYLIST && tab.route == Routes.HOME)
+                            val scale by animateFloatAsState(if (selected) 1.12f else 1f, tween(motion.duration(240)), label = "tabScale")
                             NavigationBarItem(
-                                selected = route == tab.route || (route == Routes.PLAYLIST && tab.route == Routes.HOME),
+                                selected = selected,
                                 colors = NavigationBarItemDefaults.colors(
                                     selectedIconColor = MaterialTheme.colorScheme.primary,
                                     selectedTextColor = MaterialTheme.colorScheme.primary,
-                                    indicatorColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = .16f),
                                     unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                     unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                 ),
@@ -198,7 +216,7 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel(), recommendations
                                         restoreState = true
                                     }
                                 },
-                                icon = { Icon(tab.icon, contentDescription = tab.label) },
+                                icon = { Icon(tab.icon, contentDescription = tab.label, modifier = Modifier.graphicsLayer { scaleX = scale; scaleY = scale }) },
                                 label = { Text(tab.label) },
                             )
                         }

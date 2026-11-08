@@ -7,6 +7,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -127,8 +129,10 @@ internal fun SongSwap(track: Track, direction: Int, modifier: Modifier = Modifie
     val duration = if (LocalPlayerMorph.current?.hiddenId != null) 0 else policy.duration(330)
     AnimatedContent(track, modifier = modifier, contentKey = { it.videoId }, label = "songSwap",
         transitionSpec = {
-            (fadeIn(tween(duration)) + slideInHorizontally(tween(duration)) { it / 5 * direction }) togetherWith
-                (fadeOut(tween(duration)) + slideOutHorizontally(tween(duration)) { -it / 5 * direction })
+            (fadeIn(tween(duration)) + scaleIn(tween(duration), initialScale = .94f) +
+                slideInHorizontally(tween(duration)) { it / 5 * direction }) togetherWith
+                (fadeOut(tween(duration)) + scaleOut(tween(duration), targetScale = 1.04f) +
+                    slideOutHorizontally(tween(duration)) { -it / 5 * direction })
         }) { content(it) }
 }
 

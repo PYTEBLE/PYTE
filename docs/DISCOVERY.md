@@ -18,6 +18,14 @@ position, play intent, shuffle and repeat settings, even after starting another 
 playing a new queue discards this snapshot. Mix sessions live in memory; they are not restored
 after process death. This first version is a finite batch, without automatic radio pagination.
 
+While a mix is active, **Song zur Playlist** is the primary pinned action. It opens the local
+playlist chooser for the song currently playing; that selection stays fixed if playback
+advances while the chooser is open. Choose an existing playlist or create one. An add icon
+next to every queue entry also saves upcoming discoveries without playing them first. Saving
+does not change the queue or send playlist changes to YouTube. Duplicate adds report that
+the song already exists. Selected offline playlists keep their existing scheduling rules.
+Restarting the mix and restoring the old queue are under **Mix-Optionen**.
+
 ## Entry points
 
 - Playlist: **Find similar songs** opens recommendations for the playlist's local contents.

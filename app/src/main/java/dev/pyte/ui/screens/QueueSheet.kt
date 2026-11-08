@@ -26,6 +26,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.pyte.playback.PlayerUiState
 import dev.pyte.ui.components.Artwork
+import dev.pyte.domain.Track
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlaylistAdd
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,6 +40,7 @@ fun QueueSheet(
     onPlay: (Int) -> Unit,
     onMove: (Int, Int) -> Unit,
     onRemove: (Int) -> Unit,
+    onAddToPlaylist: ((Track) -> Unit)? = null,
 ) {
     val motion = LocalLivingUi.current
     val keys = queueAnimationKeys(state)
@@ -64,6 +70,11 @@ fun QueueSheet(
                                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             Text("${index + 1}", style = MaterialTheme.typography.labelSmall)
+                            onAddToPlaylist?.let { add ->
+                                IconButton(onClick = { add(track) }) {
+                                    Icon(Icons.Default.PlaylistAdd, "${track.title} zur lokalen Playlist hinzufügen")
+                                }
+                            }
                         }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                             TextButton(onClick = { onMove(index, index - 1) }, enabled = index > 0) { Text("Move up") }

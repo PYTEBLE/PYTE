@@ -1,8 +1,6 @@
 package dev.pyte.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -18,13 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.RepeatOne
 import androidx.compose.material.icons.filled.Shuffle
@@ -33,12 +25,8 @@ import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Equalizer
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -53,15 +41,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.res.painterResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
@@ -74,8 +58,14 @@ import dev.pyte.ui.components.FavoriteButton
 import dev.pyte.ui.components.LivingPlayButton
 import androidx.compose.runtime.SideEffect
 import dev.pyte.ui.components.formatDuration
-import dev.pyte.R
 import dev.pyte.ui.viewmodels.PlayerViewModel
+import androidx.compose.foundation.layout.widthIn
+import dev.pyte.ui.components.CoverLight
+import dev.pyte.ui.components.Reveal
+import dev.pyte.ui.components.MixPanel
+import dev.pyte.ui.components.AddToPlaylistDialog
+import androidx.compose.ui.platform.LocalConfiguration
+import dev.pyte.playback.PlayerUiState
 
 @Composable
 fun NowPlayingScreen(
@@ -84,8 +74,14 @@ fun NowPlayingScreen(
     onDiscover: (dev.pyte.domain.Track) -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val mix by viewModel.mixState.collectAsStateWithLifecycle()
     val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
+    val playlists by viewModel.playlists.collectAsStateWithLifecycle()
+    val save by viewModel.playlistSave.collectAsStateWithLifecycle()
     val track = state.current
+    val configuration = LocalConfiguration.current
+    val compact = configuration.screenHeightDp < 600 || configuration.fontScale > 1.3f
+    val coverSize = if (compact) 260.dp else (configuration.screenHeightDp - 600).coerceIn(160, 340).dp
     var previousId by remember { mutableStateOf(track?.videoId) }
     val direction = remember(track?.videoId) { songDirection(previousId, state.currentIndex, state.queue, state.shuffle) }
     SideEffect { previousId = track?.videoId }
@@ -101,7 +97,12 @@ fun NowPlayingScreen(
 
     if (queueOpen) {
         QueueSheet(state, onDismiss = { queueOpen = false }, onPlay = viewModel::playIndex,
-            onMove = viewModel::moveQueueItem, onRemove = viewModel::removeQueueItem)
+            onMove = viewModel::moveQueueItem, onRemove = viewModel::removeQueueItem,
+            onAddToPlaylist = viewModel::selectForPlaylist)
+    }
+    save.track?.let { selected ->
+        AddToPlaylistDialog(selected, playlists, save.saving, save.error, viewModel::dismissPlaylistSave,
+            onChoose = { viewModel.saveToPlaylist(id = it) }, onCreate = { viewModel.saveToPlaylist(newTitle = it) })
     }
 
     Column(
@@ -109,8 +110,7 @@ fun NowPlayingScreen(
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp),
+            .padding(horizontal = 20.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -119,16 +119,16 @@ fun NowPlayingScreen(
             IconButton(onClick = onClose) {
                 Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Close player")
             }
-            Text("NOW PLAYING", modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, letterSpacing = 2.sp)
-            TextButton(onClick = { lyricsOpen = true }, enabled = track != null) { Text("Lyrics") }
-            IconButton(onClick = { equalizerOpen = true }) { Icon(Icons.Default.Equalizer, "Open equalizer") }
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(if (mix.title != null) "DEIN MIX" else "DEIN MOMENT", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary, letterSpacing = 3.sp)
+                Text(mix.title ?: "NOW PLAYING", maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.labelMedium)
+            }
             IconButton(onClick = { queueOpen = true }) {
                 Icon(Icons.Default.QueueMusic, contentDescription = "Open queue")
             }
         }
-
-        Spacer(Modifier.height(16.dp))
 
         if (track == null) {
             Column(
@@ -141,34 +141,55 @@ fun NowPlayingScreen(
             return@Column
         }
 
-        HeroCoverFrame(track.videoId, Modifier
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
+        CoverLight(state.isPlaying, Modifier.fillMaxWidth()) {
+        HeroCoverFrame(track.videoId, Modifier.align(Alignment.Center).padding(horizontal = 12.dp, vertical = 24.dp)
+                .widthIn(max = coverSize)
                 .fillMaxWidth()
                 .aspectRatio(1f)
-                .shadow(24.dp, RoundedCornerShape(26.dp), ambientColor = MaterialTheme.colorScheme.primary, spotColor = MaterialTheme.colorScheme.primary)
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(26.dp))) { artworkModifier ->
+                .shadow(32.dp, RoundedCornerShape(30.dp), ambientColor = MaterialTheme.colorScheme.primary, spotColor = MaterialTheme.colorScheme.primary)
+                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = .22f), RoundedCornerShape(30.dp))) { artworkModifier ->
             SongSwap(track, direction, artworkModifier) { shown ->
-                Artwork(shown.thumbnailUrl, Modifier.fillMaxSize(), RoundedCornerShape(26.dp), shown.videoId, requestedPixels = 1200)
+                Artwork(shown.thumbnailUrl, Modifier.fillMaxSize(), RoundedCornerShape(30.dp), shown.videoId, requestedPixels = 1200)
             }
         }
+        }
 
-        Spacer(Modifier.height(28.dp))
+        Spacer(Modifier.height(8.dp))
 
+        Reveal(track.videoId, order = 1) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             SongMetadata(track, direction, Modifier.weight(1f))
             val isFav = track.videoId in favoriteIds
             FavoriteButton(isFav, { viewModel.toggleFavorite(track, !isFav) }, key = track.videoId)
         }
+        }
 
         Spacer(Modifier.height(20.dp))
 
-        SeekBar(
-            positionMs = state.positionMs,
-            durationMs = state.durationMs,
-            onSeek = viewModel::seekTo,
-        )
+        if (compact) PlaybackDeck(state, viewModel)
 
-        Spacer(Modifier.height(12.dp))
+        Reveal("player-actions", order = 2) {
+            Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+                TextButton(onClick = { lyricsOpen = true }) { Text("Lyrics") }
+                TextButton(onClick = { equalizerOpen = true }) { Icon(Icons.Default.Equalizer, null, Modifier.size(18.dp)); Text("  Sound") }
+                TextButton(onClick = { onDiscover(track) }) { Text("Entdecken") }
+            }
+        }
+        }
 
+        if (!compact) PlaybackDeck(state, viewModel)
+        // Outside the scrolling content: reachable even on small screens.
+        MixPanel(mix, state.isPreview, viewModel::startMix, viewModel::cancelMixLoading, viewModel::restoreMixQueue,
+            Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            onSaveSong = if (mix.title != null && !state.isPreview) ({ viewModel.selectForPlaylist(track) }) else null)
+    }
+}
+
+@Composable
+private fun PlaybackDeck(state: PlayerUiState, viewModel: PlayerViewModel) {
+    Column(Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+        SeekBar(state.positionMs, state.durationMs, viewModel::seekTo)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -198,18 +219,6 @@ fun NowPlayingScreen(
             }
         }
 
-        Spacer(Modifier.height(24.dp))
-        OutlinedButton(onClick = { onDiscover(track) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp)) {
-            Icon(Icons.Default.AutoAwesome, null, Modifier.size(20.dp))
-            Spacer(Modifier.size(8.dp))
-            Text("Similar to this song")
-        }
-        Row(Modifier.fillMaxWidth().padding(bottom = 12.dp), horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically) {
-            Image(painterResource(R.drawable.pyte_symbol), null, Modifier.size(28.dp))
-            Text("  YOUR MUSIC. YOUR SPACE.", style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.sp)
-        }
     }
 }
 

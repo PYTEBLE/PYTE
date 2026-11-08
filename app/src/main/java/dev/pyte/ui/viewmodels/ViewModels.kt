@@ -204,6 +204,7 @@ class PlayerViewModel @Inject constructor(
     private val lyricsRepository: LyricsRepository,
     settings: SettingsRepository,
     palette: CoverPaletteRepository,
+    private val offline: OfflineStore,
 ) : ViewModel() {
 
     val state: StateFlow<PlayerUiState> = player.state
@@ -211,6 +212,36 @@ class PlayerViewModel @Inject constructor(
     fun startMix() = player.startMix()
     fun cancelMixLoading() = player.cancelMixLoading()
     fun restoreMixQueue() = player.restoreMixQueue()
+    val playlists = repo.observePlaylists()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SHARE_TIMEOUT_MS), emptyList())
+    private val _playlistSave = MutableStateFlow(PlaylistSaveState())
+    val playlistSave = _playlistSave.asStateFlow()
+    fun selectForPlaylist(track: Track) {
+        if (!_playlistSave.value.saving) _playlistSave.value = PlaylistSaveState(track = track)
+    }
+    fun dismissPlaylistSave() {
+        if (!_playlistSave.value.saving) _playlistSave.value = PlaylistSaveState()
+    }
+    fun consumePlaylistMessage() { _playlistSave.value = _playlistSave.value.copy(message = null) }
+    fun saveToPlaylist(id: String? = null, newTitle: String? = null) {
+        val selected = _playlistSave.value
+        val track = selected.track ?: return
+        if (selected.saving) return
+        _playlistSave.value = selected.copy(saving = true, error = null)
+        viewModelScope.launch {
+            try {
+                val added = if (id != null) repo.addToPlaylist(id, track) else {
+                    repo.createPlaylist(requireNotNull(newTitle).trim(), track); true
+                }
+                _playlistSave.value = PlaylistSaveState(message = if (added) "Song zur lokalen Playlist hinzugefügt" else "Song ist bereits in dieser Playlist")
+                try { offline.schedule() } catch (e: CancellationException) { throw e }
+                catch (_: Exception) { _playlistSave.value = _playlistSave.value.copy(message = "Song gespeichert. Offline-Downloads werden später erneut versucht.") }
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) {
+                _playlistSave.value = selected.copy(error = "Song konnte nicht gespeichert werden. Bitte erneut versuchen.")
+            }
+        }
+    }
     val appearance = settings.settings.catch { emit(dev.pyte.data.settings.AppSettings()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SHARE_TIMEOUT_MS), dev.pyte.data.settings.AppSettings())
     val coverColors = combine(player.state.map { it.current }.distinctUntilChanged(),
@@ -256,3 +287,5 @@ class PlayerViewModel @Inject constructor(
 }
 
 data class LyricsUiState(val trackId: String? = null, val loading: Boolean = false, val lyrics: Lyrics? = null, val message: String? = null)
+
+data class PlaylistSaveState(val track: Track? = null, val saving: Boolean = false, val error: String? = null, val message: String? = null)
