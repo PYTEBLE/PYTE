@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.aspectRatio
@@ -57,6 +58,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.testTag
 import dev.pyte.ui.components.Reveal
 import dev.pyte.ui.theme.LocalLivingUi
 import androidx.compose.animation.core.tween
@@ -186,7 +188,7 @@ fun HomeScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ImportSheet(
+internal fun ImportSheet(
     initialLink: String,
     onDismiss: () -> Unit,
     onImport: (String) -> Unit,
@@ -239,10 +241,12 @@ private fun ImportSheet(
                 ) {
                     if (loading) {
                         CircularProgressIndicator(
-                            modifier = Modifier.height(18.dp),
+                            modifier = Modifier.size(18.dp).testTag("playlistImportSpinner"),
                             strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                        Spacer(Modifier.width(8.dp))
+                        Text("Importiere …")
                     } else {
                         Text("Import")
                     }
