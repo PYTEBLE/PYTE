@@ -1,5 +1,23 @@
 # Similar songs
 
+## Play a mix
+
+The full player has a pinned **Mix starten** action. It loads up to 30 ranked songs from the
+current song's anonymous YouTube Music radio, not just the local library. The current track
+continues while loading. Only a successful, non-empty result replaces upcoming queue items;
+the current media item, position and play/pause intent remain unchanged. Shuffle and repeat
+are turned off for the new mix. No songs are saved or downloaded automatically.
+
+Loading can be cancelled. Duplicate taps are ignored; changing the current queue entry,
+starting a preview or playing a new user queue invalidates an in-flight request. Errors and
+empty results leave playback untouched. Starting a mix during a preview is intentionally
+disabled: finish the preview first. Previews of a running mix restore that mix as usual.
+
+**Vorherige Warteschlange wiederherstellen** restores the first pre-mix queue, its saved
+position, play intent, shuffle and repeat settings, even after starting another mix. Explicitly
+playing a new queue discards this snapshot. Mix sessions live in memory; they are not restored
+after process death. This first version is a finite batch, without automatic radio pagination.
+
 ## Entry points
 
 - Playlist: **Find similar songs** opens recommendations for the playlist's local contents.

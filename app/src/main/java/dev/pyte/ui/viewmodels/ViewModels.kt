@@ -207,6 +207,10 @@ class PlayerViewModel @Inject constructor(
 ) : ViewModel() {
 
     val state: StateFlow<PlayerUiState> = player.state
+    val mixState = player.mixState
+    fun startMix() = player.startMix()
+    fun cancelMixLoading() = player.cancelMixLoading()
+    fun restoreMixQueue() = player.restoreMixQueue()
     val appearance = settings.settings.catch { emit(dev.pyte.data.settings.AppSettings()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SHARE_TIMEOUT_MS), dev.pyte.data.settings.AppSettings())
     val coverColors = combine(player.state.map { it.current }.distinctUntilChanged(),

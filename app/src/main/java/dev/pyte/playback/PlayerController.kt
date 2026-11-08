@@ -22,6 +22,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
+import dev.pyte.data.remote.RecommendationsRepository
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 
 data class PlayerUiState(
     val current: Track? = null,
@@ -48,6 +51,7 @@ data class PlayerUiState(
 @Singleton
 class PlayerController @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val recommendations: RecommendationsRepository,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val _state = MutableStateFlow(PlayerUiState())
@@ -56,9 +60,17 @@ class PlayerController @Inject constructor(
     private var controller: MediaController? = null
     private var pendingAction: ((MediaController) -> Unit)? = null
     private val preview = PreviewPlayback()
+    private val mix = MixPlayback()
+    private val _mixState = MutableStateFlow(MixUiState())
+    val mixState = _mixState.asStateFlow()
+    private var mixJob: Job? = null
+    private var mixSeedEntry: String? = null
+    private var mixRequest = 0L
 
     private val listener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) {
+            if (mixSeedEntry != null && (preview.active ||
+                    player.currentMediaItem?.mediaMetadata?.extras?.getString("queueEntryId") != mixSeedEntry)) cancelMixLoading()
             if (preview.active && player.playbackState == Player.STATE_ENDED) preview.restore(player)
             refresh(player)
         }
@@ -102,6 +114,9 @@ class PlayerController @Inject constructor(
     fun playQueue(tracks: List<Track>, startIndex: Int = 0, shuffle: Boolean = false, sourcePlaylistId: String? = null) {
         if (tracks.isEmpty()) return
         act { c ->
+            cancelMixLoading()
+            mix.discard()
+            _mixState.value = MixUiState()
             preview.discard()
             val items = tracks.map { it.toMediaItem() }
             val origin = sourcePlaylistId?.let {
@@ -115,8 +130,50 @@ class PlayerController @Inject constructor(
         }
     }
 
-    fun preview(track: Track) = act { c -> preview.play(c, track); refresh(c) }
+    fun preview(track: Track) = act { c -> cancelMixLoading(); preview.play(c, track); refresh(c) }
     fun finishPreview() = act { c -> preview.restore(c); refresh(c) }
+
+    fun cancelMixLoading() {
+        mixRequest++
+        mixJob?.cancel()
+        mixJob = null
+        mixSeedEntry = null
+        _mixState.value = _mixState.value.copy(loading = false)
+    }
+
+    fun startMix() {
+        val c = controller ?: return
+        if (preview.active || _mixState.value.loading) return
+        val seed = c.currentMediaItem?.toTrack() ?: return
+        val entry = c.currentMediaItem?.mediaMetadata?.extras?.getString("queueEntryId") ?: return
+        val request = ++mixRequest
+        mixSeedEntry = entry
+        _mixState.value = _mixState.value.copy(loading = true, error = null)
+        mixJob = scope.launch {
+            try {
+                val songs = recommendations.discover(listOf(seed), setOf(seed.videoId)).songs.map { it.track }
+                if (request != mixRequest || mixSeedEntry != entry || preview.active) return@launch
+                // Clear the loading guard before timeline events are dispatched.
+                mixSeedEntry = null
+                if (mix.start(c, entry, songs)) {
+                    preview.discard()
+                    _mixState.value = MixUiState(title = seed.title)
+                    refresh(c)
+                } else _mixState.value = _mixState.value.copy(loading = false, error = "Keine passenden Titel verfügbar. Bitte erneut versuchen.")
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) {
+                if (request == mixRequest) _mixState.value = _mixState.value.copy(loading = false, error = "Mix konnte nicht geladen werden. Prüfe deine Verbindung.")
+            } finally { if (request == mixRequest) mixSeedEntry = null }
+        }
+    }
+
+    fun restoreMixQueue() = act { c ->
+        cancelMixLoading()
+        preview.restore(c)
+        mix.restore(c)
+        _mixState.value = MixUiState()
+        refresh(c)
+    }
 
     fun togglePlayPause() = act { c ->
         if (c.isPlaying) c.pause() else {
@@ -126,16 +183,17 @@ class PlayerController @Inject constructor(
         }
     }
 
-    fun next() = act { it.seekToNext() }
-    fun previous() = act { it.seekToPrevious() }
+    fun next() = act { cancelMixLoading(); it.seekToNext() }
+    fun previous() = act { cancelMixLoading(); it.seekToPrevious() }
     fun seekTo(positionMs: Long) = act { it.seekTo(positionMs) }
     fun playIndex(index: Int) = act {
+        cancelMixLoading()
         if (index in 0 until it.mediaItemCount) { it.seekToDefaultPosition(index); it.play() }
     }
-    fun enqueueNext(track: Track) = act { it.enqueue(track.toMediaItem(), next = true) }
-    fun enqueueLater(track: Track) = act { it.enqueue(track.toMediaItem(), next = false) }
-    fun moveQueueItem(from: Int, to: Int) = act { it.moveQueuedItem(from, to) }
-    fun removeQueueItem(index: Int) = act { it.removeQueuedItem(index) }
+    fun enqueueNext(track: Track) = act { cancelMixLoading(); it.enqueue(track.toMediaItem(), next = true) }
+    fun enqueueLater(track: Track) = act { cancelMixLoading(); it.enqueue(track.toMediaItem(), next = false) }
+    fun moveQueueItem(from: Int, to: Int) = act { cancelMixLoading(); it.moveQueuedItem(from, to) }
+    fun removeQueueItem(index: Int) = act { cancelMixLoading(); it.removeQueuedItem(index) }
 
     fun toggleShuffle() = act { c -> c.shuffleModeEnabled = !c.shuffleModeEnabled }
 
@@ -170,7 +228,7 @@ class PlayerController @Inject constructor(
             queueEntryIds = (0 until player.mediaItemCount).map { index ->
                 player.getMediaItemAt(index).mediaMetadata.extras?.getString("queueEntryId") ?: "external:$index"
             },
-            playlistOrigin = player.currentMediaItem?.playlistOrigin(),
+            playlistOrigin = if (mix.active) null else player.currentMediaItem?.playlistOrigin(),
             isPreview = preview.active,
         )
     }
