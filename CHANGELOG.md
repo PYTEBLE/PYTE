@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Android Sound Studio and visible player effects
+## 0.2.0-alpha.11 — Android Sound Studio and visible player effects
 
 - Fix the playlist-import spinner's distorted geometry with equal width/height and an
   explicit loading label.

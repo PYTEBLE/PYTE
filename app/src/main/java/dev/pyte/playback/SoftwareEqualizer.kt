@@ -139,6 +139,7 @@ class EqualizerAudioProcessor internal constructor(private val engine: SoftwareE
         require(inputAudioFormat.sampleRate in 8000..384000)
         return inputAudioFormat
     }
+    @Suppress("OVERRIDE_DEPRECATION") // Media3 still routes the metadata-free flush here.
     override fun onFlush() {
         if (inputAudioFormat == AudioFormat.NOT_SET) { dsp = null; applied = null; engine.clearSpectrum(); return }
         rate = inputAudioFormat.sampleRate
