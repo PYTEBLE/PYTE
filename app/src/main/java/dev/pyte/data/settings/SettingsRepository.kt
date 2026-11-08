@@ -69,6 +69,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         }
     }
     suspend fun enableEqualizer(enabled: Boolean) = editEqualizer { it.copy(enabled = enabled) }
+    suspend fun equalizerLimiter(enabled: Boolean) = editEqualizer { it.copy(limiter = enabled) }
     suspend fun setEqualizerCurve(points: List<EqPoint>) = editEqualizer { it.copy(points = points, selectedId = "custom") }
     suspend fun selectSoundProfile(id: String) = editEqualizer { current ->
         val profile = (EqualizerCurves.presets + current.profiles).firstOrNull { it.id == id }

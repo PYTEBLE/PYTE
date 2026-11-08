@@ -21,6 +21,15 @@ import dev.pyte.playback.EqualizerSettings
 import dev.pyte.playback.EqualizerState
 import dev.pyte.ui.viewmodels.EqualizerViewModel
 import java.util.Locale
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import dev.pyte.ui.components.EqualizerGraph
+import dev.pyte.ui.components.BandFader
+import dev.pyte.ui.theme.LocalLivingUi
+import dev.pyte.ui.theme.rememberLivingUiPolicy
+import dev.pyte.data.settings.AppSettings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,10 +37,25 @@ fun EqualizerSheet(onDismiss: () -> Unit, viewModel: EqualizerViewModel = hiltVi
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val device by viewModel.device.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
-    DisposableEffect(viewModel) { onDispose { viewModel.cancelPreview() } }
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+    val spectrum by viewModel.spectrum.collectAsStateWithLifecycle()
+    val playing by viewModel.playing.collectAsStateWithLifecycle()
+    DisposableEffect(viewModel) { onDispose { viewModel.analyzing(false); viewModel.cancelPreview() } }
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
+        val motion = rememberLivingUiPolicy(settings ?: AppSettings())
+        LaunchedEffect(motion.foreground, motion.ambient, playing) { viewModel.analyzing(motion.foreground && motion.ambient && playing) }
+        CompositionLocalProvider(LocalLivingUi provides motion) {
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Column(Modifier.statusBarsPadding().navigationBarsPadding()) {
+            Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("SOUND STUDIO", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, "Close equalizer") }
+            }
         EqualizerContent(settings?.equalizer, device, error, viewModel::enabled, viewModel::select,
-            viewModel::preview, viewModel::curve, viewModel::save, viewModel::delete, viewModel::retry)
+            viewModel::preview, viewModel::curve, viewModel::save, viewModel::delete, viewModel::retry,
+            spectrum, viewModel::limiter)
+        }
+        }
+        }
     }
 }
 
@@ -41,35 +65,69 @@ internal fun EqualizerContent(
     onEnabled: (Boolean) -> Unit, onSelect: (String) -> Unit,
     onPreview: (List<EqPoint>) -> Unit, onCurve: (List<EqPoint>) -> Unit,
     onSave: (String, List<EqPoint>) -> Unit, onDelete: (String) -> Unit, onRetry: () -> Unit,
+    spectrum: List<Float> = emptyList(), onLimiter: (Boolean) -> Unit = {},
 ) {
     var saveOpen by rememberSaveable { mutableStateOf(false) }
     var profileName by rememberSaveable { mutableStateOf("") }
     var deleteId by rememberSaveable { mutableStateOf<String?>(null) }
     val stored = settings?.points ?: EqualizerCurves.flat
-    var draft by remember(stored, device.frequencies) {
-        mutableStateOf(device.frequencies.map { EqPoint(it, EqualizerCurves.gainAt(stored, it).coerceIn(device.minMb, device.maxMb)) })
+    var draft by remember(stored) {
+        mutableStateOf(EqualizerCurves.frequencies.map { EqPoint(it, EqualizerCurves.gainAt(stored, it)) })
     }
     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)
         .padding(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("Equalizer", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Text("Your sound. Your profiles.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("15 Bänder. Dein Klang.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Switch(checked = settings?.enabled == true, onCheckedChange = onEnabled,
                 enabled = settings != null && device.available,
                 modifier = Modifier.semantics { contentDescription = "Enable equalizer" })
+        }
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Schutzbegrenzer", style = MaterialTheme.typography.titleSmall)
+                Text("Stereo-Pegelschutz bei kräftigen Anhebungen", style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Switch(settings?.limiter != false, onCheckedChange = onLimiter, enabled = settings != null,
+                modifier = Modifier.semantics { contentDescription = "Schutzbegrenzer" })
         }
         if (settings == null) CircularProgressIndicator()
         if (!device.available) {
             Text(device.message, color = MaterialTheme.colorScheme.onSurfaceVariant)
             TextButton(onClick = onRetry) { Text("Retry audio effect") }
         }
-        Text("Presets", style = MaterialTheme.typography.titleSmall)
+        Text("Klangprofile", style = MaterialTheme.typography.titleSmall)
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             EqualizerCurves.presets.forEach { profile ->
                 FilterChip(selected = settings?.selectedId == profile.id, onClick = { onSelect(profile.id) },
                     enabled = settings != null, label = { Text(profile.name) })
+            }
+        }
+        if (device.available) {
+            EqualizerGraph(draft.filter { it.hz in device.frequencies }, spectrum,
+                enabled = settings?.enabled == true, onPreview = { changed ->
+                    draft = draft.map { p -> changed.firstOrNull { it.hz == p.hz } ?: p }; onPreview(draft)
+                }, onCommit = { changed ->
+                    draft = draft.map { p -> changed.firstOrNull { it.hz == p.hz } ?: p }; onCurve(draft)
+                })
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("25 Hz — 16 kHz", style = MaterialTheme.typography.labelMedium)
+                Text("Headroom ${String.format(Locale.ROOT, "%.1f dB", 20 * kotlin.math.log10(device.headroom.coerceAtLeast(.001f)))}",
+                    color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
+            }
+            Text("Kurvenpunkte ziehen oder die Bandregler nutzen · 0,5-dB-Schritte", style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                draft.forEachIndexed { index, point ->
+                    BandFader(point, settings?.enabled == true && point.hz in device.frequencies,
+                        onPreview = { gain ->
+                            draft = draft.mapIndexed { i, value -> if (i == index) value.copy(gainMb = gain) else value }
+                            onPreview(draft)
+                        }, onCommit = { onCurve(draft) })
+                }
             }
         }
         if (settings?.profiles?.isNotEmpty() == true) {
@@ -83,24 +141,7 @@ internal fun EqualizerContent(
                 }
             }
         }
-        if (device.available) {
-            draft.forEachIndexed { index, point ->
-                Column {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(frequencyLabel(point.hz), style = MaterialTheme.typography.labelLarge)
-                        Text(String.format(Locale.ROOT, "%+.1f dB", point.gainMb / 100f), color = MaterialTheme.colorScheme.primary)
-                    }
-                    Slider(value = point.gainMb.toFloat(), valueRange = device.minMb.toFloat()..device.maxMb.toFloat(),
-                        enabled = settings?.enabled == true,
-                        modifier = Modifier.semantics { contentDescription = "Equalizer ${frequencyLabel(point.hz)}" },
-                        onValueChange = { gain ->
-                            draft = draft.mapIndexed { i, value -> if (i == index) value.copy(gainMb = gain.toInt()) else value }
-                            onPreview(draft)
-                        }, onValueChangeFinished = { onCurve(draft) })
-                }
-            }
-        }
-        Text("Bands follow your audio device. Profiles adapt to other supported outputs. Boosts reserve volume headroom to reduce distortion; lower the gains if you hear clipping.",
+        Text("Echte 15-Band-Verarbeitung in PYTE, unabhängig vom Geräte-Equalizer. Bestehende Profile werden übernommen. Hohe Bänder sind bei niedriger Abtastrate nicht verfügbar. Headroom reduziert Übersteuerung; der Schutzbegrenzer fängt verbleibende Spitzen ab.",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             TextButton(onClick = { onSelect("neutral") }, enabled = settings != null) { Text("Reset to neutral") }

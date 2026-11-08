@@ -12,6 +12,20 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class SettingsRepositoryTest {
+    @Test fun `software limiter preference persists independently and new presets retain fifteen points`() = runBlocking {
+        val repository = SettingsRepository(RuntimeEnvironment.getApplication())
+        try {
+            repository.equalizerLimiter(false)
+            repository.selectSoundProfile("rock")
+            val reopened = SettingsRepository(RuntimeEnvironment.getApplication()).settings.first()
+            assertFalse(reopened.equalizer.limiter)
+            assertEquals(15, reopened.equalizer.points.size)
+            assertFalse(reopened.equalizer.enabled)
+        } finally {
+            repository.equalizerLimiter(true)
+            repository.selectSoundProfile("neutral")
+        }
+    }
     @Test fun `automatic discovery preference persists without affecting manual playback preferences`() = runBlocking {
         val context = RuntimeEnvironment.getApplication()
         val repository = SettingsRepository(context)

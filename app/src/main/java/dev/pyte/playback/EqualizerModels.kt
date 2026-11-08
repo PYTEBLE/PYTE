@@ -17,6 +17,7 @@ data class EqualizerSettings(
     val selectedId: String = "neutral",
     val points: List<EqPoint> = EqualizerCurves.flat,
     val profiles: List<SoundProfile> = emptyList(),
+    val limiter: Boolean = true,
 ) {
     fun normalized() = copy(points = EqualizerCurves.normalize(points),
         profiles = profiles.take(12).distinctBy { it.id }.map {
@@ -25,16 +26,27 @@ data class EqualizerSettings(
 }
 
 object EqualizerCurves {
-    val frequencies = listOf(63, 250, 1000, 4000, 16000)
+    val frequencies = listOf(25, 40, 63, 100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300, 10000, 16000)
     val flat = frequencies.map { EqPoint(it, 0) }
-    private fun preset(id: String, name: String, gains: List<Int>) = SoundProfile(id, name,
-        frequencies.zip(gains) { hz, gain -> EqPoint(hz, gain) })
+    private fun preset(id: String, name: String, vararg gains: Double) = SoundProfile(id, name,
+        frequencies.zip(gains.toList()) { hz, gain -> EqPoint(hz, (gain * 100).roundToInt()) })
     val presets = listOf(
-        preset("neutral", "Neutral", listOf(0, 0, 0, 0, 0)),
-        preset("bass", "Bass", listOf(500, 250, 0, -100, 0)),
-        preset("voices", "Voices", listOf(-300, -150, 250, 300, -100)),
-        preset("warm", "Warm", listOf(250, 150, 0, -150, -250)),
-        preset("electronic", "Electronic", listOf(350, 100, -150, 150, 350)),
+        SoundProfile("neutral", "Neutral", flat),
+        preset("bass", "Bass", 5.0,4.5,4.0,3.5,2.5,1.5,.5,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0),
+        preset("tiefbass", "Tiefbass", 6.0,5.5,5.0,4.5,3.0,1.5,0.0,-1.0,-1.5,-2.0,-2.0,-2.0,-2.0,-2.0,-2.0),
+        preset("voices", "Stimmen", -3.0,-2.5,-2.0,-1.0,0.0,1.5,3.0,3.5,3.0,2.0,1.0,.5,0.0,-.5,-1.0),
+        preset("warm", "Warm", 2.0,2.0,2.0,1.5,1.0,.5,0.0,-.5,-1.0,-1.5,-2.0,-2.0,-2.5,-3.0,-3.0),
+        preset("brillanz", "Brillanz", 0.0,0.0,0.0,0.0,0.0,0.0,0.0,.5,1.0,1.5,2.0,3.0,3.5,4.0,4.0),
+        preset("electronic", "Elektro", 4.0,3.5,2.0,0.0,-1.5,-1.0,0.0,1.0,2.0,3.0,3.0,2.5,2.0,3.0,3.5),
+        preset("rock", "Rock", 3.5,3.0,2.0,.5,-1.0,-1.5,0.0,1.5,2.5,3.0,3.0,3.0,2.5,2.0,1.5),
+        preset("pop", "Pop", -1.0,-.5,.5,1.5,2.5,2.5,2.0,1.0,0.0,-.5,-1.0,-.5,.5,1.0,1.0),
+        preset("jazz", "Jazz", 1.5,1.5,1.0,1.0,-.5,-1.0,0.0,.5,1.0,1.5,2.0,2.0,2.0,1.5,1.0),
+        preset("klassik", "Klassik", 0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,.5,1.0,1.5,2.0,2.0),
+        preset("hiphop", "Hip-Hop", 5.0,4.5,3.5,2.0,.5,-1.0,-1.0,0.0,.5,1.0,1.5,1.5,1.5,1.5,1.5),
+        preset("akustik", "Akustik", 1.0,1.0,1.5,1.5,1.5,1.0,.5,.5,1.0,1.5,2.0,2.5,2.5,2.0,1.5),
+        preset("podcast", "Podcast", -6.0,-5.0,-4.0,-3.0,-1.0,1.0,3.0,3.5,3.0,2.0,0.0,-1.0,-2.0,-3.0,-4.0),
+        preset("nacht", "Nachtmodus", 3.0,2.5,2.0,1.5,1.0,.5,0.0,-1.0,-2.0,-3.0,-4.0,-4.5,-5.0,-5.0,-5.0),
+        preset("lautheit", "Lautheit", 4.0,3.5,3.0,2.0,1.0,0.0,-.5,-1.0,-1.0,-.5,0.0,.5,1.0,1.5,1.5),
     )
     fun normalize(points: List<EqPoint>): List<EqPoint> = points.take(32)
         .filter { it.hz in 20..24000 }.distinctBy { it.hz }.sortedBy { it.hz }
