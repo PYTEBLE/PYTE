@@ -40,10 +40,12 @@ A local-first Android music player for public YouTube Music playlists.
 - Dynamic cover colors animate across Now Playing, Lyrics and the mini-player. Settings can
   turn this off; the library retains its violet theme. Palette sampling is local, bounded and
   uses pinned artwork offline, with a violet fallback for missing/grayscale art.
-- A session-scoped native equalizer is available from the player, Lyrics and Settings. It uses
-  the output's supported bands, five presets, and up to 12 named local sound profiles. Curves
-  are adapted by frequency when the audio session/output changes. Boosts reserve volume
-  headroom (not a clipping limiter); unsupported effects/outputs are shown explicitly.
+- A 15-band software equalizer is available from the player, Lyrics and Settings. It uses
+  the web version's 16 presets and up to 12 named local sound profiles. Curves
+  remain compatible with older five-band profiles. Audio is processed in PYTE's own PCM
+  pipeline, with headroom and optional stereo peak protection. The Sound Studio has a
+  draggable band curve, precise faders and a measured spectrum, without microphone access.
+  See [docs/EQUALIZER.md](docs/EQUALIZER.md) for implementation and testing limits.
 
 Android cloud backup and automatic device transfer are disabled. Keep the app installed when
 updating APKs: uninstalling or clearing app storage removes your local library and downloads.

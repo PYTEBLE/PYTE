@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased — Android Sound Studio and visible player effects
+
+- Fix the playlist-import spinner's distorted geometry with equal width/height and an
+  explicit loading label.
+- Replace the service's native five-band EQ with a true 15-band PCM software processor,
+  web-matched presets, headroom, optional stereo peak protection and measured spectra.
+- Add a full-screen Sound Studio with a draggable band curve, precise vertical faders,
+  accessible half-dB adjustments and existing custom-profile management.
+- Make the player visibly cover-driven with a drifting artwork backdrop, stronger cover
+  light, larger artwork, readable floating panels and a more compact primary mix/save action.
+- Keep system motion/battery policies in effect, including inside the Sound Studio dialog.
+
 ## 0.2.0-alpha.10 — Android
 
 **Installation warning:** the dedicated alpha.7 signing key is unavailable here. With explicit

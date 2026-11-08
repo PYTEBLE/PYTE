@@ -1,5 +1,29 @@
 # Playback verification
 
+## Android Sound Studio and player effects (unreleased)
+
+- Debug APK, instrumentation APK and Android lint build successfully. Final opt-in unit run:
+  **129 tests passed, zero skipped**, including live artwork, search and radio tests.
+- New signal tests exercise each of the 15 bands at 44.1/48 kHz, channel isolation,
+  byte-exact bypass, limiter bounds, rapid preset/bypass changes, pending format changes,
+  flush/reset, spectral collection gating, legacy settings migration, persisted limiter
+  selection and exact numerical preset parity with the web implementation.
+- The loading indicator now has equal 18 dp width/height and an explicit loading label.
+  A geometry regression test, curve/fader accessibility checks, shared-renderer WAV playback
+  test and player/Equalizer screenshot fixture are included in the instrumentation APK.
+- **Device validation did not pass:** KVM access was unavailable. An Android 15 x86_64 AVD
+  using software CPU/GPU rendering produced launcher/system ANRs. The selected connected
+  run exceeded 600 seconds; a direct instrumentation retry was killed by an app-start ANR
+  before successful test execution. These are not passing UI/audio tests. No new player or
+  Sound Studio screenshots have been visually qualified. Physical listening, Bluetooth,
+  TalkBack, large-font layouts and CPU/battery behavior remain open.
+- Raw attempted-test output and the blocking system-dialog screenshot were retained under
+  `/tmp/opencode` in this environment, not checked in as successful UI evidence.
+- The general Aurora retains its previous contrast-tested brightness; new visible effects
+  are concentrated in the artwork backdrop/cover lighting with opaque-enough text panels.
+
+See [docs/EQUALIZER.md](docs/EQUALIZER.md) for signal-chain and limiter limitations.
+
 ## Player redesign and mixes (alpha.10, Android)
 
 Validation: 120 unit tests passed, zero skipped, including live artwork/search/radio checks.
