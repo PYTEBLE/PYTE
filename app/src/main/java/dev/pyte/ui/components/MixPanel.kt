@@ -31,23 +31,28 @@ fun MixPanel(
     var optionsOpen by remember { mutableStateOf(false) }
     Surface(modifier, shape = RoundedCornerShape(26.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
-        Column(Modifier.padding(14.dp)) {
+        Column(Modifier.padding(8.dp)) {
             state.error?.let {
                 Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(bottom = 8.dp).semantics { liveRegion = LiveRegionMode.Polite })
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f).padding(end = 8.dp)) {
-                    Text(if (state.title != null) "Dein Mix läuft" else "Mehr von diesem Gefühl",
-                        fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleSmall)
-                    Text("Ähnliche Songs · aus dem ganzen Katalog", style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                if (state.title == null || state.loading) Button(onClick = onStart, enabled = !state.loading && !isPreview, shape = RoundedCornerShape(18.dp)) {
+                if (state.title == null || state.loading) Button(onClick = onStart, enabled = !state.loading && !isPreview,
+                    modifier = Modifier.weight(1f).heightIn(min = 56.dp), shape = RoundedCornerShape(18.dp)) {
                     if (state.loading) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                     else Icon(Icons.Default.AutoAwesome, null, Modifier.size(18.dp))
-                    Text(if (state.loading) "  Lädt…" else "  Mix starten")
+                    Column(Modifier.padding(start = 10.dp)) {
+                        Text(if (state.loading) "Lädt…" else "Mix starten", fontWeight = FontWeight.SemiBold)
+                        Text("Neue Songs · ganzer Katalog", style = MaterialTheme.typography.labelSmall)
+                    }
                 }
+                else if (onSaveSong != null) Button(onClick = onSaveSong,
+                    modifier = Modifier.weight(1f).heightIn(min = 56.dp), shape = RoundedCornerShape(18.dp)) {
+                    Icon(Icons.Default.PlaylistAdd, null, Modifier.size(20.dp))
+                    Text("  Song zur Playlist")
+                }
+                else Text("Dein Mix", Modifier.weight(1f).padding(12.dp), style = MaterialTheme.typography.titleSmall)
+                if (state.loading) TextButton(onClick = onCancel) { Text("Abbrechen") }
                 if (state.title != null && !state.loading) Box {
                     IconButton(onClick = { optionsOpen = true }) { Icon(Icons.Default.MoreVert, "Mix-Optionen") }
                     DropdownMenu(optionsOpen, onDismissRequest = { optionsOpen = false }) {
@@ -58,11 +63,6 @@ fun MixPanel(
                     }
                 }
             }
-            if (onSaveSong != null) Button(onClick = onSaveSong, modifier = Modifier.fillMaxWidth()) {
-                Icon(Icons.Default.PlaylistAdd, null, Modifier.size(20.dp))
-                Text("  Song zur Playlist")
-            }
-            if (state.loading) TextButton(onClick = onCancel) { Text("Abbrechen") }
             if (isPreview) Text("Mix nach dem Beenden der Vorschau starten.", style = MaterialTheme.typography.bodySmall)
         }
     }

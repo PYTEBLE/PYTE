@@ -66,6 +66,10 @@ import dev.pyte.ui.components.MixPanel
 import dev.pyte.ui.components.AddToPlaylistDialog
 import androidx.compose.ui.platform.LocalConfiguration
 import dev.pyte.playback.PlayerUiState
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.BorderStroke
+import dev.pyte.ui.components.PlayerAtmosphere
 
 @Composable
 fun NowPlayingScreen(
@@ -81,7 +85,7 @@ fun NowPlayingScreen(
     val track = state.current
     val configuration = LocalConfiguration.current
     val compact = configuration.screenHeightDp < 600 || configuration.fontScale > 1.3f
-    val coverSize = if (compact) 260.dp else (configuration.screenHeightDp - 600).coerceIn(160, 340).dp
+    val coverSize = if (compact) 260.dp else (configuration.screenHeightDp - 560).coerceIn(220, 360).dp
     var previousId by remember { mutableStateOf(track?.videoId) }
     val direction = remember(track?.videoId) { songDirection(previousId, state.currentIndex, state.queue, state.shuffle) }
     SideEffect { previousId = track?.videoId }
@@ -105,6 +109,8 @@ fun NowPlayingScreen(
             onChoose = { viewModel.saveToPlaylist(id = it) }, onCreate = { viewModel.saveToPlaylist(newTitle = it) })
     }
 
+    Box(Modifier.fillMaxSize()) {
+    PlayerAtmosphere(track, state.isPlaying)
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -112,6 +118,8 @@ fun NowPlayingScreen(
             .navigationBarsPadding()
             .padding(horizontal = 20.dp),
     ) {
+        Surface(Modifier.fillMaxWidth().padding(vertical = 4.dp), shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = .82f)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -128,6 +136,7 @@ fun NowPlayingScreen(
             IconButton(onClick = { queueOpen = true }) {
                 Icon(Icons.Default.QueueMusic, contentDescription = "Open queue")
             }
+        }
         }
 
         if (track == null) {
@@ -158,10 +167,12 @@ fun NowPlayingScreen(
         Spacer(Modifier.height(8.dp))
 
         Reveal(track.videoId, order = 1) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = .88f)) {
+        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             SongMetadata(track, direction, Modifier.weight(1f))
             val isFav = track.videoId in favoriteIds
             FavoriteButton(isFav, { viewModel.toggleFavorite(track, !isFav) }, key = track.videoId)
+        }
         }
         }
 
@@ -170,10 +181,14 @@ fun NowPlayingScreen(
         if (compact) PlaybackDeck(state, viewModel)
 
         Reveal("player-actions", order = 2) {
-            Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+            Surface(Modifier.fillMaxWidth().padding(vertical = 12.dp), shape = RoundedCornerShape(22.dp),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = .90f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = .15f))) {
+            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
                 TextButton(onClick = { lyricsOpen = true }) { Text("Lyrics") }
                 TextButton(onClick = { equalizerOpen = true }) { Icon(Icons.Default.Equalizer, null, Modifier.size(18.dp)); Text("  Sound") }
                 TextButton(onClick = { onDiscover(track) }) { Text("Entdecken") }
+            }
             }
         }
         }
@@ -183,6 +198,7 @@ fun NowPlayingScreen(
         MixPanel(mix, state.isPreview, viewModel::startMix, viewModel::cancelMixLoading, viewModel::restoreMixQueue,
             Modifier.fillMaxWidth().padding(bottom = 12.dp),
             onSaveSong = if (mix.title != null && !state.isPreview) ({ viewModel.selectForPlaylist(track) }) else null)
+    }
     }
 }
 
