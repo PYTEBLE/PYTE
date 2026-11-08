@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.2.0-alpha.10 — Android
+
+**Installation warning:** the dedicated alpha.7 signing key is unavailable here. With explicit
+user approval this alpha uses this machine's Android debug certificate, not the old release
+identity. An in-place update over alpha.7/alpha.8 is incompatible. Uninstalling loses local
+playlists, favorites, history, settings and downloads; no library export is available.
+versionCode 14. Android-only assets; the Windows download remains on alpha.9.
+
+- Redesign the player with cover lighting, cinematic song transitions, staged reveals and a
+  pinned mix action. Refresh the library with immersive cover cards and floating navigation.
+- Start a finite similar-song mix from the general YouTube Music catalog without restarting
+  the current song. Cancel loading or restore the original queue, position and playback modes.
+- Keep discovery previews separate; reject stale mix results after track changes or queue
+  edits. Failed or empty requests leave playback unchanged. No automatic saving/downloads.
+- Save discoveries using **Song zur Playlist** in the active mix or the add icon next to any
+  queued song. Choose an existing local playlist or create one without interrupting playback;
+  duplicate songs are not re-added. Existing offline-playlist rules continue to apply.
+
 ## 0.2.0-alpha.8
 
 Shared release with two downloads:

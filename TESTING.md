@@ -1,5 +1,28 @@
 # Playback verification
 
+## Player redesign and mixes (alpha.10, Android)
+
+Validation: 120 unit tests passed, zero skipped, including live artwork/search/radio checks.
+Debug APK and instrumentation APK built successfully; Android lint completed successfully.
+No device was attached, so the new instrumentation tests were compiled but not executed.
+
+- `MixPlaybackTest` exercises unchanged current-item identity/position, paused intent,
+  restoration of the original queue and modes, stale duplicate queue entries, empty results,
+  repeated mixes, preview restoration and discarding snapshots for explicit new queues.
+- `MixPanelTest` covers small-width action visibility, loading/duplicate-tap prevention,
+  cancel/restore callbacks and the disabled-preview explanation. These are instrumentation
+  tests and require an attached device/emulator to execute.
+- Active mixes expose the save action directly; queued songs have their own add action.
+  Check choosing/creating a playlist, duplicate feedback, retry after a deleted playlist,
+  and changing songs while the chooser is open (the selected song must not change).
+- Device checks remain necessary: small displays and large fonts, TalkBack, cover morph
+  anchors, effect-enabled scrolling, pause settling, reduced motion and battery saver.
+- Manual network checks: cancel/retry rapidly, skip during loading, edit the queue while
+  loading, disconnect before results arrive, preview a running mix, then restore the original
+  queue. No failed/cancelled request should replace playback or save/download songs.
+- Mixes use the existing radio endpoint and ranking; finite batches have no automatic
+  continuation. Restoration is in-memory and returns to the saved pre-mix position.
+
 ## Similar songs (0.2.0-alpha.7)
 
 - All 115 unit tests passed, zero skipped, with `PYTE_LIVE_RECOMMENDATIONS=true`,

@@ -21,8 +21,8 @@ android {
         applicationId = "dev.pyte"
         minSdk = 26
         targetSdk = 36
-        versionCode = 12
-        versionName = "0.2.0-alpha.8"
+        versionCode = 14
+        versionName = "0.2.0-alpha.10"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

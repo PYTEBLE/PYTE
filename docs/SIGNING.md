@@ -1,5 +1,22 @@
 # APK signing from alpha.7
 
+## Alpha.10 exception (explicitly approved)
+
+The dedicated key is absent on this build machine. The user explicitly approved a
+signature-incompatible release instead of blocking publication. Alpha.10 is the debug
+variant signed by the existing machine debug key (`~/.android/debug.keystore`), not the
+pinned alpha.7 identity. It cannot update alpha.7/alpha.8 in place. Uninstalling those versions
+deletes local playlists, favorites, history, settings and downloads; there is no export flow.
+Release notes must state this before installation instructions. `tools/sign-apk.sh` retains
+its strict checks and is **not** bypassed or repurposed to claim compatibility.
+
+This does not establish a stable production signing identity. Do not promise future
+in-place updates without checking the published APK certificate.
+
+Alpha.10 debug certificate SHA-256 (public fingerprint):
+
+`7202ac27411fa7b98478e81ec025a269d66f985aaa9ec15b5db76995a0e674e0`
+
 The signing key used for the published alpha.6 is unavailable. With the user's explicit
 approval, alpha.7 starts a new signing identity. Android will not install it over earlier
 versions. Uninstalling deletes the local library, favorites, history, settings and downloads;
