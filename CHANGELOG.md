@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — configurable battery mode
+
+- Add a Battery mode popup in Settings with a master switch, independent saving methods,
+  Apply/Cancel, persistent choices and an opt-in screen-off sleep timer.
+- Gate metered-network bitrate reduction, burst buffering, disabled-EQ fast bypass, reduced
+  effects/background position polling and download/lookahead suppression behind the master.
+- Look up the next queued song's validated stream URL without downloading audio or changing
+  playback; share pending lookups at transitions and cancel obsolete work. Add startup timing
+  diagnostics and cancellable URL probes. Actual battery/latency gains need device measurement.
+
 ## 0.2.0-alpha.11 — Android Sound Studio and visible player effects
 
 - Fix the playlist-import spinner's distorted geometry with equal width/height and an

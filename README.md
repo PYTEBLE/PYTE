@@ -40,6 +40,10 @@ A local-first Android music player for public YouTube Music playlists.
 - Dynamic cover colors animate across Now Playing, Lyrics and the mini-player. Settings can
   turn this off; the library retains its violet theme. Palette sampling is local, bounded and
   uses pinned artwork offline, with a violet fallback for missing/grayscale art.
+- Settings includes a configurable Battery mode popup, off by default. Choose mobile-data
+  quality reduction, burst buffering, disabled-EQ bypass, reduced effects/background updates,
+  download/lookahead suppression and an optional screen-off timer. Saving policies are gated
+  by its master switch; see [docs/BATTERY.md](docs/BATTERY.md) for trade-offs and limits.
 - A 15-band software equalizer is available from the player, Lyrics and Settings. It uses
   the web version's 16 presets and up to 12 named local sound profiles. Curves
   remain compatible with older five-band profiles. Audio is processed in PYTE's own PCM
