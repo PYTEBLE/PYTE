@@ -1,6 +1,6 @@
 # Playback verification
 
-## Configurable battery mode (unreleased)
+## Configurable battery mode (alpha.12)
 
 - `assembleDebug`, `assembleDebugAndroidTest` and `lintDebug` succeeded. Lint: zero errors.
 - Opt-in live unit run: **138 tests, zero failures/errors/skips**. New checks cover saved
@@ -10,8 +10,8 @@
   timer reset plus mode-off cancellation.
 - `BatteryModeUiTest` (Apply/Cancel/draft controls) compiles in the instrumentation APK but
   has **not** run: no Android device is attached. No successful new device UI/audio test or
-  measured battery reduction is claimed. The APK retains the existing alpha.11 version;
-  these changes have not been published as a new release.
+  measured battery reduction is claimed. Alpha.12 uses versionCode 16 and the same debug
+  signing certificate as alpha.10/alpha.11; Windows remains on alpha.9.
 - Device follow-up: verify popup scrolling with large fonts, metered/unmetered switches,
   screen-off timer during Bluetooth playback, pause/resume/cancel of offline workers, and
   normal vs battery-mode start/transition times and power usage under matched radio conditions.

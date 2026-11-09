@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — configurable battery mode
+## 0.2.0-alpha.12 — configurable battery mode
 
 - Add a Battery mode popup in Settings with a master switch, independent saving methods,
   Apply/Cancel, persistent choices and an opt-in screen-off sleep timer.

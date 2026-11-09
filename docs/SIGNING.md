@@ -17,6 +17,10 @@ Alpha.10 debug certificate SHA-256 (public fingerprint):
 
 `7202ac27411fa7b98478e81ec025a269d66f985aaa9ec15b5db76995a0e674e0`
 
+Alpha.11 and alpha.12 use this same certificate. Alpha.12 (versionCode 16) retains the
+debug-variant exception; its certificate was compared with alpha.11's published fingerprint.
+Do not uninstall alpha.10/alpha.11 to update. This does not make it compatible with alpha.7/8.
+
 The signing key used for the published alpha.6 is unavailable. With the user's explicit
 approval, alpha.7 starts a new signing identity. Android will not install it over earlier
 versions. Uninstalling deletes the local library, favorites, history, settings and downloads;
