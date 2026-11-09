@@ -5,6 +5,14 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.withContext
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
+import okhttp3.Call
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import okhttp3.OkHttpClient
@@ -15,6 +23,48 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class StreamResolverTest {
+    @Test fun `canceling a speculative audio probe cancels its network call and does not cache it`() = runBlocking {
+        val entered = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val call = AtomicReference<Call>()
+        var loads = 0
+        val client = OkHttpClient.Builder().addInterceptor { chain ->
+            call.set(chain.call()); entered.countDown()
+            check(release.await(5, TimeUnit.SECONDS))
+            Response.Builder().request(chain.request()).protocol(Protocol.HTTP_1_1)
+                .code(206).message("test").body("x".toResponseBody()).build()
+        }.build()
+        val resolver = StreamResolver({ _, c -> loads++; player(c) }, client, { 0L })
+        val job = launch { resolver.resolve(videoId) }
+        try {
+            assertTrue(withContext(Dispatchers.IO) { entered.await(5, TimeUnit.SECONDS) })
+            job.cancelAndJoin()
+            assertTrue(call.get().isCanceled())
+            assertEquals(1, loads)
+            release.countDown()
+            resolver.resolve(videoId)
+            assertEquals(2, loads)
+        } finally { release.countDown(); job.cancelAndJoin() }
+    }
+    @Test fun `data saver chooses best under cap or lowest available without changing normal AAC selection`() {
+        fun format(itag: Int, bitrate: Int) = Json.parseToJsonElement("""{"itag":$itag,"bitrate":$bitrate}""") as JsonObject
+        val formats = listOf(format(140, 128000), format(249, 48000), format(250, 64000), format(251, 160000))
+        assertEquals(formats[0], selectAudioFormat(formats, false))
+        assertEquals(formats[2], selectAudioFormat(formats, true))
+        assertEquals(formats[0], selectAudioFormat(listOf(formats[0], formats[3]), true))
+        assertNull(selectAudioFormat(emptyList(), true))
+    }
+
+    @Test fun `normal and data saver lookups do not contaminate each others cache and both invalidate`() = runBlocking {
+        var loads = 0
+        val resolver = StreamResolver({ _, client -> loads++; player(client) }, http { _, _ -> 206 }, { 0L })
+        resolver.resolve(videoId); resolver.resolve(videoId, true)
+        resolver.resolve(videoId); resolver.resolve(videoId, true)
+        assertEquals(2, loads)
+        resolver.invalidate(videoId)
+        resolver.resolve(videoId); resolver.resolve(videoId, true)
+        assertEquals(4, loads)
+    }
     private val videoId = "dQw4w9WgXcQ"
 
     private fun player(client: PlayerClient, format: Int = 140): JsonObject = Json.parseToJsonElement(

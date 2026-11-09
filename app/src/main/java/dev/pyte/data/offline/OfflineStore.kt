@@ -85,7 +85,8 @@ class OfflineStore internal constructor(
         val constraints = Constraints.Builder().setRequiredNetworkType(NetworkType.UNMETERED)
             .setRequiresStorageNotLow(true).build()
         val manager = WorkManager.getInstance(context)
-        if (dao.wantedTracks().isEmpty()) {
+        val battery = settings.settings.first().battery
+        if (dao.wantedTracks().isEmpty() || battery.active(battery.pauseDownloads)) {
             manager.cancelUniqueWork("offline-sync")
             manager.cancelUniqueWork("offline-maintenance")
             return
@@ -102,7 +103,8 @@ class OfflineStore internal constructor(
     suspend fun sync(): Boolean = withContext(Dispatchers.IO) {
         mutex.withLock {
             reconcile()
-            if (!wifi() || settings.settings.first().downloadsPaused) return@withLock false
+            val preferences = settings.settings.first()
+            if (!wifi() || preferences.downloadsPaused || preferences.battery.active(preferences.battery.pauseDownloads)) return@withLock false
             val started = System.currentTimeMillis()
             var retry = false
             for (track in dao.wantedTracks()) {
@@ -114,7 +116,8 @@ class OfflineStore internal constructor(
                     if (!dao.isWanted(track.videoId)) { reconcile(); continue }
                     // Ancillary content is optional; audio remains usable if a provider has no lyrics/artwork.
                     try {
-                        if (wifi() && !settings.settings.first().downloadsPaused) {
+                        val current = settings.settings.first()
+                        if (wifi() && !current.downloadsPaused && !current.battery.active(current.battery.pauseDownloads)) {
                             downloadCover(track)
                             if (usedBytes() + 1_000_000 < settings.settings.first().downloadLimitMb * 1024 * 1024)
                                 lyrics.get(track.toDomain(), pin = true)
@@ -147,7 +150,8 @@ class OfflineStore internal constructor(
     private suspend fun checkAllowed(id: String, started: Long) {
         currentCoroutineContext().ensureActive()
         if (!dao.isWanted(id)) throw DownloadPaused("Removed", false)
-        if (settings.settings.first().downloadsPaused) throw DownloadPaused("Paused", false)
+        val current = settings.settings.first()
+        if (current.downloadsPaused || current.battery.active(current.battery.pauseDownloads)) throw DownloadPaused("Paused", false)
         if (!wifi()) throw DownloadPaused("Waiting for Wi-Fi", true)
         if (System.currentTimeMillis() - started > 7 * 60_000) throw DownloadPaused("Queued", true)
     }

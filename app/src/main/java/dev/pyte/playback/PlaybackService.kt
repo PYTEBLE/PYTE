@@ -38,6 +38,11 @@ import dev.pyte.data.settings.SettingsRepository
 import okhttp3.OkHttpClient
 import javax.inject.Inject
 import java.io.IOException
+import android.net.ConnectivityManager
+import android.os.SystemClock
+import dev.pyte.data.settings.BatterySettings
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.first
 
 /**
  * Owns the ExoPlayer and the media session. Runs as a foreground service so playback
@@ -60,6 +65,14 @@ class PlaybackService : MediaSessionService() {
     private var retriesForItem = 0
     private val historyScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var lastRecordedMediaId: String? = null
+    @Volatile private var battery = BatterySettings()
+    private var lookahead: Job? = null
+    private var lookaheadKey: Pair<String, Boolean>? = null
+    private var sleepTimer: ScreenOffSleepTimer? = null
+    private var bufferingAt = 0L
+
+    private fun lowData(value: BatterySettings = battery) = value.active(value.lowData) &&
+        getSystemService(ConnectivityManager::class.java).isActiveNetworkMetered
 
     override fun onCreate() {
         super.onCreate()
@@ -73,7 +86,14 @@ class PlaybackService : MediaSessionService() {
             DefaultDataSource.Factory(this, cachedSource),
         ) { spec: DataSpec ->
             try {
-                resolveAudioSpec(spec, offline::audio) { videoId -> runBlocking { resolver.resolve(videoId) } }
+                resolveAudioSpec(spec, offline::audio) { videoId -> runBlocking {
+                    // Ensure persisted battery preferences are loaded even on a cold service start.
+                    val preferences = settings.settings.first().battery
+                    val start = SystemClock.elapsedRealtime()
+                    resolver.resolve(videoId, lowData(preferences)).also {
+                        Log.d(TAG, "Stream resolve: ${SystemClock.elapsedRealtime() - start} ms")
+                    }
+                } }
             } catch (e: Exception) {
                 throw IOException(e.message ?: "Could not resolve track", e)
             }
@@ -81,6 +101,7 @@ class PlaybackService : MediaSessionService() {
 
         val renderers = EqualizerRenderersFactory(this, equalizer)
         val exo = ExoPlayer.Builder(this, renderers)
+            .setLoadControl(BatteryLoadControl { battery.active(battery.burstBuffer) })
             .setMediaSourceFactory(DefaultMediaSourceFactory(this).setDataSourceFactory(resolvingSource))
             .setAudioAttributes(
                 AudioAttributes.Builder()
@@ -101,7 +122,10 @@ class PlaybackService : MediaSessionService() {
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_BUFFERING && bufferingAt == 0L) bufferingAt = SystemClock.elapsedRealtime()
                 if (playbackState == Player.STATE_READY) {
+                    if (bufferingAt != 0L) Log.d(TAG, "Buffering to ready: ${SystemClock.elapsedRealtime() - bufferingAt} ms")
+                    bufferingAt = 0L
                     retriesForItem = 0
                     diagnostics.clear()
                     if (exo.isPlaying) recordCurrentTrack(exo)
@@ -110,7 +134,10 @@ class PlaybackService : MediaSessionService() {
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 if (isPlaying) recordCurrentTrack(exo)
+                sleepTimer?.update(battery, isPlaying)
             }
+
+            override fun onEvents(player: Player, events: Player.Events) { updateLookahead(exo) }
 
             override fun onPlayerError(error: PlaybackException) {
                 Log.w(TAG, "Playback error: ${error.errorCodeName}", error)
@@ -119,10 +146,18 @@ class PlaybackService : MediaSessionService() {
         })
 
         player = exo
+        sleepTimer = ScreenOffSleepTimer(this, CoroutineScope(historyScope.coroutineContext + Dispatchers.Main.immediate)) { exo.pause() }
         historyScope.launch(Dispatchers.Main.immediate) {
             settings.settings
                 .catch { Log.w(TAG, "Could not read playback settings", it) }
-                .collect { exo.skipSilenceEnabled = it.skipSilence; equalizer.apply(it.equalizer) }
+                .collect {
+                    battery = it.battery
+                    exo.skipSilenceEnabled = it.skipSilence
+                    equalizer.fastBypass = battery.active(battery.bypassDisabledEq)
+                    equalizer.apply(it.equalizer)
+                    sleepTimer?.update(battery, exo.isPlaying)
+                    updateLookahead(exo)
+                }
         }
         session = MediaSession.Builder(this, exo)
             .setCallback(object : MediaSession.Callback {
@@ -142,6 +177,8 @@ class PlaybackService : MediaSessionService() {
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = session
 
     override fun onDestroy() {
+        sleepTimer?.close(); sleepTimer = null
+        lookahead?.cancel()
         historyScope.cancel()
         equalizer.analyzing = false
         equalizer.clearSpectrum()
@@ -152,6 +189,28 @@ class PlaybackService : MediaSessionService() {
         player?.release()
         player = null
         super.onDestroy()
+    }
+
+    /** Resolve one likely next song, not its audio payload. Never edits or starts the queue. */
+    private fun updateLookahead(exo: ExoPlayer) {
+        // If the prefetched song becomes current before its lookup finishes, let the demand
+        // request share that lookup rather than canceling and repeating the network calls.
+        if (exo.playWhenReady && exo.playbackState == Player.STATE_BUFFERING &&
+            !battery.active(battery.disablePrefetch) && lookaheadKey?.first == exo.currentMediaItem?.mediaId &&
+            lookaheadKey?.second == lowData()) return
+        val next = exo.nextMediaItemIndex
+        val id = if (exo.isPlaying && !battery.active(battery.disablePrefetch) && next in 0 until exo.mediaItemCount)
+            exo.getMediaItemAt(next).mediaId else null
+        val key = id?.let { it to lowData() }
+        if (key == lookaheadKey) return
+        lookahead?.cancel(); lookaheadKey = key
+        if (key == null) return
+        lookahead = historyScope.launch {
+            try {
+                if (offline.audio(key.first) == null) resolver.resolve(key.first, key.second)
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) { Log.d(TAG, "Next-song lookup unavailable; normal playback will retry on demand") }
+        }
     }
 
     private fun recordCurrentTrack(exo: ExoPlayer) {

@@ -52,6 +52,7 @@ data class PlayerUiState(
 class PlayerController @Inject constructor(
     @ApplicationContext private val context: Context,
     private val recommendations: RecommendationsRepository,
+    private val settings: dev.pyte.data.settings.SettingsRepository,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val _state = MutableStateFlow(PlayerUiState())
@@ -83,6 +84,9 @@ class PlayerController @Inject constructor(
     }
 
     init {
+        var battery = dev.pyte.data.settings.BatterySettings()
+        scope.launch { settings.settings.collect { battery = it.battery } }
+        val power = context.getSystemService(android.os.PowerManager::class.java)
         val token = SessionToken(context, ComponentName(context, PlaybackService::class.java))
         val future = MediaController.Builder(context, token).buildAsync()
         future.addListener({
@@ -103,8 +107,9 @@ class PlayerController @Inject constructor(
 
         scope.launch {
             while (true) {
-                delay(POSITION_TICK_MS)
-                controller?.takeIf { it.isPlaying }?.let { c ->
+                val screenOff = battery.active(battery.reduceBackgroundUpdates) && !power.isInteractive
+                delay(if (screenOff) 2_000L else POSITION_TICK_MS)
+                controller?.takeIf { !screenOff && it.isPlaying }?.let { c ->
                     _state.value = _state.value.copy(positionMs = c.currentPosition, durationMs = c.duration.coerceAtLeast(0))
                 }
             }

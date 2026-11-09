@@ -98,6 +98,7 @@ class SoftwareEqualizer @Inject constructor() {
     @Volatile internal var settings = EqualizerSettings()
         private set
     @Volatile var analyzing = false
+    @Volatile var fastBypass = false
     private val _state = MutableStateFlow(EqualizerState(frequencies = EqualizerCurves.frequencies,
         available = true, message = "15-Band-Software-EQ · nur für PYTE"))
     val state = _state.asStateFlow()
@@ -132,6 +133,7 @@ class EqualizerAudioProcessor internal constructor(private val engine: SoftwareE
     private var captured = 0
     private var analyzeFrames = 0
     private var wasAnalyzing = false
+    private var bypassRampFrames = 0
 
     override fun onConfigure(inputAudioFormat: AudioFormat): AudioFormat {
         if (inputAudioFormat.encoding != C.ENCODING_PCM_16BIT) throw androidx.media3.common.audio.AudioProcessor.UnhandledAudioFormatException(inputAudioFormat)
@@ -154,14 +156,24 @@ class EqualizerAudioProcessor internal constructor(private val engine: SoftwareE
         analyzeFrames = 0
         window.fill(0.0)
         engine.clearSpectrum()
+        bypassRampFrames = 0
     }
     override fun queueInput(inputBuffer: ByteBuffer) {
         val processor = checkNotNull(dsp)
         val current = engine.settings
-        if (current != applied) { processor.configure(current); applied = current }
+        if (current != applied) {
+            processor.configure(current); applied = current
+            bypassRampFrames = if (current.enabled) 0 else rate / 100
+        }
         val output = replaceOutputBuffer(inputBuffer.remaining())
         val capture = engine.analyzing
         if (capture != wasAnalyzing) { written = 0; captured = 0; analyzeFrames = 0; wasAnalyzing = capture }
+        if (engine.fastBypass && !current.enabled && !capture && bypassRampFrames == 0) {
+            output.put(inputBuffer)
+            output.flip()
+            return
+        }
+        bypassRampFrames = (bypassRampFrames - inputBuffer.remaining() / (channels * 2)).coerceAtLeast(0)
         while (inputBuffer.remaining() >= channels * 2) {
             for (channel in 0 until channels) frame[channel] = inputBuffer.short / 32768.0
             val processed = processor.frame(frame)

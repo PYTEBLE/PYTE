@@ -1,8 +1,12 @@
 package dev.pyte.data.remote
 
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.Response
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.JsonObject
@@ -54,25 +58,28 @@ class StreamResolver internal constructor(
     private val locks = ConcurrentHashMap<String, Mutex>()
     private val rejected = ConcurrentHashMap<Pair<String, PlayerClient>, Long>()
 
-    suspend fun resolve(videoId: String): ResolvedStream {
-        fresh(videoId)?.let { return it }
-        return locks.getOrPut(videoId) { Mutex() }.withLock {
-            fresh(videoId) ?: fetch(videoId)
+    suspend fun resolve(videoId: String, lowData: Boolean = false): ResolvedStream {
+        val key = if (lowData) "$videoId:low" else videoId
+        fresh(key)?.let { return it }
+        return locks.getOrPut(key) { Mutex() }.withLock {
+            fresh(key) ?: fetch(videoId, lowData).also { cache[key] = it }
         }
     }
 
     /** Reject the client too, not just its URL, when its actual audio request was denied. */
     fun invalidate(videoId: String, rejectClient: Boolean = false) {
         val previous = cache.remove(videoId)
+        val low = cache.remove("$videoId:low")
         if (rejectClient && previous != null) {
             rejected[videoId to previous.client] = now() + REJECTION_TTL_MS
         }
+        if (rejectClient && low != null) rejected[videoId to low.client] = now() + REJECTION_TTL_MS
     }
 
     private fun fresh(videoId: String): ResolvedStream? =
         cache[videoId]?.takeIf { it.expiresAtMs - SAFETY_MARGIN_MS > now() }
 
-    private suspend fun fetch(videoId: String): ResolvedStream {
+    private suspend fun fetch(videoId: String, lowData: Boolean): ResolvedStream {
         var lastError: IOException? = null
         val attempts = mutableListOf<StreamAttemptFailure>()
         for (client in listOf(PlayerClient.VISIONOS, PlayerClient.ANDROID_VR, PlayerClient.IOS)) {
@@ -84,10 +91,10 @@ class StreamResolver internal constructor(
             try {
                 val response = loadPlayer(videoId, client)
                 stage = "audio-format"
-                val stream = pickAudio(response, client)
+                val stream = pickAudio(response, client, lowData)
                 stage = "audio-probe"
                 validateAccess(stream)
-                return stream.also { cache[videoId] = it }
+                return stream
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -110,7 +117,7 @@ class StreamResolver internal constructor(
         )
     }
 
-    private fun pickAudio(response: JsonObject, client: PlayerClient): ResolvedStream {
+    private fun pickAudio(response: JsonObject, client: PlayerClient, lowData: Boolean): ResolvedStream {
         val status = response["playabilityStatus"]?.jsonObject?.get("status")?.jsonPrimitive?.contentOrNull
         if (status != "OK") {
             val safeStatus = status?.takeIf { it.matches(Regex("[A-Z_]{1,50}")) } ?: "UNKNOWN_STATUS"
@@ -121,8 +128,7 @@ class StreamResolver internal constructor(
             .filter { it["mimeType"]?.jsonPrimitive?.contentOrNull?.startsWith("audio/") == true }
             .filter { it["url"]?.jsonPrimitive?.contentOrNull != null }
         // Prefer a common AAC format across clients. Format-specific cache keys protect other formats.
-        val chosen = formats.firstOrNull { it["itag"]?.jsonPrimitive?.contentOrNull == "140" }
-            ?: formats.maxByOrNull { it["bitrate"]?.jsonPrimitive?.longOrNull ?: 0L }
+        val chosen = selectAudioFormat(formats, lowData)
             ?: throw StreamUnavailableException("${client.name}: kein direkter Audiostream")
         val url = chosen.getValue("url").jsonPrimitive.content
         val format = chosen["itag"]?.jsonPrimitive?.contentOrNull
@@ -131,24 +137,46 @@ class StreamResolver internal constructor(
         return ResolvedStream(url, client, format, expiry?.times(1000) ?: (now() + 30 * 60 * 1000))
     }
 
-    private suspend fun validateAccess(stream: ResolvedStream) = withContext(Dispatchers.IO) {
+    private suspend fun validateAccess(stream: ResolvedStream): Unit = suspendCancellableCoroutine { continuation ->
         val request = Request.Builder().url(stream.url)
             .header("User-Agent", stream.userAgent)
             .header("Range", "bytes=0-0")
             .build()
-        http.newCall(request).execute().use { response ->
-            if (response.code != 200 && response.code != 206) {
-                // Never include signed URLs or response bodies in diagnostics.
-                throw AudioHttpException(response.code)
+        val call = http.newCall(request)
+        continuation.invokeOnCancellation { call.cancel() }
+        call.enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                if (continuation.isActive) continuation.resumeWithException(e)
             }
-            if (response.body?.source()?.readByteArray(1)?.size != 1) {
-                throw StreamUnavailableException("${stream.client.name}: leere Audioantwort")
+            override fun onResponse(call: Call, response: Response) {
+                try {
+                    response.use {
+                        if (it.code != 200 && it.code != 206) throw AudioHttpException(it.code)
+                        if (it.body?.source()?.readByteArray(1)?.size != 1)
+                            throw StreamUnavailableException("${stream.client.name}: leere Audioantwort")
+                    }
+                    if (continuation.isActive) continuation.resume(Unit)
+                } catch (e: Exception) {
+                    if (continuation.isActive) continuation.resumeWithException(e)
+                }
             }
-        }
+        })
     }
 
     private companion object {
         const val SAFETY_MARGIN_MS = 60_000L
         const val REJECTION_TTL_MS = 5 * 60_000L
     }
+}
+
+internal fun selectAudioFormat(formats: List<JsonObject>, lowData: Boolean): JsonObject? {
+    fun bitrate(format: JsonObject) = format["bitrate"]?.jsonPrimitive?.longOrNull ?: Long.MAX_VALUE
+    if (lowData) {
+        val known = formats.filter { bitrate(it) in 1..Long.MAX_VALUE - 1 }
+        // Best available under the cap, or the lowest offered format if no capped stream exists.
+        (known.filter { bitrate(it) <= 64_000 }.maxByOrNull(::bitrate)
+            ?: known.minByOrNull(::bitrate))?.let { return it }
+    }
+    return formats.firstOrNull { it["itag"]?.jsonPrimitive?.contentOrNull == "140" }
+        ?: formats.maxByOrNull { it["bitrate"]?.jsonPrimitive?.longOrNull ?: 0L }
 }

@@ -16,6 +16,7 @@ import javax.inject.Inject
 import dev.pyte.data.offline.OfflineStore
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.first
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
@@ -38,6 +39,11 @@ class SettingsViewModel @Inject constructor(
     fun pauseDownloads(paused: Boolean) = update { repository.pauseDownloads(paused); if (!paused) offline.schedule() }
 
     fun skipSilence(enabled: Boolean) = update { repository.setSkipSilence(enabled) }
+    fun battery(value: dev.pyte.data.settings.BatterySettings) = update {
+        val old = repository.settings.first().battery
+        repository.setBattery(value)
+        if (old.active(old.pauseDownloads) != value.active(value.pauseDownloads)) offline.schedule()
+    }
     fun dynamicCoverTheme(enabled: Boolean) = update { repository.setDynamicCoverTheme(enabled) }
     fun effectLevel(level: dev.pyte.data.settings.EffectLevel) = update { repository.setEffectLevel(level) }
     fun hapticFeedback(enabled: Boolean) = update { repository.setHapticFeedback(enabled) }

@@ -30,6 +30,7 @@ data class AppSettings(
     val effectLevel: EffectLevel = EffectLevel.LIVELY,
     val hapticFeedback: Boolean = true,
     val autoRecommendations: Boolean = true,
+    val battery: BatterySettings = BatterySettings(),
 )
 
 @Singleton
@@ -44,16 +45,19 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     private val effectLevelKey = stringPreferencesKey("effect_level")
     private val hapticKey = booleanPreferencesKey("haptic_feedback")
     private val recommendationsKey = booleanPreferencesKey("auto_recommendations")
+    private val batteryKey = stringPreferencesKey("battery_v1")
     private val json = Json { ignoreUnknownKeys = true }
 
     val settings = store.data.map { values ->
         AppSettings(values[silenceKey] ?: false, values[historyKey] ?: true,
             values[limitKey] ?: 2048, values[pauseKey] ?: false, values[coverThemeKey] ?: true,
             runCatching { json.decodeFromString<EqualizerSettings>(values[equalizerKey] ?: "{}").normalized() }.getOrDefault(EqualizerSettings()),
-            EffectLevel.fromStored(values[effectLevelKey]), values[hapticKey] ?: true, values[recommendationsKey] ?: true)
+            EffectLevel.fromStored(values[effectLevelKey]), values[hapticKey] ?: true, values[recommendationsKey] ?: true,
+            runCatching { json.decodeFromString<BatterySettings>(values[batteryKey] ?: "{}").normalized() }.getOrDefault(BatterySettings()))
     }
 
     suspend fun setSkipSilence(enabled: Boolean) { store.edit { it[silenceKey] = enabled } }
+    suspend fun setBattery(value: BatterySettings) { store.edit { it[batteryKey] = json.encodeToString(value.normalized()) } }
     suspend fun setRecordHistory(enabled: Boolean) { store.edit { it[historyKey] = enabled } }
     suspend fun setDownloadLimit(mb: Long) { store.edit { it[limitKey] = mb.coerceIn(512, 16384) } }
     suspend fun pauseDownloads(paused: Boolean) { store.edit { it[pauseKey] = paused } }

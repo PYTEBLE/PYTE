@@ -85,5 +85,5 @@ fun rememberLivingUiPolicy(settings: AppSettings): LivingUiPolicy {
         }
     }
     return LivingUiPolicy(settings.effectLevel, lifecycle.isAtLeast(Lifecycle.State.STARTED) && focused && interactive,
-        animations, powerSaver, settings.hapticFeedback)
+        animations, powerSaver || settings.battery.active(settings.battery.reduceEffects), settings.hapticFeedback)
 }

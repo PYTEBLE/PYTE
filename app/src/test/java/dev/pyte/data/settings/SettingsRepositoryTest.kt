@@ -12,6 +12,21 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class SettingsRepositoryTest {
+    @Test fun `battery choices persist independently and master switch gates every method`() = runBlocking {
+        val repository = SettingsRepository(RuntimeEnvironment.getApplication())
+        try {
+            assertFalse(repository.settings.first().battery.enabled)
+            val value = BatterySettings(enabled = true, lowData = false, reduceEffects = false, screenOffTimerMinutes = 30)
+            repository.setBattery(value)
+            assertEquals(value, SettingsRepository(RuntimeEnvironment.getApplication()).settings.first().battery)
+            repository.setBattery(value.copy(enabled = false))
+            val disabled = repository.settings.first().battery
+            assertFalse(disabled.active(disabled.burstBuffer))
+            assertFalse(disabled.lowData)
+            assertEquals(30, disabled.screenOffTimerMinutes)
+            assertEquals(0, value.copy(screenOffTimerMinutes = -1).normalized().screenOffTimerMinutes)
+        } finally { repository.setBattery(BatterySettings()) }
+    }
     @Test fun `software limiter preference persists independently and new presets retain fifteen points`() = runBlocking {
         val repository = SettingsRepository(RuntimeEnvironment.getApplication())
         try {

@@ -50,6 +50,10 @@ fun SettingsScreen(contentPadding: PaddingValues, viewModel: SettingsViewModel =
     val offlineBytes by viewModel.offlineBytes.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     var equalizerOpen by rememberSaveable { mutableStateOf(false) }
+    var batteryOpen by rememberSaveable { mutableStateOf(false) }
+    if (batteryOpen) settings?.let { value ->
+        BatteryModeDialog(value.battery, busy, viewModel::battery, { batteryOpen = false })
+    }
     if (equalizerOpen) EqualizerSheet(onDismiss = { equalizerOpen = false })
     LaunchedEffect(message) {
         message?.let { snackbar.showSnackbar(it); viewModel.dismissMessage() }
@@ -63,6 +67,11 @@ fun SettingsScreen(contentPadding: PaddingValues, viewModel: SettingsViewModel =
                 SettingsContent(settings, busy, viewModel::skipSilence, viewModel::recordHistory, viewModel::clearHistory)
                 settings?.let { value ->
                     Column(Modifier.padding(20.dp)) {
+                        SettingsSection("Battery") {
+                            TextButton(onClick = { batteryOpen = true }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+                                Text("Battery mode · ${if (value.battery.enabled) "On" else "Off"} · Configure")
+                            }
+                        }
                         SettingsSection("Sound") {
                             TextButton(onClick = { equalizerOpen = true }, modifier = Modifier.padding(8.dp)) {
                                 Text("Equalizer & sound profiles")
@@ -170,7 +179,7 @@ private fun SettingsSection(title: String, content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun SettingsSwitch(title: String, description: String, checked: Boolean, enabled: Boolean, onChange: (Boolean) -> Unit) {
+internal fun SettingsSwitch(title: String, description: String, checked: Boolean, enabled: Boolean, onChange: (Boolean) -> Unit) {
     Row(Modifier.fillMaxWidth().toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onChange).padding(16.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {

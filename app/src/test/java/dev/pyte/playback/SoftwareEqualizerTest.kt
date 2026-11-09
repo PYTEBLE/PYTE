@@ -15,6 +15,21 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class SoftwareEqualizerTest {
+    @Test fun `battery fast bypass is byte exact and does not bypass enabled EQ or requested spectrum`() {
+        val engine = SoftwareEqualizer().apply { fastBypass = true }
+        val processor = engine.processor()
+        processor.configure(AudioFormat(48000, 2, C.ENCODING_PCM_16BIT)); processor.flush()
+        val bytes = ByteArray(48000).also { java.util.Random(71).nextBytes(it) }
+        fun input() = ByteBuffer.allocateDirect(bytes.size).order(ByteOrder.nativeOrder()).put(bytes).apply { flip() }
+        processor.queueInput(input())
+        assertArrayEquals(bytes, ByteArray(bytes.size).also(processor.output::get))
+        engine.apply(EqualizerSettings(enabled = true, points = EqualizerCurves.presets.first { it.id == "bass" }.points))
+        processor.queueInput(input())
+        assertFalse(bytes.contentEquals(ByteArray(bytes.size).also(processor.output::get)))
+        engine.apply(EqualizerSettings()); engine.analyzing = true
+        processor.queueInput(input()); processor.output
+        assertEquals(48, engine.spectrum.value.size)
+    }
     @Test fun `every band independently changes PCM at its center frequency`() {
         for (rate in listOf(44100, 48000)) for (hz in EqualizerCurves.frequencies) {
             val points = EqualizerCurves.flat.map { it.copy(gainMb = if (it.hz == hz) 600 else 0) }
