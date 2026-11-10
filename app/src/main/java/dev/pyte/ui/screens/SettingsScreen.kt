@@ -14,6 +14,10 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -44,7 +48,7 @@ import dev.pyte.R
 import androidx.compose.ui.res.stringResource
 
 @Composable
-fun SettingsScreen(contentPadding: PaddingValues, viewModel: SettingsViewModel = hiltViewModel()) {
+fun SettingsScreen(contentPadding: PaddingValues, onClose: () -> Unit, viewModel: SettingsViewModel = hiltViewModel()) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val busy by viewModel.busy.collectAsStateWithLifecycle()
     val message by viewModel.message.collectAsStateWithLifecycle()
@@ -62,6 +66,11 @@ fun SettingsScreen(contentPadding: PaddingValues, viewModel: SettingsViewModel =
     }
     Box(Modifier.fillMaxSize().padding(contentPadding).statusBarsPadding()) {
         Column(Modifier.verticalScroll(rememberScrollState())) {
+            Row(Modifier.fillMaxWidth().padding(start = 8.dp, top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onClose) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.close))
+                }
+            }
             if (loadFailed) {
                 ScreenHeading(stringResource(R.string.settings), stringResource(R.string.settings_load_error))
                 Text(stringResource(R.string.settings_reopen), Modifier.padding(20.dp))

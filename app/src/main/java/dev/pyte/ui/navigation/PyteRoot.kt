@@ -232,6 +232,7 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel(), recommendations
                                     unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                 ),
                                 onClick = {
+                                    if (route == Routes.SETTINGS) nav.popBackStack(Routes.SETTINGS, inclusive = true)
                                     nav.navigate(tab.route) {
                                         popUpTo(Routes.HOME) { saveState = true }
                                         launchSingleTop = true
@@ -277,7 +278,7 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel(), recommendations
                 )
             }
             composable(Routes.SETTINGS) {
-                SettingsScreen(contentPadding = padding)
+                SettingsScreen(contentPadding = padding, onClose = { nav.popBackStack() })
             }
             composable(
                 route = Routes.PLAYLIST,
