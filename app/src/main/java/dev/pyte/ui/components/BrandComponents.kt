@@ -19,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -40,17 +41,22 @@ import dev.pyte.R
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.runtime.remember
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 
 @Composable
-fun ScreenHeading(title: String, subtitle: String, modifier: Modifier = Modifier) {
+fun ScreenHeading(title: String, subtitle: String, modifier: Modifier = Modifier, onSettings: (() -> Unit)? = null) {
     Column(modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 20.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Image(painterResource(R.drawable.pyte_wordmark), contentDescription = "PYTE",
                 modifier = Modifier.width(108.dp).height(24.dp))
             Spacer(Modifier.weight(1f))
-            Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = RoundedCornerShape(50)) {
+            if (onSettings != null) androidx.compose.material3.IconButton(onClick = onSettings,
+                modifier = Modifier.semantics { contentDescription = "Einstellungen" }) {
+                Icon(androidx.compose.material.icons.Icons.Default.Settings, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = RoundedCornerShape(50)) {
                 Row(Modifier.padding(horizontal = 10.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                     Icon(Icons.Default.Lock, null, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.primary)

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -26,6 +27,7 @@ import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Equalizer
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -129,8 +131,6 @@ fun NowPlayingScreen(
             .navigationBarsPadding()
             .padding(horizontal = 20.dp),
     ) {
-        Surface(Modifier.fillMaxWidth().padding(vertical = 4.dp), shape = RoundedCornerShape(28.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = .82f)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -147,7 +147,6 @@ fun NowPlayingScreen(
             IconButton(onClick = { queueOpen = true }) {
                 Icon(Icons.Default.QueueMusic, contentDescription = stringResource(R.string.open_queue))
             }
-        }
         }
 
         if (track == null) {
@@ -181,12 +180,10 @@ fun NowPlayingScreen(
         Spacer(Modifier.height(8.dp))
 
         Reveal(track.videoId, order = 1) {
-        Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = .88f)) {
-        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             SongMetadata(track, direction, Modifier.weight(1f))
             val isFav = track.videoId in favoriteIds
             FavoriteButton(isFav, { viewModel.toggleFavorite(track, !isFav) }, key = track.videoId)
-        }
         }
         }
 
@@ -195,21 +192,18 @@ fun NowPlayingScreen(
         if (compact) PlaybackDeck(state, viewModel)
 
         Reveal("player-actions", order = 2) {
-            Surface(Modifier.fillMaxWidth().padding(vertical = 12.dp), shape = RoundedCornerShape(22.dp),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = .90f),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = .15f))) {
-            FlowRow(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+            FlowRow(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.Center) {
                 TextButton(onClick = { lyricsOpen = true }) { Text(stringResource(R.string.lyrics)) }
                 TextButton(onClick = { equalizerOpen = true }) { Icon(Icons.Default.Equalizer, null, Modifier.size(18.dp)); Text(stringResource(R.string.sound_studio), Modifier.padding(start = 6.dp)) }
-                TextButton(onClick = { onDiscover(track) }) { Text("Entdecken") }
-            }
+                TextButton(onClick = { onDiscover(track) }) { Text(stringResource(R.string.discover_similar)) }
             }
         }
         }
 
         if (!compact) PlaybackDeck(state, viewModel)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilledTonalButton(onClick = { viewModel.selectForPlaylist(track) }, modifier = Modifier.weight(1f)) {
+            Button(onClick = { viewModel.selectForPlaylist(track) }, modifier = Modifier.weight(1f).heightIn(min = 56.dp),
+                shape = MaterialTheme.shapes.medium) {
                 Icon(Icons.Default.PlaylistAdd, null, Modifier.size(20.dp))
                 Text(stringResource(R.string.add_to_playlist), Modifier.padding(start = 8.dp))
             }

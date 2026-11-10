@@ -4,6 +4,14 @@
 [design/LISTENING-SPACE.md](design/LISTENING-SPACE.md). Its screenshots and UI-test results
 do not retroactively qualify the production screens described below.
 
+**Milestone 2 (alpha.13):** the approved tokens now drive the production `PyteTheme`; the
+library gained Playlists/Favoriten/Offline filters, sort and local playlist creation. The bottom
+bar is Start/Suchen/Bibliothek, and Einstellungen is reached by a labeled gear on each top-level
+screen. The player uses the approved hierarchy (artwork, plain metadata, transport, primary
+"Zur Playlist", secondary text actions). Production migration passed build, lint and unit tests;
+the migrated screens were not re-photographed on a device because the wireless ADB session
+ended before installation. The prototype screenshots remain the visual reference.
+
 ## Common song actions
 
 `PyteRoot` provides a `LocalSongActions` entry point. Song rows use a visible playlist-add

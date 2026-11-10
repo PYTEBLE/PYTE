@@ -95,6 +95,7 @@ fun SearchScreen(
     viewModel: LibraryViewModel = hiltViewModel(),
     playerViewModel: PlayerViewModel = hiltViewModel(),
     musicViewModel: MusicSearchViewModel = hiltViewModel(),
+    onSettings: (() -> Unit)? = null,
 ) {
     val query by musicViewModel.query.collectAsStateWithLifecycle()
     val localResults by viewModel.results.collectAsStateWithLifecycle()
@@ -115,7 +116,8 @@ fun SearchScreen(
 
     Box(Modifier.fillMaxSize().padding(contentPadding).statusBarsPadding()) {
     Column(Modifier.fillMaxSize()) {
-        ScreenHeading(stringResource(R.string.search_title), stringResource(if (onlineMode) R.string.search_online_hint else R.string.search_local_hint))
+        ScreenHeading(stringResource(R.string.search_title), stringResource(if (onlineMode) R.string.search_online_hint else R.string.search_local_hint),
+            onSettings = onSettings)
         Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(selected = onlineMode, onClick = { onlineMode = true }, label = { Text("YouTube Music") })
             FilterChip(selected = !onlineMode, onClick = { onlineMode = false }, label = { Text(stringResource(R.string.library)) })

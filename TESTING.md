@@ -1,5 +1,23 @@
 # Playback verification
 
+## Alpha.13 production design migration
+
+- `assembleDebug`, `assembleDebugAndroidTest`, `testDebugUnitTest` and `lintDebug` succeeded
+  with live artwork/search/recommendation tests enabled: **149 tests passed, zero
+  failures/errors/skips**; lint reports zero errors.
+- New/changed behavior: production theme consumes the approved tokens; Start/Suchen/Bibliothek
+  navigation with a gear for Einstellungen; Bibliothek filters (Playlists/Favoriten/Offline),
+  sort and local playlist creation; player save action promoted above secondary actions.
+- **Device check (S25 Ultra, in-place update preserving data):** Start and Bibliothek were
+  inspected on the installed production build; the floating import button overlapping the
+  collection heading was removed; library footer copy and sort label were corrected. The player
+  layout was not visually re-inspected because it requires active playback.
+- Earlier note: the wireless ADB session had ended before the first install. The prior milestone-1 design-lab run (5/5 on the S25 Ultra) qualified the
+  visual direction, not this production build. Screenshots of the migrated screens, TalkBack,
+  landscape and live playback remain open.
+- Rollback: the previous alpha.12 package data is preserved by an in-place update; uninstalling
+  would erase local data.
+
 ## Milestone 1 design laboratory (approval candidate)
 
 - The isolated `designReview` APK and its instrumentation APK build successfully; review lint

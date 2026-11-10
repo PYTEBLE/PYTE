@@ -100,6 +100,15 @@ class LibraryRepository @Inject constructor(
         }
     }
 
+    suspend fun createEmptyPlaylist(title: String): String = db.withTransaction {
+        val name = title.trim()
+        require(name.isNotEmpty() && name.length <= 100) { "Use a name between 1 and 100 characters" }
+        val id = "local:${UUID.randomUUID()}"
+        playlists.upsertPlaylist(PlaylistEntity(id, name, "On this device", null,
+            "", 0, System.currentTimeMillis()))
+        id
+    }
+
     suspend fun createPlaylist(title: String, firstTrack: Track): String = db.withTransaction {
         val name = title.trim()
         require(name.isNotEmpty() && name.length <= 100) { "Use a name between 1 and 100 characters" }

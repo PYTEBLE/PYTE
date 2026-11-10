@@ -12,10 +12,9 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LibraryMusic
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
@@ -51,8 +50,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import dev.pyte.ui.components.MiniPlayer
-import dev.pyte.ui.screens.FavoritesScreen
 import dev.pyte.ui.screens.HomeScreen
+import dev.pyte.ui.screens.LibraryScreen
 import dev.pyte.ui.screens.NowPlayingScreen
 import dev.pyte.ui.screens.PlaylistScreen
 import dev.pyte.ui.screens.SearchScreen
@@ -92,7 +91,7 @@ import androidx.compose.animation.slideOutHorizontally
 private object Routes {
     const val HOME = "home"
     const val SEARCH = "search"
-    const val FAVORITES = "favorites"
+    const val LIBRARY = "library"
     const val SETTINGS = "settings"
     const val PLAYLIST = "playlist/{playlistId}"
     const val NOW_PLAYING = "now_playing"
@@ -103,10 +102,9 @@ private object Routes {
 private data class Tab(val route: String, val label: Int, val icon: ImageVector)
 
 private val tabs = listOf(
-    Tab(Routes.HOME, R.string.library, Icons.Default.LibraryMusic),
+    Tab(Routes.HOME, R.string.start, Icons.Default.Home),
     Tab(Routes.SEARCH, R.string.search, Icons.Default.Search),
-    Tab(Routes.FAVORITES, R.string.favorites, Icons.Default.Favorite),
-    Tab(Routes.SETTINGS, R.string.settings, Icons.Default.Settings),
+    Tab(Routes.LIBRARY, R.string.library, Icons.Default.LibraryMusic),
 )
 
 @Composable
@@ -222,7 +220,7 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel(), recommendations
                         .clip(RoundedCornerShape(28.dp)), windowInsets = WindowInsets(0, 0, 0, 0),
                         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.97f)) {
                         tabs.forEach { tab ->
-                            val selected = route == tab.route || (route == Routes.PLAYLIST && tab.route == Routes.HOME)
+                            val selected = route == tab.route || (route == Routes.PLAYLIST && tab.route == Routes.LIBRARY)
                             val scale by animateFloatAsState(if (selected) 1.12f else 1f, tween(motion.duration(240)), label = "tabScale")
                             NavigationBarItem(
                                 selected = selected,
@@ -262,13 +260,21 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel(), recommendations
                     onOpenPlaylist = { nav.navigate(Routes.playlist(it)) },
                     contentPadding = padding,
                     onSearch = { nav.navigate(Routes.SEARCH) { launchSingleTop = true } },
+                    onOpenLibrary = { nav.navigate(Routes.LIBRARY) { launchSingleTop = true } },
+                    onSettings = { nav.navigate(Routes.SETTINGS) { launchSingleTop = true } },
                 )
             }
             composable(Routes.SEARCH) {
-                SearchScreen(contentPadding = padding)
+                SearchScreen(contentPadding = padding,
+                    onSettings = { nav.navigate(Routes.SETTINGS) { launchSingleTop = true } })
             }
-            composable(Routes.FAVORITES) {
-                FavoritesScreen(contentPadding = padding, onSearch = { nav.navigate(Routes.SEARCH) { launchSingleTop = true } })
+            composable(Routes.LIBRARY) {
+                LibraryScreen(
+                    contentPadding = padding,
+                    onOpenPlaylist = { nav.navigate(Routes.playlist(it)) },
+                    onSearch = { nav.navigate(Routes.SEARCH) { launchSingleTop = true } },
+                    onSettings = { nav.navigate(Routes.SETTINGS) { launchSingleTop = true } },
+                )
             }
             composable(Routes.SETTINGS) {
                 SettingsScreen(contentPadding = padding)

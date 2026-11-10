@@ -23,7 +23,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -67,6 +66,7 @@ import dev.pyte.ui.components.LocalSongActions
 import androidx.compose.material.icons.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.IconButton
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.pluralStringResource
@@ -78,6 +78,8 @@ fun HomeScreen(
     contentPadding: PaddingValues,
     viewModel: HomeViewModel = hiltViewModel(),
     onSearch: () -> Unit = {},
+    onOpenLibrary: () -> Unit = {},
+    onSettings: (() -> Unit)? = null,
 ) {
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
     val motion = LocalLivingUi.current
@@ -94,17 +96,6 @@ fun HomeScreen(
         modifier = Modifier.padding(contentPadding),
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
-        floatingActionButton = {
-            if (playlists.isNotEmpty() || recent.isNotEmpty()) {
-            ExtendedFloatingActionButton(
-                onClick = { showImport = true },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text(stringResource(R.string.import_playlist), fontWeight = FontWeight.SemiBold) },
-            )
-            }
-        },
     ) { inner ->
         if (playlists.isEmpty() && recent.isEmpty()) {
             LibraryWelcome(
@@ -129,10 +120,18 @@ fun HomeScreen(
                             Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(
                                 MaterialTheme.colorScheme.primary.copy(alpha = .20f),
                                 MaterialTheme.colorScheme.tertiary.copy(alpha = .06f))), RoundedCornerShape(30.dp)).padding(24.dp)) {
-                                Text(stringResource(R.string.library_eyebrow), style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.primary, letterSpacing = 2.sp)
-                                Spacer(Modifier.height(16.dp))
-                                Text(stringResource(R.string.library_title), style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
+                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                    Text("START", Modifier.weight(1f), style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary, letterSpacing = 3.sp)
+                                    onSettings?.let { settings ->
+                                        IconButton(onClick = settings) {
+                                            Icon(androidx.compose.material.icons.Icons.Default.Settings,
+                                                stringResource(R.string.settings), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                    }
+                                }
+                                Spacer(Modifier.height(12.dp))
+                                Text(stringResource(R.string.start_subtitle), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
                                 Spacer(Modifier.height(12.dp))
                                 Text(stringResource(R.string.library_subtitle, pluralStringResource(R.plurals.playlists_count, playlists.size, playlists.size)), color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Row {
@@ -173,10 +172,16 @@ fun HomeScreen(
                         }
                     }
                     item(key = "collections-label", span = { GridItemSpan(maxLineSpan) }) {
-                        Text(stringResource(R.string.library_collections), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
+                        Row(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(stringResource(R.string.library_collections), Modifier.weight(1f),
+                                style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            IconButton(onClick = { showImport = true }) {
+                                Icon(Icons.Default.Add, stringResource(R.string.import_playlist))
+                            }
+                            TextButton(onClick = onOpenLibrary) { Text(stringResource(R.string.library_all)) }
+                        }
                     }
-                    items(playlists, key = { it.id }) { playlist ->
+                    items(playlists.take(6), key = { it.id }) { playlist ->
                         Reveal(playlist.id, modifier = Modifier.animateItem(
                             fadeInSpec = if (motion.animate) tween(motion.duration(220)) else null,
                             placementSpec = if (motion.animate) tween(motion.duration(320)) else null,

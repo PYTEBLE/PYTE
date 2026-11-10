@@ -49,10 +49,31 @@ class HomeViewModel @Inject constructor(
     private val inbox: SharedLinkInbox,
     private val player: PlayerController,
     private val text: dev.pyte.ui.UiStrings,
+    offline: OfflineStore,
 ) : ViewModel() {
 
     val playlists: StateFlow<List<PlaylistSummary>> = repo.observePlaylists()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SHARE_TIMEOUT_MS), emptyList())
+
+    val offlinePlaylists: StateFlow<Set<String>> = offline.selected.map { it.toSet() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SHARE_TIMEOUT_MS), emptySet())
+
+    private val _createState = MutableStateFlow<String?>(null)
+    val createMessage = _createState.asStateFlow()
+
+    fun createPlaylist(title: String) {
+        viewModelScope.launch {
+            try {
+                repo.createEmptyPlaylist(title)
+                _createState.value = text.get(dev.pyte.R.string.playlist_created)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                _createState.value = text.get(dev.pyte.R.string.error_action)
+            }
+        }
+    }
+    fun consumeCreateMessage() { _createState.value = null }
 
     val pendingLink: StateFlow<String?> = inbox.pending
     val recentTracks = repo.observeHistory()

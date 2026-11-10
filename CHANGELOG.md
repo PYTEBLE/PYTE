@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.0-alpha.13 — Listening Space UI in production
+
+- Apply the approved Listening Space color, type and shape tokens to the whole app.
+- Replace the four-tab layout with Start/Suchen/Bibliothek and a labeled Einstellungen gear.
+- Add Bibliothek filters for Playlists, Favoriten and Offline, name/recent sorting and local
+  playlist creation; Start previews collections and links to the full library.
+- Give the player a clearer hierarchy: artwork and metadata first, transport, then a
+  full-width "Zur Playlist" primary action and secondary text actions.
+- Production migration: 149 unit tests passed, APK/test APK built and lint clean. Migrated
+  screens were not re-photographed on a device after ADB disconnected; see TESTING.md.
+
 ## Unreleased — milestone 1 design laboratory
 
 - Add primitive/semantic/component tokens for a charcoal-and-lavender listening-space candidate.
