@@ -38,6 +38,12 @@ android {
     }
 
     buildTypes {
+        create("designReview") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".designreview"
+            versionNameSuffix = "-design-review"
+            matchingFallbacks += "debug"
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -66,6 +72,8 @@ android {
     testOptions {
         unitTests.isIncludeAndroidResources = true
     }
+    // Review tests run against the isolated design laboratory, never the user's music app.
+    testBuildType = providers.gradleProperty("pyteTestBuildType").orElse("debug").get()
 
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"

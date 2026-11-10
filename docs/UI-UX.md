@@ -1,5 +1,9 @@
 # Android UI/UX refresh
 
+**Milestone 1 candidate:** an isolated, device-tested design laboratory is documented in
+[design/LISTENING-SPACE.md](design/LISTENING-SPACE.md). Its screenshots and UI-test results
+do not retroactively qualify the production screens described below.
+
 ## Common song actions
 
 `PyteRoot` provides a `LocalSongActions` entry point. Song rows use a visible playlist-add

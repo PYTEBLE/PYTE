@@ -1,5 +1,32 @@
 # Playback verification
 
+## Milestone 1 design laboratory (approval candidate)
+
+- The isolated `designReview` APK and its instrumentation APK build successfully; review lint
+  passes. `testDesignReviewUnitTest`: **149 passed, zero failures/errors/skips**, with the live
+  artwork/search/recommendation flags enabled. New token tests check readable semantic color
+  pairs and Android minimum touch sizes.
+- Standard production-variant regression also passed: `assembleDebug`, `testDebugUnitTest`
+  (**149 passed, zero failures/errors/skips**) and `lintDebug` (zero errors). APK inspection
+  confirmed the normal launcher/service remain present and the review activity is absent.
+- **Physical device:** Galaxy S25 Ultra SM-S938B, Android 17/API 37, 1440×3120 at 600 dpi.
+  `DesignReviewUiTest`: **5 tests passed**, covering representative library/player/action views,
+  demo save/undo, picker search and explicit back navigation, primary controls at local 160%
+  text/reduced motion, and loading/empty/error recovery. Cropped PNGs were inspected and are in
+  [docs/design/screenshots/s25-ultra](docs/design/screenshots/s25-ultra).
+- An initial lint analysis stalled and was stopped; the subsequent separate run succeeded.
+  Initial UI failures (dialog test-tag export and an assumed keyboard-open state) were fixed;
+  the final complete device run reports `OK (5 tests)`. Failed attempts are not counted as passes.
+- APK inspection confirmed package `dev.pyte.designreview`, plain `android.app.Application`,
+  no production launcher/playback service, and no internet/wake-lock/boot/notification/foreground
+  service permission. Only the app-local dynamic-receiver permission remains.
+- All simulated edits stay in the review process. No normal music-app data was read, cleared
+  or changed by the prototype. The normal package retained its original install path and
+  alpha.12/versionCode 16. System font scale remained 1.0; large text is a review-local override.
+- This is not production-player qualification: no live playback test, TalkBack session,
+  landscape qualification, CPU/frame-time benchmark or battery measurement was performed.
+  Candidate approval is required before migrating the real navigation and playback screens.
+
 ## German UI/UX refresh (unreleased)
 
 - `assembleDebug`, `assembleDebugAndroidTest`, `testDebugUnitTest` and `lintDebug` succeeded.

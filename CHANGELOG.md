@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — milestone 1 design laboratory
+
+- Add primitive/semantic/component tokens for a charcoal-and-lavender listening-space candidate.
+- Add an isolated `designReview` build (`dev.pyte.designreview`): fictional local artwork/data,
+  library/player/song-action prototypes, three-destination navigation and inspectable states.
+- Remove network, wake-lock, boot and notification permissions plus production app/service
+  entry points from the review APK. Keep the normal app and production theme unchanged.
+- Verify the three candidate scenes on a physical Galaxy S25 Ultra, including demo save/undo,
+  picker search/back, 160% text and error recovery; record cropped device screenshots.
+- This is an approval-stage prototype, not a new music-player release or a battery benchmark.
+
 ## Unreleased — consistent German UI and song actions
 
 - Add a common song-action sheet and visible playlist-save affordances across song lists,
