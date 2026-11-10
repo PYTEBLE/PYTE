@@ -69,7 +69,7 @@ import dev.pyte.R
 import dev.pyte.domain.Track
 import dev.pyte.playback.MixUiState
 import dev.pyte.playback.PlayerUiState
-import dev.pyte.ui.components.AddToPlaylistDialog
+import dev.pyte.ui.components.AddToPlaylistSheet
 import dev.pyte.ui.components.Artwork
 import dev.pyte.ui.components.CoverLight
 import dev.pyte.ui.components.CoverProgress
@@ -114,7 +114,7 @@ fun NowPlayingScreen(
     var panel by rememberSaveable { mutableStateOf(PlayerPanel.COVER) }
     val songActions = LocalSongActions.current
     if (songActions == null) save.track?.let { selected ->
-        AddToPlaylistDialog(selected, playlists, save.saving, save.error, viewModel::dismissPlaylistSave,
+        AddToPlaylistSheet(selected, playlists, save.saving, save.error, viewModel::dismissPlaylistSave,
             onChoose = { viewModel.saveToPlaylist(id = it) }, onCreate = { viewModel.saveToPlaylist(newTitle = it) })
     }
 

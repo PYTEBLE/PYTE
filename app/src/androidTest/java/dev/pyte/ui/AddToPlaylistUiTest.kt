@@ -9,7 +9,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.pyte.domain.PlaylistSummary
 import dev.pyte.domain.Track
-import dev.pyte.ui.components.AddToPlaylistDialog
+import dev.pyte.ui.components.AddToPlaylistSheet
 import dev.pyte.ui.components.TrackRow
 import dev.pyte.ui.theme.PyteTheme
 import org.junit.Assert.*
@@ -32,15 +32,15 @@ class AddToPlaylistUiTest {
             }
         }
         compose.onNodeWithContentDescription("Aktionen für „schönhauser“").performClick()
-        compose.onNodeWithText("Zur Playlist").performClick()
+        compose.onNodeWithText("Zur Playlist hinzufügen").performClick()
         compose.runOnIdle { assertTrue(selected); assertFalse(played) }
     }
 
-    @Test fun dialogSelectsExistingLocalCopy() {
+    @Test fun sheetSelectsExistingLocalCopy() {
         var chosen: String? = null
         compose.setContent {
             PyteTheme {
-                AddToPlaylistDialog(song, listOf(PlaylistSummary("PLtest", "My mix", null, null, 1, "source", 1)),
+                AddToPlaylistSheet(song, listOf(PlaylistSummary("PLtest", "My mix", null, null, 1, "source", 1)),
                     false, null, {}, { chosen = it }, {})
             }
         }
@@ -48,35 +48,39 @@ class AddToPlaylistUiTest {
         compose.runOnIdle { assertEquals("PLtest", chosen) }
     }
 
-    @Test fun dialogCanCreatePlaylistWithoutAnyImports() {
+    @Test fun createFlowOpensFromTheChooserAndCreatesPlaylist() {
         var title: String? = null
         compose.setContent {
-            PyteTheme { AddToPlaylistDialog(song, emptyList(), false, null, {}, {}, { title = it }) }
+            PyteTheme { AddToPlaylistSheet(song, emptyList(), false, null, {}, {}, { title = it }) }
         }
+        compose.onNodeWithText("Neue Playlist erstellen").performClick()
         compose.onNodeWithText("Name der neuen Playlist").performTextInput("My new playlist")
         compose.onNodeWithText("Erstellen und hinzufügen").performClick()
         compose.runOnIdle { assertEquals("My new playlist", title) }
     }
 
-    @Test fun dialogSearchFiltersChoicesAndPreservesTheSelectedSong() {
+    @Test fun searchAppearsOnlyForLongListsAndFiltersChoices() {
         var chosen: String? = null
         val playlists = listOf(
             PlaylistSummary("local:a", "Abend", null, null, 1, "", 0),
-            PlaylistSummary("local:b", "Morgen", null, null, 2, "", 0))
+            PlaylistSummary("local:b", "Morgen", null, null, 2, "", 0),
+            PlaylistSummary("local:c", "Nacht", null, null, 3, "", 0),
+            PlaylistSummary("local:d", "Regen", null, null, 4, "", 0),
+            PlaylistSummary("local:e", "Sommer", null, null, 5, "", 0),
+            PlaylistSummary("local:f", "Winter", null, null, 6, "", 0))
         compose.setContent { PyteTheme {
-            AddToPlaylistDialog(song, playlists, false, null, {}, { chosen = it }, {}, recentId = "local:b")
+            AddToPlaylistSheet(song, playlists, false, null, {}, { chosen = it }, {}, recentId = "local:b")
         } }
         compose.onNodeWithText("Zuletzt verwendet").assertExists()
         compose.onNodeWithText("Playlists durchsuchen").performTextInput("abend")
         compose.onNodeWithText("Morgen").assertDoesNotExist()
-        compose.onNodeWithText(song.title).assertExists()
         compose.onNodeWithText("Abend").performClick()
         compose.runOnIdle { assertEquals("local:a", chosen) }
     }
 
     @Test fun busySaveDisablesCreationAndCancel() {
-        compose.setContent { PyteTheme { AddToPlaylistDialog(song, emptyList(), true, null, {}, {}, {}) } }
-        compose.onNodeWithText("Erstellen und hinzufügen").assertIsNotEnabled()
+        compose.setContent { PyteTheme { AddToPlaylistSheet(song, emptyList(), true, null, {}, {}, {}) } }
+        compose.onNodeWithText("Neue Playlist erstellen").assertIsNotEnabled()
         compose.onNodeWithText("Abbrechen").assertIsNotEnabled()
     }
 }

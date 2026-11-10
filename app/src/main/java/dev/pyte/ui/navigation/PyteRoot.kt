@@ -58,7 +58,7 @@ import dev.pyte.ui.screens.SearchScreen
 import dev.pyte.ui.screens.SettingsCategory
 import dev.pyte.ui.screens.SettingsScreen
 import dev.pyte.ui.screens.RecommendationsSheet
-import dev.pyte.ui.components.AddToPlaylistDialog
+import dev.pyte.ui.components.AddToPlaylistSheet
 import dev.pyte.ui.viewmodels.RecommendationsViewModel
 import dev.pyte.ui.viewmodels.PlayerViewModel
 import dev.pyte.ui.theme.AppCoverTheme
@@ -325,12 +325,12 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel(), recommendations
             onDiscover = { actionTrack = null; recommendationsViewModel.openSong(song) })
     }
     playlistSave.track?.let { song ->
-        AddToPlaylistDialog(song, globalPlaylists, playlistSave.saving, playlistSave.error, playerViewModel::dismissPlaylistSave,
+        AddToPlaylistSheet(song, globalPlaylists, playlistSave.saving, playlistSave.error, playerViewModel::dismissPlaylistSave,
             onChoose = { playerViewModel.saveToPlaylist(id = it) }, onCreate = { playerViewModel.saveToPlaylist(newTitle = it) },
             recentId = appearance.recentPlaylistId)
     }
     discovery.picker?.let { song ->
-        AddToPlaylistDialog(song, discoveryPlaylists, discovery.savingId != null, discovery.saveError,
+        AddToPlaylistSheet(song, discoveryPlaylists, discovery.savingId != null, discovery.saveError,
             recommendationsViewModel::dismissPicker, recommendationsViewModel::choosePlaylist,
             recommendationsViewModel::createPlaylist)
     }

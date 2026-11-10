@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="add_to_playlist">Zur Playlist</string>
+    <string name="add_to_playlist">Zur Playlist hinzufügen</string>
+    <string name="playlist_create_tile">Neue Playlist erstellen</string>
+    <string name="playlist_new_title">Neue Playlist</string>
     <string name="add_song_to_playlist">„%1$s“ zur Playlist hinzufügen</string>
     <string name="song_options">Aktionen für „%1$s“</string>
     <string name="play_next">Als Nächstes abspielen</string>
@@ -34,7 +36,7 @@
     <string name="offline_available">Offline verfügbar</string>
     <string name="playlist_privacy">Nur auf diesem Gerät. Dein YouTube-Konto bleibt unverändert.</string>
     <string name="playlist_search">Playlists durchsuchen</string>
-    <string name="playlist_search_empty">Keine passende Playlist. Lege unten eine neue an.</string>
+    <string name="playlist_search_empty">Keine passende Playlist. Erstelle oben eine neue.</string>
     <string name="playlist_empty">Noch keine Playlist? Erstelle deine erste direkt hier.</string>
     <string name="new_playlist_name">Name der neuen Playlist</string>
     <string name="create_and_add">Erstellen und hinzufügen</string>

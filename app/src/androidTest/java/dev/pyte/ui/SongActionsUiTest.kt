@@ -40,7 +40,7 @@ class SongActionsUiTest {
         compose.setContent { PyteTheme {
             SongActionsSheet(song, false, {}, { saves++ }, {}, {}, {}, {})
         } }
-        compose.onNodeWithText("Zur Playlist").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Zur Playlist hinzufügen").assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals(1, saves) }
         compose.onNodeWithText("Als Nächstes abspielen").assertExists()
         compose.onNodeWithText("Zur Warteschlange").assertExists()

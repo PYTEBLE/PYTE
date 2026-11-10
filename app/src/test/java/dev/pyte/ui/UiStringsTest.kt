@@ -15,7 +15,7 @@ class UiStringsTest {
 
     @Test fun `core actions remain German even on an English device`() {
         val strings = UiStrings(context)
-        assertEquals("Zur Playlist", strings.get(R.string.add_to_playlist))
+        assertEquals("Zur Playlist hinzufügen", strings.get(R.string.add_to_playlist))
         assertEquals("Einstellungen", strings.get(R.string.settings))
         assertEquals("Akkumodus", strings.get(R.string.battery))
         assertEquals("Als Nächstes abspielen", strings.get(R.string.play_next))

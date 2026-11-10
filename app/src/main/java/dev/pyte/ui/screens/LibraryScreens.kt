@@ -50,7 +50,7 @@ import dev.pyte.ui.viewmodels.LibraryViewModel
 import dev.pyte.playback.PlayerUiState
 import dev.pyte.ui.viewmodels.PlayerViewModel
 import dev.pyte.ui.viewmodels.MusicSearchViewModel
-import dev.pyte.ui.components.AddToPlaylistDialog
+import dev.pyte.ui.components.AddToPlaylistSheet
 import dev.pyte.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.pluralStringResource
@@ -176,7 +176,7 @@ fun SearchScreen(
     SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(16.dp))
     }
     selected?.let { track ->
-        AddToPlaylistDialog(track, playlists, saving, saveError, musicViewModel::dismissSelection,
+        AddToPlaylistSheet(track, playlists, saving, saveError, musicViewModel::dismissSelection,
             onChoose = { musicViewModel.addToPlaylist(id = it) },
             onCreate = { musicViewModel.addToPlaylist(newTitle = it) })
     }

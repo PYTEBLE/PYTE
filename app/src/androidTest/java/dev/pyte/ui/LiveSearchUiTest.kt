@@ -29,7 +29,7 @@ class LiveSearchUiTest {
         val options = hasContentDescription("Aktionen für „schönhauser", substring = true)
         compose.waitUntil(120_000) { compose.onAllNodes(options).fetchSemanticsNodes().isNotEmpty() }
         compose.onAllNodes(options)[0].performClick()
-        compose.onNodeWithText("Zur Playlist").performClick()
+        compose.onNodeWithText("Zur Playlist hinzufügen").performClick()
         compose.onNodeWithText("Name der neuen Playlist").performTextInput(title)
         compose.onNodeWithText("Erstellen und hinzufügen").performClick()
         compose.waitUntil(60_000) { compose.onAllNodesWithText("Erstellen und hinzufügen").fetchSemanticsNodes().isEmpty() }

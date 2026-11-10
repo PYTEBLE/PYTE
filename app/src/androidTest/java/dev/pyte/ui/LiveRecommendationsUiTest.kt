@@ -68,7 +68,7 @@ class LiveRecommendationsUiTest {
                 node(By.clazz("android.widget.EditText")).text = "schönhauser Gustav"
                 node(By.desc("Auf YouTube Music suchen")).click()
                 node(By.descStartsWith("Aktionen für „schönhauser")).click()
-                node(By.text("Zur Playlist")).click()
+                node(By.text("Zur Playlist hinzufügen")).click()
                 node(By.text("Erstellen und hinzufügen"))
                 device.findObjects(By.clazz("android.widget.EditText")).last().text = title
                 node(By.text("Erstellen und hinzufügen").enabled(true)).click()
@@ -107,7 +107,7 @@ class LiveRecommendationsUiTest {
                 node(By.descStartsWith("Aktionen für")).click()
                 node(By.text("Ähnliche Songs entdecken")).click()
                 node(By.text("Probehören"))
-                node(By.text("Zur Playlist")).click()
+                node(By.text("Zur Playlist hinzufügen")).click()
                 node(By.text("Name der neuen Playlist"))
                 node(By.text(title)).click()
                 assertTrue(device.wait(Until.hasObject(By.textContains("gespeichert")), 30_000) ||
