@@ -1,5 +1,24 @@
 # APK signing from alpha.7
 
+## 1.0.0 dedicated release key
+
+Version 1.0.0 (versionCode 18) is signed with a dedicated PYTE release key. It is the
+identity for all future releases. Releases can be built on any machine that has the key
+and its password file, without reinstalling.
+
+- Keystore: `~/.android/pyte-release.keystore` (PKCS12, alias `pyte-release`, RSA 4096)
+- Password file: `~/.android/pyte-release.keystore.password` (mode 600)
+- Gradle config: `keystore.properties` (git-ignored, copy from `keystore.properties.example`)
+- Certificate SHA-256 (public fingerprint, not a secret):
+
+`10218a7de73ebde6b7255a45f56d5ca5062ffa019d1cc4a4f88de341cbcdf728`
+
+Back up the keystore and password file outside this machine. Losing the key means users
+must uninstall before any new version can be installed. Never commit either file.
+
+Alpha.10 to alpha.13 use the debug certificate below and cannot update to 1.0.0 in place.
+Users must uninstall them first.
+
 ## Alpha.10 exception (explicitly approved)
 
 The dedicated key is absent on this build machine. The user explicitly approved a

@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.0.0 — first full version
+
+- First release without the alpha label. versionCode 18.
+- Release builds use a dedicated PYTE release key, so future updates install over this
+  version on any machine that holds the key. Alpha builds alpha.10 to alpha.13 use a
+  different signature: uninstall them before installing 1.0.0. Local data in those builds
+  is not carried over.
+- Player: one segment control for Cover, Songtext, Warteschlange and Klangstudio, and one
+  action bar with "Zur Playlist", "Mix starten" and a menu.
+- Mix reuses YouTube Music radio recommendations. Playback is not interrupted when a mix
+  fails or is tapped twice; "Vorherige Warteschlange wiederherstellen" restores the queue.
+- Song previews (Hörprobe) play on a separate player. Main playback pauses during the
+  preview and resumes afterwards if it was playing. Accent colors follow the preview song.
+- Playlist saving uses one sheet with choose and create steps.
+- Settings are grouped into Hören and Gerät und Daten, with subpages. Export and import
+  of app data (JSON, "pyte-backup") is available under Daten sichern.
+- Respect reduced motion, battery saver and the Lebendig/Intensiv setting in new effects.
+
 ## 0.2.0-alpha.13 — Listening Space UI in production
 
 - Apply the approved Listening Space color, type and shape tokens to the whole app.

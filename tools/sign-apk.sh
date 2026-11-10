@@ -30,8 +30,8 @@ fi
     --out "$2" "$1"
 verification="$("$signer" verify --verbose --print-certs "$2")"
 printf '%s\n' "$verification"
-expected_certificate="285fc88b841b9dd23a3ae1a188271f854bf173989acad955b5a9c71c32d2bf4b"
+expected_certificate="10218a7de73ebde6b7255a45f56d5ca5062ffa019d1cc4a4f88de341cbcdf728"
 if [[ "$verification" != *"certificate SHA-256 digest: $expected_certificate"* ]]; then
-    echo "Certificate differs from alpha.7. Do not publish this APK as a compatible update." >&2
+    echo "Certificate differs from the pinned PYTE release key. Do not publish this APK as a compatible update." >&2
     exit 1
 fi
