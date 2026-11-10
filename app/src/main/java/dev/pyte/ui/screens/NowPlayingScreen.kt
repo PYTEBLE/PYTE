@@ -254,7 +254,7 @@ private fun PlayerActionBar(
                 modifier = Modifier.weight(1.1f).heightIn(min = 56.dp), shape = MaterialTheme.shapes.medium,
                 contentPadding = PaddingValues(horizontal = 12.dp)) {
                 Icon(Icons.Default.PlaylistAdd, null, Modifier.size(20.dp))
-                Text(stringResource(R.string.add_to_playlist), Modifier.padding(start = 8.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(stringResource(R.string.add_to_playlist_short), Modifier.padding(start = 8.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             MixAction(mix, isPreview, viewModel::startMix, viewModel::cancelMixLoading, viewModel::restoreMixQueue,
                 Modifier.weight(1f))

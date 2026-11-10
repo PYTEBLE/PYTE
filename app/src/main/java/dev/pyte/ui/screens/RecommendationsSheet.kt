@@ -32,7 +32,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.currentStateAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -73,8 +72,7 @@ fun RecommendationsSheet(
         DiscoveryMotion { policy ->
             Column(Modifier.fillMaxWidth().fillMaxHeight(.92f)) {
             SongFeedbackBanner()
-            Column(Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(
-                MaterialTheme.colorScheme.primary.copy(alpha = .14f), MaterialTheme.colorScheme.surfaceContainerLow))).padding(horizontal = 20.dp)) {
+            Column(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 4.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
                     Spacer(Modifier.width(12.dp))
@@ -86,8 +84,17 @@ fun RecommendationsSheet(
                     IconButton(onClick = onRetry, enabled = !state.loading && state.savingId == null) { Icon(Icons.Default.Refresh, stringResource(R.string.discover_refresh)) }
                     IconButton(onClick = onDismiss, enabled = state.savingId == null) { Icon(Icons.Default.Close, stringResource(R.string.close)) }
                 }
-                Text(stringResource(R.string.discover_inspired, context.title), Modifier.padding(top = 14.dp, bottom = 16.dp),
-                    style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Surface(Modifier.padding(top = 12.dp, bottom = 12.dp), shape = RoundedCornerShape(50),
+                    color = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer) {
+                    Row(Modifier.padding(start = 4.dp, end = 14.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        context.song?.let { seed ->
+                            Artwork(seed.thumbnailUrl, Modifier.size(32.dp), RoundedCornerShape(50), seed.videoId)
+                            Spacer(Modifier.width(8.dp))
+                        }
+                        Text(stringResource(R.string.discover_inspired, context.title), style = MaterialTheme.typography.labelLarge,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
             }
             AnimatedVisibility(playback.isPreview, enter = fadeIn(tween(policy.duration(180))), exit = fadeOut(tween(policy.duration(120)))) {
                 Surface(color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -212,7 +219,7 @@ private fun RecommendationCard(
                             if (saving) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                             else Icon(if (checked) Icons.Default.Check else Icons.Default.Add, null, Modifier.size(18.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text(stringResource(R.string.add_to_playlist))
+                            Text(stringResource(R.string.add_to_playlist_short), maxLines = 1, softWrap = false)
                         }
                     }
                 }
