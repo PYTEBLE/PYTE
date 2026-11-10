@@ -40,6 +40,37 @@ class LibraryDatabaseTest {
         }
     }
 
+    @Test fun `undo removes only the new local addition and preserves source duplicates favorites and history`() = databaseTest { db ->
+        val library = repo(db)
+        val extra = song.copy(videoId = "dQw4w9WgXcQ", title = "Extra")
+        library.saveImported(playlist(song, song))
+        library.setFavorite(extra, true)
+        library.recordPlayed(extra)
+        assertTrue(library.addToPlaylist("PLtest", extra))
+        assertFalse(library.addToPlaylist("PLtest", song))
+        assertFalse(library.undoPlaylistAddition("PLtest", song.videoId))
+        assertTrue(library.undoPlaylistAddition("PLtest", extra.videoId))
+        assertFalse(library.undoPlaylistAddition("PLtest", extra.videoId))
+        val detail = library.observePlaylist("PLtest").first()!!
+        assertEquals(listOf(song.videoId, song.videoId), detail.second.map { it.videoId })
+        assertEquals(2, detail.first.trackCount)
+        assertEquals(listOf(0, 1), db.playlistDao().getPlaylistLinks("PLtest").map { it.position })
+        assertEquals(extra.videoId, library.observeFavorites().first().single().videoId)
+        assertEquals(extra.videoId, library.observeHistory().first().single().videoId)
+    }
+
+    @Test fun `undo on a newly created or deleted playlist never deletes or resurrects the playlist`() = databaseTest { db ->
+        val library = repo(db)
+        val id = library.createPlaylist("Neue Sammlung", song)
+        assertTrue(library.undoPlaylistAddition(id, song.videoId))
+        val empty = library.observePlaylist(id).first()!!
+        assertEquals(0, empty.first.trackCount)
+        assertTrue(empty.second.isEmpty())
+        library.deletePlaylist(id)
+        assertFalse(library.undoPlaylistAddition(id, song.videoId))
+        assertNull(library.observePlaylist(id).first())
+    }
+
     @Test
     fun `refresh preserves renamed title favorites import date and duplicate positions`() = databaseTest { db ->
         val library = repo(db)

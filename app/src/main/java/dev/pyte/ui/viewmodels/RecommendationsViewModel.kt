@@ -38,6 +38,7 @@ class RecommendationsViewModel @Inject constructor(
     private val player: PlayerController,
     private val settings: SettingsRepository,
     private val offline: OfflineStore,
+    private val text: dev.pyte.ui.UiStrings,
 ) : ViewModel() {
     private val _state = MutableStateFlow(DiscoveryState())
     val state = _state.asStateFlow()
@@ -57,7 +58,7 @@ class RecommendationsViewModel @Inject constructor(
     }
 
     fun visibility(foreground: Boolean, unobstructed: Boolean) { visible.value = foreground to unobstructed }
-    fun openPlaylist(id: String, title: String = "Your playlist", automatic: Boolean = false) = open(DiscoveryContext(title, id, automatic = automatic))
+    fun openPlaylist(id: String, title: String = "Deine Playlist", automatic: Boolean = false) = open(DiscoveryContext(title, id, automatic = automatic))
     fun openSong(song: Track) = open(DiscoveryContext(song.title, song = song))
 
     private fun open(context: DiscoveryContext) {
@@ -85,7 +86,7 @@ class RecommendationsViewModel @Inject constructor(
                 throw e
             } catch (e: Exception) {
                 _state.value = _state.value.copy(loading = false,
-                    error = e.message ?: "Could not load suggestions. Please try again.")
+                    error = text.get(dev.pyte.R.string.error_discover))
             }
         }
     }
@@ -121,15 +122,15 @@ class RecommendationsViewModel @Inject constructor(
                 }
                 _state.value = _state.value.copy(savingId = null, picker = null,
                     added = _state.value.added + track.videoId,
-                    status = if (added) "Added to your local playlist" else "Already in this playlist")
+                    status = text.get(if (added) dev.pyte.R.string.song_saved else dev.pyte.R.string.already_in_playlist))
                 // Respect existing offline selections and Wi-Fi/storage constraints for newly added songs.
                 try { offline.schedule() } catch (e: CancellationException) { throw e }
-                catch (_: Exception) { _state.value = _state.value.copy(status = "Song added. Offline downloads will retry later.") }
+                catch (_: Exception) { _state.value = _state.value.copy(status = text.get(dev.pyte.R.string.song_saved_download_later)) }
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
                 _state.value = _state.value.copy(savingId = null,
-                    saveError = "Could not add this song. The playlist may have been deleted. Please try again.")
+                    saveError = text.get(dev.pyte.R.string.error_save_song))
             }
         }
     }

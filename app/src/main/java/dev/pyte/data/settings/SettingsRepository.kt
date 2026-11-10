@@ -31,6 +31,7 @@ data class AppSettings(
     val hapticFeedback: Boolean = true,
     val autoRecommendations: Boolean = true,
     val battery: BatterySettings = BatterySettings(),
+    val recentPlaylistId: String? = null,
 )
 
 @Singleton
@@ -46,6 +47,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     private val hapticKey = booleanPreferencesKey("haptic_feedback")
     private val recommendationsKey = booleanPreferencesKey("auto_recommendations")
     private val batteryKey = stringPreferencesKey("battery_v1")
+    private val recentPlaylistKey = stringPreferencesKey("recent_playlist_id")
     private val json = Json { ignoreUnknownKeys = true }
 
     val settings = store.data.map { values ->
@@ -53,11 +55,12 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
             values[limitKey] ?: 2048, values[pauseKey] ?: false, values[coverThemeKey] ?: true,
             runCatching { json.decodeFromString<EqualizerSettings>(values[equalizerKey] ?: "{}").normalized() }.getOrDefault(EqualizerSettings()),
             EffectLevel.fromStored(values[effectLevelKey]), values[hapticKey] ?: true, values[recommendationsKey] ?: true,
-            runCatching { json.decodeFromString<BatterySettings>(values[batteryKey] ?: "{}").normalized() }.getOrDefault(BatterySettings()))
+            runCatching { json.decodeFromString<BatterySettings>(values[batteryKey] ?: "{}").normalized() }.getOrDefault(BatterySettings()), values[recentPlaylistKey])
     }
 
     suspend fun setSkipSilence(enabled: Boolean) { store.edit { it[silenceKey] = enabled } }
     suspend fun setBattery(value: BatterySettings) { store.edit { it[batteryKey] = json.encodeToString(value.normalized()) } }
+    suspend fun rememberPlaylist(id: String?) { store.edit { if (id == null) it.remove(recentPlaylistKey) else it[recentPlaylistKey] = id } }
     suspend fun setRecordHistory(enabled: Boolean) { store.edit { it[historyKey] = enabled } }
     suspend fun setDownloadLimit(mb: Long) { store.edit { it[limitKey] = mb.coerceIn(512, 16384) } }
     suspend fun pauseDownloads(paused: Boolean) { store.edit { it[pauseKey] = paused } }

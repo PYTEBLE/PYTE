@@ -110,6 +110,18 @@ class LibraryRepository @Inject constructor(
         id
     }
 
+    /** Undo only a local addition, never remove a source-playlist song or its favorites/history. */
+    suspend fun undoPlaylistAddition(id: String, videoId: String): Boolean = db.withTransaction {
+        val playlist = playlists.getPlaylist(id) ?: return@withTransaction false
+        val links = playlists.getPlaylistLinks(id)
+        if (links.none { it.videoId == videoId && it.locallyAdded }) return@withTransaction false
+        val remaining = links.filterNot { it.videoId == videoId }.mapIndexed { index, link -> link.copy(position = index) }
+        playlists.clearPlaylistTracks(id)
+        playlists.insertPlaylistTracks(remaining)
+        playlists.upsertPlaylist(playlist.copy(trackCount = remaining.size))
+        true
+    }
+
     suspend fun setFavorite(track: Track, favorite: Boolean) {
         db.withTransaction {
             if (favorite) {

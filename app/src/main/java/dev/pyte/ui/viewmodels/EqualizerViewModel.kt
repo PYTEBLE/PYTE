@@ -24,10 +24,11 @@ class EqualizerViewModel @Inject constructor(
     private val repository: SettingsRepository,
     private val engine: SoftwareEqualizer,
     player: PlayerController,
+    private val text: dev.pyte.ui.UiStrings,
 ) : ViewModel() {
     private val _error = MutableStateFlow<String?>(null)
     val error = _error.asStateFlow()
-    val settings = repository.settings.catch { _error.value = "Could not load sound settings. Please reopen the app." }
+    val settings = repository.settings.catch { _error.value = text.get(dev.pyte.R.string.error_sound_load) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
     val device = engine.state
     val spectrum = engine.spectrum
@@ -50,7 +51,7 @@ class EqualizerViewModel @Inject constructor(
                 _error.value = null
                 try { action() }
                 catch (e: CancellationException) { throw e }
-                catch (e: Exception) { _error.value = e.message ?: "Could not save sound settings"; cancelPreview() }
+                catch (e: Exception) { _error.value = text.get(dev.pyte.R.string.error_sound_save); cancelPreview() }
             }
         }
     }

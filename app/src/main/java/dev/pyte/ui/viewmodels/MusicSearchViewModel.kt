@@ -29,6 +29,7 @@ class MusicSearchViewModel @Inject constructor(
     private val savedState: SavedStateHandle,
     private val search: MusicSearch,
     private val library: LibraryRepository,
+    private val text: dev.pyte.ui.UiStrings,
 ) : ViewModel() {
     val query = savedState.getStateFlow("musicQuery", "")
     private val _online = MutableStateFlow(OnlineSearchState())
@@ -67,7 +68,7 @@ class MusicSearchViewModel @Inject constructor(
                 throw e
             } catch (_: Exception) {
                 _online.value = previous.copy(searched = true,
-                    error = "Could not search YouTube Music. Check your connection and try again.")
+                    error = text.get(dev.pyte.R.string.error_search))
             }
         }
     }
@@ -88,11 +89,11 @@ class MusicSearchViewModel @Inject constructor(
                     true
                 }
                 _selected.value = null
-                _message.value = if (added) "Added to your local playlist" else "This song is already in that playlist"
+                _message.value = text.get(if (added) dev.pyte.R.string.song_saved else dev.pyte.R.string.already_in_playlist)
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
-                _saveError.value = "Could not add this song. The playlist may have been deleted. Please try again."
+                _saveError.value = text.get(dev.pyte.R.string.error_save_song)
             } finally {
                 _saving.value = false
             }

@@ -23,6 +23,7 @@ class SettingsViewModel @Inject constructor(
     private val repository: SettingsRepository,
     private val library: LibraryRepository,
     private val offline: OfflineStore,
+    private val text: dev.pyte.ui.UiStrings,
 ) : ViewModel() {
     private val _loadFailed = MutableStateFlow(false)
     val loadFailed = _loadFailed.asStateFlow()
@@ -51,7 +52,7 @@ class SettingsViewModel @Inject constructor(
     fun recordHistory(enabled: Boolean) = update { library.setHistoryEnabled(enabled) }
     fun clearHistory() = update {
         library.clearHistory()
-        _message.value = "Listening history cleared"
+        _message.value = text.get(dev.pyte.R.string.history_cleared)
     }
     fun dismissMessage() { _message.value = null }
 
@@ -64,7 +65,7 @@ class SettingsViewModel @Inject constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
-                _message.value = "Could not save changes. Please try again."
+                _message.value = text.get(dev.pyte.R.string.error_settings)
             } finally {
                 _busy.value = false
             }

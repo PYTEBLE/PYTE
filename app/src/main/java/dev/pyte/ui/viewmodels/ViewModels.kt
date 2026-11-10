@@ -48,6 +48,7 @@ class HomeViewModel @Inject constructor(
     private val repo: LibraryRepository,
     private val inbox: SharedLinkInbox,
     private val player: PlayerController,
+    private val text: dev.pyte.ui.UiStrings,
 ) : ViewModel() {
 
     val playlists: StateFlow<List<PlaylistSummary>> = repo.observePlaylists()
@@ -73,7 +74,7 @@ class HomeViewModel @Inject constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _importState.value = ImportUiState.Error(e.message ?: "Import failed. Try again.")
+                _importState.value = ImportUiState.Error(text.get(dev.pyte.R.string.error_import))
             }
         }
     }
@@ -98,12 +99,13 @@ class PlaylistViewModel @Inject constructor(
     private val repo: LibraryRepository,
     private val player: PlayerController,
     private val offline: OfflineStore,
+    private val text: dev.pyte.ui.UiStrings,
 ) : ViewModel() {
 
     private val playlistId: String = checkNotNull(savedState["playlistId"])
     val offlinePlaylists = offline.selected.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SHARE_TIMEOUT_MS), emptyList())
     val downloads = offline.downloads.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SHARE_TIMEOUT_MS), emptyList())
-    fun offlineEnabled(enabled: Boolean) = perform(if (enabled) "Download queued · Wi-Fi only" else "Offline downloads removed") {
+    fun offlineEnabled(enabled: Boolean) = perform(text.get(if (enabled) dev.pyte.R.string.download_queued else dev.pyte.R.string.download_removed)) {
         offline.setSelected(playlistId, enabled)
     }
     fun retryDownloads() { viewModelScope.launch { offline.schedule() } }
@@ -117,8 +119,8 @@ class PlaylistViewModel @Inject constructor(
 
     fun consumeMessage() { _action.value = _action.value.copy(message = null) }
 
-    fun rename(title: String) = perform("Playlist renamed") { repo.renamePlaylist(playlistId, title) }
-    fun refresh() = perform("Playlist updated") { repo.refreshPlaylist(playlistId) }
+    fun rename(title: String) = perform(text.get(dev.pyte.R.string.playlist_renamed)) { repo.renamePlaylist(playlistId, title) }
+    fun refresh() = perform(text.get(dev.pyte.R.string.playlist_updated)) { repo.refreshPlaylist(playlistId) }
 
     private fun perform(message: String, block: suspend () -> Unit) {
         if (_action.value.busy) return
@@ -130,7 +132,7 @@ class PlaylistViewModel @Inject constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _action.value = PlaylistActionState(message = e.message ?: "Action failed. Try again.")
+                _action.value = PlaylistActionState(message = text.get(dev.pyte.R.string.error_action))
             }
         }
     }
@@ -154,7 +156,7 @@ class PlaylistViewModel @Inject constructor(
     }
 
     fun deletePlaylist(onDeleted: () -> Unit) {
-        perform("Playlist removed") {
+        perform(text.get(dev.pyte.R.string.playlist_removed)) {
             repo.deletePlaylist(playlistId)
             onDeleted()
         }
@@ -202,9 +204,10 @@ class PlayerViewModel @Inject constructor(
     private val repo: LibraryRepository,
     private val diagnostics: PlaybackDiagnostics,
     private val lyricsRepository: LyricsRepository,
-    settings: SettingsRepository,
+    private val settings: SettingsRepository,
     palette: CoverPaletteRepository,
     private val offline: OfflineStore,
+    private val text: dev.pyte.ui.UiStrings,
 ) : ViewModel() {
 
     val state: StateFlow<PlayerUiState> = player.state
@@ -222,7 +225,24 @@ class PlayerViewModel @Inject constructor(
     fun dismissPlaylistSave() {
         if (!_playlistSave.value.saving) _playlistSave.value = PlaylistSaveState()
     }
-    fun consumePlaylistMessage() { _playlistSave.value = _playlistSave.value.copy(message = null) }
+    fun consumePlaylistMessage(expected: PlaylistSaveState = _playlistSave.value) {
+        if (_playlistSave.value == expected) _playlistSave.value = expected.copy(message = null, undo = null)
+    }
+    fun enqueueNext(track: Track) { player.enqueueNext(track); _playlistSave.value = PlaylistSaveState(message = text.get(dev.pyte.R.string.queue_next_added)) }
+    fun enqueueLater(track: Track) { player.enqueueLater(track); _playlistSave.value = PlaylistSaveState(message = text.get(dev.pyte.R.string.queue_added)) }
+    fun undoSave(addition: PlaylistAddition) {
+        if (_playlistSave.value.undo != addition) return
+        _playlistSave.value = _playlistSave.value.copy(message = null, undo = null)
+        val pending = _playlistSave.value
+        viewModelScope.launch {
+            try {
+                val removed = repo.undoPlaylistAddition(addition.playlistId, addition.videoId)
+                _playlistSave.compareAndSet(pending, PlaylistSaveState(message = text.get(if (removed) dev.pyte.R.string.undone else dev.pyte.R.string.error_undo), messageIsError = !removed))
+                offline.schedule()
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) { _playlistSave.compareAndSet(pending, PlaylistSaveState(message = text.get(dev.pyte.R.string.error_undo), messageIsError = true)) }
+        }
+    }
     fun saveToPlaylist(id: String? = null, newTitle: String? = null) {
         val selected = _playlistSave.value
         val track = selected.track ?: return
@@ -230,15 +250,18 @@ class PlayerViewModel @Inject constructor(
         _playlistSave.value = selected.copy(saving = true, error = null)
         viewModelScope.launch {
             try {
-                val added = if (id != null) repo.addToPlaylist(id, track) else {
-                    repo.createPlaylist(requireNotNull(newTitle).trim(), track); true
-                }
-                _playlistSave.value = PlaylistSaveState(message = if (added) "Song zur lokalen Playlist hinzugefügt" else "Song ist bereits in dieser Playlist")
+                val targetId = id ?: repo.createPlaylist(requireNotNull(newTitle).trim(), track)
+                val added = if (id != null) repo.addToPlaylist(id, track) else true
+                val title = playlists.value.firstOrNull { it.id == targetId }?.title ?: newTitle.orEmpty()
+                _playlistSave.value = PlaylistSaveState(message = if (added) text.get(dev.pyte.R.string.saved_playlist, title)
+                    else text.get(dev.pyte.R.string.already_in_playlist),
+                    undo = if (added) PlaylistAddition(targetId, track.videoId) else null)
+                try { settings.rememberPlaylist(targetId) } catch (e: CancellationException) { throw e } catch (_: Exception) { /* Saving succeeded; recency is optional. */ }
                 try { offline.schedule() } catch (e: CancellationException) { throw e }
-                catch (_: Exception) { _playlistSave.value = _playlistSave.value.copy(message = "Song gespeichert. Offline-Downloads werden später erneut versucht.") }
+                catch (_: Exception) { _playlistSave.value = _playlistSave.value.copy(message = text.get(dev.pyte.R.string.song_saved_download_later)) }
             } catch (e: CancellationException) { throw e }
             catch (_: Exception) {
-                _playlistSave.value = selected.copy(error = "Song konnte nicht gespeichert werden. Bitte erneut versuchen.")
+                _playlistSave.value = selected.copy(error = text.get(dev.pyte.R.string.error_save_song))
             }
         }
     }
@@ -258,10 +281,10 @@ class PlayerViewModel @Inject constructor(
         try {
             val result = lyricsRepository.get(track)
             _lyrics.value = LyricsUiState(trackId = track.videoId, lyrics = result,
-                message = if (result == null) "No lyrics available for this song." else null)
+                message = if (result == null) text.get(dev.pyte.R.string.lyrics_missing) else null)
         } catch (e: CancellationException) { throw e }
         catch (_: Exception) {
-            _lyrics.value = LyricsUiState(trackId = track.videoId, message = "Lyrics could not be loaded. Check your connection and try again.")
+            _lyrics.value = LyricsUiState(trackId = track.videoId, message = text.get(dev.pyte.R.string.error_lyrics))
         }
     }
     val diagnosticReport: StateFlow<String?> = diagnostics.report
@@ -288,4 +311,6 @@ class PlayerViewModel @Inject constructor(
 
 data class LyricsUiState(val trackId: String? = null, val loading: Boolean = false, val lyrics: Lyrics? = null, val message: String? = null)
 
-data class PlaylistSaveState(val track: Track? = null, val saving: Boolean = false, val error: String? = null, val message: String? = null)
+data class PlaylistAddition(val playlistId: String, val videoId: String)
+data class PlaylistSaveState(val track: Track? = null, val saving: Boolean = false, val error: String? = null, val message: String? = null,
+    val undo: PlaylistAddition? = null, val messageIsError: Boolean = false)

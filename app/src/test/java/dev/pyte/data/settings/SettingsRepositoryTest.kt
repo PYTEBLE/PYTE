@@ -12,6 +12,17 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class SettingsRepositoryTest {
+    @Test fun `last playlist choice persists without changing battery or effects`() = runBlocking {
+        val repository = SettingsRepository(RuntimeEnvironment.getApplication())
+        val before = repository.settings.first()
+        try {
+            repository.rememberPlaylist("local:recent")
+            val after = SettingsRepository(RuntimeEnvironment.getApplication()).settings.first()
+            assertEquals("local:recent", after.recentPlaylistId)
+            assertEquals(before.battery, after.battery)
+            assertEquals(before.effectLevel, after.effectLevel)
+        } finally { repository.rememberPlaylist(before.recentPlaylistId) }
+    }
     @Test fun `battery choices persist independently and master switch gates every method`() = runBlocking {
         val repository = SettingsRepository(RuntimeEnvironment.getApplication())
         try {

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="add_to_playlist">Zur Playlist</string>
+    <string name="add_song_to_playlist">„%1$s“ zur Playlist hinzufügen</string>
+    <string name="song_options">Aktionen für „%1$s“</string>
+    <string name="play_next">Als Nächstes abspielen</string>
+    <string name="add_to_queue">Zur Warteschlange</string>
+    <string name="favorite_add">Zu Favoriten hinzufügen</string>
+    <string name="favorite_remove">Aus Favoriten entfernen</string>
+    <string name="discover_similar">Ähnliche Songs entdecken</string>
+    <string name="offline_playlist_hint">Offline hören: Speichere den Song in einer Playlist und aktiviere dort „Offline verfügbar“.</string>
+    <string name="close">Schließen</string>
+    <string name="cancel">Abbrechen</string>
+    <string name="save">Speichern</string>
+    <string name="retry">Erneut versuchen</string>
+    <string name="search">Suchen</string>
+    <string name="library">Bibliothek</string>
+    <string name="favorites">Favoriten</string>
+    <string name="settings">Einstellungen</string>
+    <string name="play">Abspielen</string>
+    <string name="pause">Pausieren</string>
+    <string name="next">Nächster Song</string>
+    <string name="previous">Vorheriger Song</string>
+    <string name="shuffle">Zufallswiedergabe</string>
+    <string name="repeat">Wiederholen</string>
+    <string name="open_player">Player öffnen</string>
+    <string name="close_player">Player schließen</string>
+    <string name="queue">Warteschlange</string>
+    <string name="open_queue">Warteschlange öffnen</string>
+    <string name="playback_position">Wiedergabeposition</string>
+    <string name="lyrics">Songtext</string>
+    <string name="sound_studio">Klangstudio</string>
+    <string name="offline_available">Offline verfügbar</string>
+    <string name="playlist_privacy">Nur auf diesem Gerät. Dein YouTube-Konto bleibt unverändert.</string>
+    <string name="playlist_search">Playlists durchsuchen</string>
+    <string name="playlist_search_empty">Keine passende Playlist. Lege unten eine neue an.</string>
+    <string name="playlist_empty">Noch keine Playlist? Erstelle deine erste direkt hier.</string>
+    <string name="new_playlist_name">Name der neuen Playlist</string>
+    <string name="create_and_add">Erstellen und hinzufügen</string>
+    <string name="playlist_count">%1$s · %2$s</string>
+    <string name="local_playlist">Eigene Playlist</string>
+    <string name="local_copy">Lokale Kopie</string>
+    <string name="recent_playlist">Zuletzt verwendet</string>
+    <string name="saved_playlist">In „%1$s“ gespeichert</string>
+    <string name="already_in_playlist">Der Song ist bereits in dieser Playlist.</string>
+    <string name="undo">Rückgängig</string>
+    <string name="undone">Hinzufügen rückgängig gemacht</string>
+    <string name="queue_next_added">Wird als Nächstes abgespielt</string>
+    <string name="queue_added">Zur Warteschlange hinzugefügt</string>
+    <string name="actions_hint">Tippe auf + zum Speichern oder halte einen Song für weitere Aktionen gedrückt.</string>
+    <plurals name="songs_count">
+        <item quantity="one">%d Song</item>
+        <item quantity="other">%d Songs</item>
+    </plurals>
+    <plurals name="playlists_count">
+        <item quantity="one">%d Playlist</item>
+        <item quantity="other">%d Playlists</item>
+    </plurals>
+</resources>
