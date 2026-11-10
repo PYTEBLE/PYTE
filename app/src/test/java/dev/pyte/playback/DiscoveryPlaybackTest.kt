@@ -48,48 +48,4 @@ class DiscoveryPlaybackTest {
         }
     }
 
-    @Test fun `preview switching preserves the original queue identity position and playback modes`() {
-        val player = ExoPlayer.Builder(RuntimeEnvironment.getApplication()).build()
-        try {
-            val items = listOf(first.toMediaItem(), last.toMediaItem()).map { it.withPlaylistOrigin(origin) }
-            player.setMediaItems(items, 1, 42000)
-            player.shuffleModeEnabled = true
-            player.repeatMode = Player.REPEAT_MODE_ALL
-            player.playWhenReady = false
-            val preview = PreviewPlayback()
-            preview.play(player, first)
-            preview.play(player, last)
-            assertTrue(preview.active)
-            assertEquals(1, player.mediaItemCount)
-            preview.restore(player)
-            assertFalse(preview.active)
-            assertEquals(items, (0 until player.mediaItemCount).map(player::getMediaItemAt))
-            assertEquals(1, player.currentMediaItemIndex)
-            assertEquals(42000L, player.currentPosition)
-            assertTrue(player.shuffleModeEnabled)
-            assertEquals(Player.REPEAT_MODE_ALL, player.repeatMode)
-            assertFalse(player.playWhenReady)
-        } finally { player.release() }
-    }
-
-    @Test fun `discarding preview respects a new user queue and empty origins restore silence`() {
-        val player = ExoPlayer.Builder(RuntimeEnvironment.getApplication()).build()
-        try {
-            val preview = PreviewPlayback()
-            player.shuffleModeEnabled = true
-            player.repeatMode = Player.REPEAT_MODE_ALL
-            preview.play(player, first)
-            preview.restore(player)
-            assertEquals(0, player.mediaItemCount)
-            assertFalse(player.isPlaying)
-            assertFalse(player.playWhenReady)
-            assertTrue(player.shuffleModeEnabled)
-            assertEquals(Player.REPEAT_MODE_ALL, player.repeatMode)
-            preview.play(player, first)
-            preview.discard()
-            player.setMediaItem(last.toMediaItem())
-            preview.restore(player)
-            assertEquals(last.videoId, player.currentMediaItem!!.mediaId)
-        } finally { player.release() }
-    }
 }

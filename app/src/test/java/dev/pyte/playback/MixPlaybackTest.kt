@@ -51,18 +51,14 @@ class MixPlaybackTest {
         assertEquals(9000L, player.currentPosition)
     }
 
-    @Test fun `preview restores the mix and repeated mixes retain the first original queue`() = withPlayer { player ->
+    @Test fun `repeated mixes retain the first original queue`() = withPlayer { player ->
         val items = listOf(seed.toMediaItem(), seed.toMediaItem())
         player.setMediaItems(items, 0, 12000)
         val mix = MixPlayback()
-        val preview = PreviewPlayback()
         assertTrue(mix.start(player, entry(player), listOf(other)))
-        preview.play(player, other)
-        preview.restore(player)
         assertEquals(other.videoId, player.getMediaItemAt(1).mediaId)
         assertTrue(mix.start(player, entry(player), listOf(other)))
         mix.restore(player)
-        preview.restore(player) // Sheet cleanup cannot overwrite a deliberate mix/restore.
         assertEquals(items, (0 until player.mediaItemCount).map(player::getMediaItemAt))
     }
 

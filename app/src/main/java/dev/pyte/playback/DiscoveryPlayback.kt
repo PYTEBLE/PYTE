@@ -1,8 +1,6 @@
 package dev.pyte.playback
 
-import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
-import dev.pyte.domain.Track
 
 data class PlaylistPlaybackOrigin(val playlistId: String, val runId: String, val lastEntryId: String)
 
@@ -20,40 +18,3 @@ class DiscoveryPromptGate {
     }
 }
 
-/** Uses the existing media session: no second audio player or competing audio focus. */
-internal class PreviewPlayback {
-    private data class Snapshot(
-        val items: List<MediaItem>, val index: Int, val position: Long,
-        val shuffle: Boolean, val repeat: Int, val playWhenReady: Boolean,
-    )
-    private var snapshot: Snapshot? = null
-    val active: Boolean get() = snapshot != null
-
-    fun play(player: Player, track: Track) {
-        if (snapshot == null) snapshot = Snapshot(
-            (0 until player.mediaItemCount).map(player::getMediaItemAt), player.currentMediaItemIndex,
-            player.currentPosition.coerceAtLeast(0), player.shuffleModeEnabled, player.repeatMode, player.playWhenReady)
-        player.shuffleModeEnabled = false
-        player.repeatMode = Player.REPEAT_MODE_OFF
-        player.setMediaItem(track.toMediaItem())
-        player.prepare()
-        player.play()
-    }
-
-    fun restore(player: Player) {
-        val original = snapshot ?: return
-        snapshot = null // Clear before events fire while restoring the original timeline.
-        player.shuffleModeEnabled = original.shuffle
-        player.repeatMode = original.repeat
-        if (original.items.isEmpty()) {
-            player.stop()
-            player.clearMediaItems()
-        } else {
-            player.setMediaItems(original.items, original.index.coerceIn(original.items.indices), original.position)
-            player.prepare()
-        }
-        player.playWhenReady = original.playWhenReady
-    }
-
-    fun discard() { snapshot = null }
-}

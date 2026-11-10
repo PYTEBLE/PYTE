@@ -8,14 +8,8 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
-import androidx.media3.datasource.DataSpec
-import androidx.media3.datasource.DefaultDataSource
 import dev.pyte.data.offline.OfflineStore
 import androidx.media3.datasource.HttpDataSource
-import androidx.media3.datasource.ResolvingDataSource
-import androidx.media3.datasource.cache.CacheDataSource
-import androidx.media3.datasource.cache.SimpleCache
-import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.MediaSession
@@ -25,7 +19,6 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import dev.pyte.data.remote.StreamResolver
 import dev.pyte.data.remote.StreamUnavailableException
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -35,14 +28,10 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.catch
 import dev.pyte.data.repository.LibraryRepository
 import dev.pyte.data.settings.SettingsRepository
-import okhttp3.OkHttpClient
 import javax.inject.Inject
-import java.io.IOException
-import android.net.ConnectivityManager
 import android.os.SystemClock
 import dev.pyte.data.settings.BatterySettings
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.first
 
 /**
  * Owns the ExoPlayer and the media session. Runs as a foreground service so playback
@@ -51,9 +40,8 @@ import kotlinx.coroutines.flow.first
 @AndroidEntryPoint
 class PlaybackService : MediaSessionService() {
 
-    @Inject lateinit var streamCache: SimpleCache
+    @Inject lateinit var streams: StreamSources
     @Inject lateinit var resolver: StreamResolver
-    @Inject lateinit var okHttp: OkHttpClient
     @Inject lateinit var diagnostics: PlaybackDiagnostics
     @Inject lateinit var library: LibraryRepository
     @Inject lateinit var settings: SettingsRepository
@@ -71,33 +59,12 @@ class PlaybackService : MediaSessionService() {
     private var sleepTimer: ScreenOffSleepTimer? = null
     private var bufferingAt = 0L
 
-    private fun lowData(value: BatterySettings = battery) = value.active(value.lowData) &&
-        getSystemService(ConnectivityManager::class.java).isActiveNetworkMetered
+    private fun lowData(value: BatterySettings = battery) = streams.lowData(value)
 
     override fun onCreate() {
         super.onCreate()
 
-        val cachedSource = CacheDataSource.Factory()
-            .setCache(streamCache)
-            .setUpstreamDataSourceFactory(OkHttpDataSource.Factory(okHttp))
-            .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
-
-        val resolvingSource = ResolvingDataSource.Factory(
-            DefaultDataSource.Factory(this, cachedSource),
-        ) { spec: DataSpec ->
-            try {
-                resolveAudioSpec(spec, offline::audio) { videoId -> runBlocking {
-                    // Ensure persisted battery preferences are loaded even on a cold service start.
-                    val preferences = settings.settings.first().battery
-                    val start = SystemClock.elapsedRealtime()
-                    resolver.resolve(videoId, lowData(preferences)).also {
-                        Log.d(TAG, "Stream resolve: ${SystemClock.elapsedRealtime() - start} ms")
-                    }
-                } }
-            } catch (e: Exception) {
-                throw IOException(e.message ?: "Could not resolve track", e)
-            }
-        }
+        val resolvingSource = streams.resolvingFactory()
 
         val renderers = EqualizerRenderersFactory(this, equalizer)
         val exo = ExoPlayer.Builder(this, renderers)

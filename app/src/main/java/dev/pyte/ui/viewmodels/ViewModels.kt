@@ -288,7 +288,7 @@ class PlayerViewModel @Inject constructor(
     }
     val appearance = settings.settings.catch { emit(dev.pyte.data.settings.AppSettings()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SHARE_TIMEOUT_MS), dev.pyte.data.settings.AppSettings())
-    val coverColors = combine(player.state.map { it.current }.distinctUntilChanged(),
+    val coverColors = combine(player.state.map { if (it.isPreview) it.previewTrack else it.current }.distinctUntilChanged(),
         settings.settings.map { it.dynamicCoverTheme }.distinctUntilChanged()) { track, enabled -> track.takeIf { enabled } }
         .transformLatest { track ->
             if (track == null) emit(null) else emit(palette.colors(track))

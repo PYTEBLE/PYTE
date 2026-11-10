@@ -2,10 +2,18 @@ package dev.pyte.ui.screens
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.InfiniteTransition
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -24,7 +32,10 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.lifecycle.Lifecycle
@@ -32,6 +43,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.currentStateAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -96,16 +108,9 @@ fun RecommendationsSheet(
                     }
                 }
             }
-            AnimatedVisibility(playback.isPreview, enter = fadeIn(tween(policy.duration(180))), exit = fadeOut(tween(policy.duration(120)))) {
-                Surface(color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    shape = RoundedCornerShape(18.dp)) {
-                    Column(Modifier.padding(14.dp)) {
-                        Text(stringResource(R.string.discover_preview, playback.current?.title.orEmpty()), maxLines = 1, overflow = TextOverflow.Ellipsis,
-                            style = MaterialTheme.typography.labelLarge)
-                        TextButton(onClick = onReturn) { Text(stringResource(R.string.discover_return)) }
-                        playback.errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
-                    }
-                }
+            AnimatedVisibility(playback.isPreview, enter = fadeIn(tween(policy.duration(180))) + expandVertically(tween(policy.duration(220))),
+                exit = fadeOut(tween(policy.duration(120))) + shrinkVertically(tween(policy.duration(160)))) {
+                PreviewPanel(playback, policy.animate, onToggle = { playback.previewTrack?.let(onListen) }, onReturn = onReturn)
             }
             if (!playback.isPreview) Text(stringResource(R.string.discover_preview_hint),
                 Modifier.padding(horizontal = 20.dp, vertical = 8.dp), style = MaterialTheme.typography.bodySmall,
@@ -147,8 +152,8 @@ fun RecommendationsSheet(
                     }
                 }
                 items(state.songs, key = { it.track.videoId }) { song ->
-                    val preview = playback.isPreview && playback.current?.videoId == song.track.videoId
-                    RecommendationCard(song, preview, preview && playback.isPlaying,
+                    val preview = playback.previewTrack?.videoId == song.track.videoId
+                    RecommendationCard(song, preview, preview && playback.previewPlaying,
                         song.track.videoId in state.added, song.track.videoId == state.savingId, state.savingId == null,
                         onListen = { onListen(song.track) }, onAdd = { onAdd(song.track) },
                         modifier = if (policy.animate) Modifier.animateItem(fadeInSpec = tween(policy.duration(180)),
@@ -167,6 +172,67 @@ private fun DiscoveryMotion(content: @Composable (LivingUiPolicy) -> Unit) {
     val lifecycle by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
     val motion = inherited.copy(foreground = LocalWindowInfo.current.isWindowFocused && lifecycle.isAtLeast(Lifecycle.State.RESUMED))
     CompositionLocalProvider(LocalLivingUi provides motion) { content(motion) }
+}
+
+@Composable
+private fun PreviewPanel(playback: PlayerUiState, animate: Boolean, onToggle: () -> Unit, onReturn: () -> Unit) {
+    var shown by remember { mutableStateOf<Track?>(null) }
+    playback.previewTrack?.let { shown = it }
+    val track = shown ?: return
+    val fraction = if (playback.previewDurationMs > 0) {
+        (playback.previewPositionMs.toFloat() / playback.previewDurationMs).coerceIn(0f, 1f)
+    } else 0f
+    val animatedFraction by animateFloatAsState(fraction, tween(if (animate) 250 else 0), label = "previewProgress")
+    val toggleLabel = stringResource(if (playback.previewPlaying) R.string.preview_pause else R.string.preview_listen)
+    Surface(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), shape = RoundedCornerShape(22.dp),
+        color = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer) {
+        Column(Modifier.padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 6.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Artwork(track.thumbnailUrl, Modifier.size(52.dp), RoundedCornerShape(14.dp), track.videoId)
+                Column(Modifier.weight(1f).padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(track.title, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        PreviewBars(playback.previewPlaying && animate)
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.preview_now), style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+                FilledIconButton(onClick = onToggle, modifier = Modifier.size(48.dp).semantics { contentDescription = toggleLabel }) {
+                    Icon(if (playback.previewPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, null)
+                }
+            }
+            LinearProgressIndicator(progress = { animatedFraction }, Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 2.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = onReturn) { Text(stringResource(R.string.discover_return)) }
+            }
+            playback.errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+        }
+    }
+}
+
+@Composable
+private fun PreviewBars(playing: Boolean) {
+    if (!playing) {
+        PreviewBarRow(listOf(.4f, .4f, .4f))
+        return
+    }
+    val transition = rememberInfiniteTransition(label = "previewBars")
+    PreviewBarRow(listOf(transition.bar(0), transition.bar(1), transition.bar(2)))
+}
+
+@Composable
+private fun InfiniteTransition.bar(index: Int): Float = animateFloat(.3f, 1f,
+    infiniteRepeatable(tween(380 + index * 120, easing = LinearEasing), RepeatMode.Reverse), label = "previewBar$index").value
+
+@Composable
+private fun PreviewBarRow(heights: List<Float>) {
+    Row(Modifier.size(width = 14.dp, height = 14.dp), horizontalArrangement = Arrangement.spacedBy(2.dp),
+        verticalAlignment = Alignment.Bottom) {
+        heights.forEach { height ->
+            Box(Modifier.width(3.dp).fillMaxHeight(height).clip(RoundedCornerShape(2.dp))
+                .background(MaterialTheme.colorScheme.primary))
+        }
+    }
 }
 
 @Composable

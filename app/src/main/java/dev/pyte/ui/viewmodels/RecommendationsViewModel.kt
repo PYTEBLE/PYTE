@@ -92,7 +92,7 @@ class RecommendationsViewModel @Inject constructor(
     }
 
     fun listen(track: Track) {
-        if (player.state.value.isPreview && player.state.value.current?.videoId == track.videoId) player.togglePlayPause()
+        if (player.state.value.previewTrack?.videoId == track.videoId) player.togglePreview()
         else player.preview(track)
     }
     fun returnToPlayback() { player.finishPreview() }

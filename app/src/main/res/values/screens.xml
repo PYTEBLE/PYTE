@@ -75,7 +75,6 @@
     <string name="discover_subtitle">Neue Richtungen für deinen Klang</string>
     <string name="discover_refresh">Vorschläge aktualisieren</string>
     <string name="discover_inspired">Inspiriert von %1$s</string>
-    <string name="discover_preview">Hörprobe · %1$s</string>
     <string name="discover_return">Zur bisherigen Wiedergabe</string>
     <string name="discover_preview_hint">Probehören ohne Verlust deiner Warteschlange. Beim Schließen kehrst du zur bisherigen Wiedergabe zurück.</string>
     <string name="discover_partial">Einige Quellen waren nicht erreichbar. Diese Vorschläge sind bereits verfügbar.</string>
