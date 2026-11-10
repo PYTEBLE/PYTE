@@ -64,60 +64,62 @@ class LiveRecommendationsUiTest {
             }
             try {
                 instrumentation.runOnMainSync { controller.repeatMode = Player.REPEAT_MODE_OFF }
-                node(By.text("Search")).click()
+                node(By.text("Suchen")).click()
                 node(By.clazz("android.widget.EditText")).text = "schönhauser Gustav"
-                node(By.desc("Search YouTube Music")).click()
-                node(By.descStartsWith("Options for schönhauser")).click()
-                node(By.text("Add to local playlist")).click()
-                node(By.text("Create & add"))
-                node(By.clazz("android.widget.EditText")).text = title
-                node(By.text("Create & add").enabled(true)).click()
-                assertTrue(device.wait(Until.gone(By.text("Create & add")), 60_000))
-                node(By.text("Library")).click()
-                node(By.text("Your library"))
+                node(By.desc("Auf YouTube Music suchen")).click()
+                node(By.descStartsWith("Aktionen für „schönhauser")).click()
+                node(By.text("Zur Playlist")).click()
+                node(By.text("Erstellen und hinzufügen"))
+                device.findObjects(By.clazz("android.widget.EditText")).last().text = title
+                node(By.text("Erstellen und hinzufügen").enabled(true)).click()
+                assertTrue(device.wait(Until.gone(By.text("Erstellen und hinzufügen")), 60_000))
+                node(By.text("Bibliothek")).click()
+                node(By.text("Deine Playlists"))
                 UiScrollable(UiSelector().scrollable(true)).scrollIntoView(UiSelector().text(title))
                 node(By.text(title)).click()
-                node(By.text("Play")).click()
-                node(By.text("Similar songs")) // Opened automatically, no discover-button press.
-                node(By.text("Listen"))
+                node(By.text("Abspielen")).click()
+                node(By.text("Ähnliche Songs")) // Opened automatically, no discover-button press.
+                node(By.text("Probehören"))
                 assertEquals("YGr2G2fc48U", read { it.currentMediaItem!!.mediaId })
                 val entryId = read { it.currentMediaItem!!.mediaMetadata.extras!!.getString("queueEntryId")!! }
                 val origin = read { it.currentMediaItem!!.mediaMetadata.extras!!.getString("sourcePlaylistId")!! }
                 val position = read { it.currentPosition }
                 device.takeScreenshot(File(output, "discovery.png"))
-                node(By.text("Listen")).click()
+                node(By.text("Probehören")).click()
                 awaitController { it.currentMediaItem?.mediaId != "YGr2G2fc48U" && it.isPlaying }
                 val previewTitle = read { it.currentMediaItem!!.mediaMetadata.title.toString() }
-                node(By.desc("Add $previewTitle to a local playlist")).click()
-                node(By.text("Added"))
-                node(By.text("Return to playback")).click()
+                node(By.desc("„$previewTitle“ zur Playlist hinzufügen")).click()
+                node(By.text(title)).click()
+                node(By.textContains("gespeichert"))
+                node(By.text("Zur bisherigen Wiedergabe")).click()
                 awaitController { it.currentMediaItem?.mediaId == "YGr2G2fc48U" && it.isPlaying }
                 assertEquals(1, read { it.mediaItemCount })
                 assertEquals(entryId, read { it.currentMediaItem!!.mediaMetadata.extras!!.getString("queueEntryId")!! })
                 assertEquals(origin, read { it.currentMediaItem!!.mediaMetadata.extras!!.getString("sourcePlaylistId")!! })
                 assertTrue(read { it.currentPosition } >= position - 500)
-                node(By.desc("Close suggestions")).click()
-                assertTrue(device.wait(Until.gone(By.text("Similar songs")), 30_000))
-                node(By.text("On this device • 2 tracks"))
-                node(By.text("Find similar songs")).click()
-                node(By.text("Similar songs"))
-                node(By.desc("Close suggestions")).click()
-                node(By.desc("Open player")).click()
-                UiScrollable(UiSelector().scrollable(true)).scrollIntoView(UiSelector().text("Similar to this song"))
-                node(By.text("Similar to this song")).click()
-                node(By.text("Listen"))
-                node(By.text("Add")).click()
-                node(By.text("Add to local playlist"))
+                node(By.desc("Schließen")).click()
+                assertTrue(device.wait(Until.gone(By.text("Ähnliche Songs")), 30_000))
+                node(By.text("LOKAL • 2 Songs"))
+                node(By.text("Ähnliche Songs entdecken")).click()
+                node(By.text("Ähnliche Songs"))
+                node(By.desc("Schließen")).click()
+                node(By.desc("Player öffnen")).click()
+                UiScrollable(UiSelector().scrollable(true)).scrollIntoView(UiSelector().text("Entdecken"))
+                node(By.text("Entdecken")).click()
+                node(By.text("Probehören"))
+                node(By.text("Zur Playlist")).click()
+                node(By.text("Name der neuen Playlist"))
                 node(By.text(title)).click()
-                node(By.text("Added"))
-                node(By.desc("Close suggestions")).click()
+                assertTrue(device.wait(Until.hasObject(By.textContains("gespeichert")), 30_000) ||
+                    device.hasObject(By.textContains("bereits")))
+                node(By.desc("Schließen")).click()
                 UiScrollable(UiSelector().scrollable(true)).scrollToBeginning(5)
-                node(By.desc("Close player")).click()
-                node(By.desc("Playlist options")).click()
-                node(By.text("Delete playlist")).click()
-                node(By.text("Delete")).click()
+                node(By.desc("Player schließen")).click()
+                node(By.desc("Playlist-Aktionen")).click()
+                node(By.text("Playlist löschen")).click()
+                node(By.text("Löschen")).click()
             } finally {
-                device.findObject(By.desc("Close suggestions"))?.click()
+                device.findObject(By.desc("Schließen"))?.click()
                 instrumentation.runOnMainSync { controller.stop(); controller.release() }
             }
         }

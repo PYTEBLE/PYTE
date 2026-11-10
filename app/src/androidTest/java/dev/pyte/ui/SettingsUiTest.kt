@@ -40,15 +40,15 @@ class SettingsUiTest {
                 }
             }
         }
-        compose.onNodeWithText("Skip silence").performScrollTo().performClick()
-        compose.onNodeWithText("Save listening history").performScrollTo().performClick()
+        compose.onNodeWithText("Stille überspringen").performScrollTo().performClick()
+        compose.onNodeWithText("Hörverlauf speichern").performScrollTo().performClick()
         compose.runOnIdle { assertTrue(skipSilence); assertFalse(history) }
-        compose.onNodeWithText("Clear listening history").performScrollTo().performClick()
+        compose.onNodeWithText("Hörverlauf löschen").performScrollTo().performClick()
         compose.runOnIdle { assertEquals(0, clears) }
-        compose.onNodeWithText("Cancel").performClick()
+        compose.onNodeWithText("Abbrechen").performClick()
         compose.runOnIdle { assertEquals(0, clears) }
-        compose.onNodeWithText("Clear listening history").performClick()
-        compose.onNodeWithText("Clear history", substring = false).performClick()
+        compose.onNodeWithText("Hörverlauf löschen").performClick()
+        compose.onNodeWithText("Löschen", substring = false).performClick()
         compose.runOnIdle { assertEquals(1, clears) }
     }
 }

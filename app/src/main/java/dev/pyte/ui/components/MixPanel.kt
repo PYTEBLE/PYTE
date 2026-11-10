@@ -17,6 +17,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.pyte.playback.MixUiState
+import dev.pyte.R
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun MixPanel(
@@ -42,28 +44,28 @@ fun MixPanel(
                     if (state.loading) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                     else Icon(Icons.Default.AutoAwesome, null, Modifier.size(18.dp))
                     Column(Modifier.padding(start = 10.dp)) {
-                        Text(if (state.loading) "Lädt…" else "Mix starten", fontWeight = FontWeight.SemiBold)
-                        Text("Neue Songs · ganzer Katalog", style = MaterialTheme.typography.labelSmall)
+                        Text(stringResource(if (state.loading) R.string.loading else R.string.mix_start), fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.mix_hint), style = MaterialTheme.typography.labelSmall)
                     }
                 }
                 else if (onSaveSong != null) Button(onClick = onSaveSong,
                     modifier = Modifier.weight(1f).heightIn(min = 56.dp), shape = RoundedCornerShape(18.dp)) {
                     Icon(Icons.Default.PlaylistAdd, null, Modifier.size(20.dp))
-                    Text("  Song zur Playlist")
+                    Text(stringResource(R.string.add_to_playlist), Modifier.padding(start = 8.dp))
                 }
-                else Text("Dein Mix", Modifier.weight(1f).padding(12.dp), style = MaterialTheme.typography.titleSmall)
-                if (state.loading) TextButton(onClick = onCancel) { Text("Abbrechen") }
+                else Text(stringResource(R.string.mix_active), Modifier.weight(1f).padding(12.dp), style = MaterialTheme.typography.titleSmall)
+                if (state.loading) TextButton(onClick = onCancel) { Text(stringResource(R.string.cancel)) }
                 if (state.title != null && !state.loading) Box {
-                    IconButton(onClick = { optionsOpen = true }) { Icon(Icons.Default.MoreVert, "Mix-Optionen") }
+                    IconButton(onClick = { optionsOpen = true }) { Icon(Icons.Default.MoreVert, stringResource(R.string.mix_options)) }
                     DropdownMenu(optionsOpen, onDismissRequest = { optionsOpen = false }) {
-                        DropdownMenuItem(text = { Text("Neuen Mix starten") }, enabled = !isPreview,
+                        DropdownMenuItem(text = { Text(stringResource(R.string.mix_new)) }, enabled = !isPreview,
                             onClick = { optionsOpen = false; onStart() })
-                        DropdownMenuItem(text = { Text("Vorherige Warteschlange wiederherstellen") },
+                        DropdownMenuItem(text = { Text(stringResource(R.string.mix_restore)) },
                             onClick = { optionsOpen = false; onRestore() })
                     }
                 }
             }
-            if (isPreview) Text("Mix nach dem Beenden der Vorschau starten.", style = MaterialTheme.typography.bodySmall)
+            if (isPreview) Text(stringResource(R.string.mix_preview_hint), style = MaterialTheme.typography.bodySmall)
         }
     }
 }

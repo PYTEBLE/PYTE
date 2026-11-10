@@ -51,23 +51,29 @@ import dev.pyte.playback.PlayerUiState
 import dev.pyte.ui.viewmodels.PlayerViewModel
 import dev.pyte.ui.viewmodels.MusicSearchViewModel
 import dev.pyte.ui.components.AddToPlaylistDialog
+import dev.pyte.R
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import dev.pyte.ui.components.TrackListSkeleton
 
 @Composable
 fun FavoritesScreen(
     contentPadding: PaddingValues,
     viewModel: LibraryViewModel = hiltViewModel(),
     playerViewModel: PlayerViewModel = hiltViewModel(),
+    onSearch: () -> Unit = {},
 ) {
     val favorites by viewModel.favorites.collectAsStateWithLifecycle()
     val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
     val playerState by playerViewModel.state.collectAsStateWithLifecycle()
 
     Column(modifier = Modifier.fillMaxSize().padding(contentPadding).statusBarsPadding()) {
-        ScreenHeading("Favorites", "${favorites.size} tracks · The ones you come back to")
+        ScreenHeading(stringResource(R.string.favorites), stringResource(R.string.favorites_subtitle, pluralStringResource(R.plurals.songs_count, favorites.size, favorites.size)))
         if (favorites.isEmpty()) {
             EmptyState(
-                title = "No favorites yet",
-                body = "Tap the heart on any track to keep it here.",
+                title = stringResource(R.string.favorites_empty_title),
+                body = stringResource(R.string.favorites_empty_body),
+                actionLabel = stringResource(R.string.search), onAction = onSearch,
             )
         } else {
             TrackList(
@@ -109,10 +115,10 @@ fun SearchScreen(
 
     Box(Modifier.fillMaxSize().padding(contentPadding).statusBarsPadding()) {
     Column(Modifier.fillMaxSize()) {
-        ScreenHeading("Find your sound", if (onlineMode) "Discover songs on YouTube Music" else "Search your on-device library")
+        ScreenHeading(stringResource(R.string.search_title), stringResource(if (onlineMode) R.string.search_online_hint else R.string.search_local_hint))
         Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(selected = onlineMode, onClick = { onlineMode = true }, label = { Text("YouTube Music") })
-            FilterChip(selected = !onlineMode, onClick = { onlineMode = false }, label = { Text("Your library") })
+            FilterChip(selected = !onlineMode, onClick = { onlineMode = false }, label = { Text(stringResource(R.string.library)) })
         }
         OutlinedTextField(
             value = query,
@@ -126,11 +132,11 @@ fun SearchScreen(
                 focusedContainerColor = MaterialTheme.colorScheme.surface,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
             ),
-            placeholder = { Text(if (onlineMode) "Search songs and artists online" else "Songs and artists in your library") },
+            placeholder = { Text(stringResource(if (onlineMode) R.string.search_online_placeholder else R.string.search_local_placeholder)) },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
             trailingIcon = {
                 if (onlineMode) IconButton(onClick = { keyboard?.hide(); musicViewModel.submit() }, enabled = query.isNotBlank() && !online.loading) {
-                    Icon(Icons.Default.Search, contentDescription = "Search YouTube Music")
+                    Icon(Icons.Default.Search, contentDescription = stringResource(R.string.search_online_action))
                 }
             },
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
@@ -139,17 +145,17 @@ fun SearchScreen(
         if (onlineMode && online.loading) LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 8.dp))
         if (onlineMode && online.error != null) {
             Text(online.error!!, Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error)
-            TextButton(onClick = { musicViewModel.submit(loadMore = online.tracks.isNotEmpty()) }) { Text("Try again") }
+            TextButton(onClick = { musicViewModel.submit(loadMore = online.tracks.isNotEmpty()) }) { Text(stringResource(R.string.retry)) }
         }
         when {
+            onlineMode && online.loading && results.isEmpty() -> TrackListSkeleton()
             query.isBlank() || (onlineMode && !online.searched) -> EmptyState(
-                title = if (onlineMode) "Your next favorite is out there" else "Search your library",
-                body = if (onlineMode) "Search YouTube Music, then use a song's menu to add it to a local playlist. No account needed."
-                    else "Find songs across your playlists, favorites and listening history.",
+                title = stringResource(if (onlineMode) R.string.search_empty_title else R.string.search_local_placeholder),
+                body = stringResource(if (onlineMode) R.string.search_empty_body else R.string.search_local_empty_body),
             )
             results.isEmpty() && !(onlineMode && (online.loading || online.error != null)) -> EmptyState(
-                title = "No matches",
-                body = if (onlineMode) "No songs found. Try another title or artist." else "Nothing in your library matches \"$query\".",
+                title = stringResource(R.string.search_no_results),
+                body = if (onlineMode) stringResource(R.string.search_no_online) else stringResource(R.string.search_no_local, query),
             )
             results.isNotEmpty() -> TrackList(
                 tracks = results,
@@ -202,7 +208,7 @@ private fun TrackList(
         }
         if (onLoadMore != null) item(key = "load-more") {
             TextButton(onClick = onLoadMore, enabled = !loading, modifier = Modifier.fillMaxWidth()) {
-                Text(if (loading) "Loading…" else "Load more songs")
+                Text(stringResource(if (loading) R.string.loading else R.string.load_more))
             }
         }
     }

@@ -5,6 +5,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.pyte.domain.PlaylistSummary
 import dev.pyte.domain.Track
@@ -30,8 +31,8 @@ class AddToPlaylistUiTest {
                     onAddToPlaylist = { selected = true })
             }
         }
-        compose.onNodeWithContentDescription("Options for schönhauser").performClick()
-        compose.onNodeWithText("Add to local playlist").performClick()
+        compose.onNodeWithContentDescription("Aktionen für „schönhauser“").performClick()
+        compose.onNodeWithText("Zur Playlist").performClick()
         compose.runOnIdle { assertTrue(selected); assertFalse(played) }
     }
 
@@ -52,8 +53,30 @@ class AddToPlaylistUiTest {
         compose.setContent {
             PyteTheme { AddToPlaylistDialog(song, emptyList(), false, null, {}, {}, { title = it }) }
         }
-        compose.onNodeWithText("New local playlist name").performTextInput("My new playlist")
-        compose.onNodeWithText("Create & add").performClick()
+        compose.onNodeWithText("Name der neuen Playlist").performTextInput("My new playlist")
+        compose.onNodeWithText("Erstellen und hinzufügen").performClick()
         compose.runOnIdle { assertEquals("My new playlist", title) }
+    }
+
+    @Test fun dialogSearchFiltersChoicesAndPreservesTheSelectedSong() {
+        var chosen: String? = null
+        val playlists = listOf(
+            PlaylistSummary("local:a", "Abend", null, null, 1, "", 0),
+            PlaylistSummary("local:b", "Morgen", null, null, 2, "", 0))
+        compose.setContent { PyteTheme {
+            AddToPlaylistDialog(song, playlists, false, null, {}, { chosen = it }, {}, recentId = "local:b")
+        } }
+        compose.onNodeWithText("Zuletzt verwendet").assertExists()
+        compose.onNodeWithText("Playlists durchsuchen").performTextInput("abend")
+        compose.onNodeWithText("Morgen").assertDoesNotExist()
+        compose.onNodeWithText(song.title).assertExists()
+        compose.onNodeWithText("Abend").performClick()
+        compose.runOnIdle { assertEquals("local:a", chosen) }
+    }
+
+    @Test fun busySaveDisablesCreationAndCancel() {
+        compose.setContent { PyteTheme { AddToPlaylistDialog(song, emptyList(), true, null, {}, {}, {}) } }
+        compose.onNodeWithText("Erstellen und hinzufügen").assertIsNotEnabled()
+        compose.onNodeWithText("Abbrechen").assertIsNotEnabled()
     }
 }

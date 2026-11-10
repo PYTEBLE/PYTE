@@ -40,6 +40,8 @@ import dev.pyte.R
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.runtime.remember
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun ScreenHeading(title: String, subtitle: String, modifier: Modifier = Modifier) {
@@ -52,7 +54,7 @@ fun ScreenHeading(title: String, subtitle: String, modifier: Modifier = Modifier
                 Row(Modifier.padding(horizontal = 10.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                     Icon(Icons.Default.Lock, null, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.primary)
-                    Text("ON DEVICE", style = MaterialTheme.typography.labelSmall,
+                    Text(stringResource(R.string.on_device), style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary, letterSpacing = 1.sp)
                 }
             }
@@ -69,7 +71,7 @@ fun BrandButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier
     val shape = RoundedCornerShape(18.dp)
     val interaction = remember { MutableInteractionSource() }
     Button(onClick = onClick, enabled = enabled, interactionSource = interaction,
-        modifier = modifier.pressMotion(interaction).alpha(if (enabled) 1f else 0.45f).background(Brush.linearGradient(listOf(
+        modifier = modifier.pressMotion(interaction).clip(shape).touchBloom(interaction).alpha(if (enabled) 1f else 0.45f).background(Brush.linearGradient(listOf(
             MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary)), shape),
         shape = shape,
         colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -81,21 +83,22 @@ fun BrandButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier
 }
 
 @Composable
-fun LibraryWelcome(onImport: () -> Unit, modifier: Modifier = Modifier) {
+fun LibraryWelcome(onImport: () -> Unit, modifier: Modifier = Modifier, onSearch: () -> Unit = {}) {
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(28.dp),
         verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
         Image(painterResource(R.drawable.pyte_logo), contentDescription = "PYTE",
             modifier = Modifier.width(250.dp).aspectRatio(640f / 563f))
         Spacer(Modifier.height(28.dp))
-        Text("Your sound.\nYour space.", style = MaterialTheme.typography.headlineLarge, textAlign = TextAlign.Center)
+        Text(stringResource(R.string.welcome_title), style = MaterialTheme.typography.headlineLarge, textAlign = TextAlign.Center)
         Spacer(Modifier.height(14.dp))
-        Text("Bring your public YouTube Music playlists.\nYour library stays on this device.",
+        Text(stringResource(R.string.welcome_body),
             textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(28.dp))
-        BrandButton("Import a playlist", onImport, Modifier.fillMaxWidth(), icon = Icons.Default.Add)
+        BrandButton(stringResource(R.string.search), onSearch, Modifier.fillMaxWidth(), icon = Icons.Default.Add)
+        androidx.compose.material3.TextButton(onClick = onImport) { Text(stringResource(R.string.import_playlist)) }
         Spacer(Modifier.height(18.dp))
-        Text("NO ACCOUNT  ·  NO ADS  ·  JUST MUSIC", style = MaterialTheme.typography.labelSmall,
+        Text(stringResource(R.string.welcome_badge), style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.primary, letterSpacing = 1.sp, textAlign = TextAlign.Center)
     }
 }

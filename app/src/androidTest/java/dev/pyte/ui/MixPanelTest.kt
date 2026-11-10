@@ -33,10 +33,10 @@ class MixPanelTest {
             }
         }
         compose.onNodeWithText("Mix starten", substring = true).assertIsDisplayed().performClick()
-        compose.onNodeWithText("Lädt…", substring = true).assertIsNotEnabled()
+        compose.onNodeWithText("Wird geladen …", substring = true).assertIsNotEnabled()
         compose.onNodeWithText("Abbrechen").performClick()
         compose.runOnIdle { state.value = MixUiState(title = "Seed song") }
-        compose.onNodeWithContentDescription("Mix-Optionen").performClick()
+        compose.onNodeWithContentDescription("Mix-Aktionen").performClick()
         compose.onNodeWithText("Vorherige Warteschlange wiederherstellen").performClick()
         compose.runOnIdle {
             assertEquals(1, starts)
@@ -52,7 +52,7 @@ class MixPanelTest {
             PyteTheme { MixPanel(MixUiState(title = "Seed"), false, { starts++ }, {}, {},
                 modifier = Modifier.width(300.dp), onSaveSong = { saves++ }) }
         }
-        compose.onNodeWithText("Song zur Playlist", substring = true).assertIsDisplayed().performClick()
+        compose.onNodeWithText("Zur Playlist", substring = true).assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals(1, saves); assertEquals(0, starts) }
     }
 
@@ -61,6 +61,6 @@ class MixPanelTest {
             PyteTheme { MixPanel(MixUiState(), true, {}, {}, {}) }
         }
         compose.onNodeWithText("Mix starten", substring = true).assertIsNotEnabled()
-        compose.onNodeWithText("Mix nach dem Beenden der Vorschau starten.").assertIsDisplayed()
+        compose.onNodeWithText("Beende die Hörprobe, um einen Mix zu starten.").assertIsDisplayed()
     }
 }

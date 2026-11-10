@@ -40,6 +40,8 @@ import dev.pyte.BuildConfig
 import dev.pyte.data.settings.AppSettings
 import dev.pyte.ui.components.ScreenHeading
 import dev.pyte.ui.viewmodels.SettingsViewModel
+import dev.pyte.R
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun SettingsScreen(contentPadding: PaddingValues, viewModel: SettingsViewModel = hiltViewModel()) {
@@ -61,56 +63,57 @@ fun SettingsScreen(contentPadding: PaddingValues, viewModel: SettingsViewModel =
     Box(Modifier.fillMaxSize().padding(contentPadding).statusBarsPadding()) {
         Column(Modifier.verticalScroll(rememberScrollState())) {
             if (loadFailed) {
-                ScreenHeading("Settings", "Could not load settings")
-                Text("Please close and reopen the app to try again. No settings were changed.", Modifier.padding(20.dp))
+                ScreenHeading(stringResource(R.string.settings), stringResource(R.string.settings_load_error))
+                Text(stringResource(R.string.settings_reopen), Modifier.padding(20.dp))
             } else {
-                SettingsContent(settings, busy, viewModel::skipSilence, viewModel::recordHistory, viewModel::clearHistory)
+                SettingsContent(settings, busy, viewModel::skipSilence, viewModel::recordHistory, viewModel::clearHistory, showInfo = false)
                 settings?.let { value ->
                     Column(Modifier.padding(20.dp)) {
-                        SettingsSection("Battery") {
+                        SettingsSection(stringResource(R.string.battery)) {
                             TextButton(onClick = { batteryOpen = true }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
-                                Text("Battery mode · ${if (value.battery.enabled) "On" else "Off"} · Configure")
+                                Text(stringResource(R.string.battery_configure, stringResource(if (value.battery.enabled) R.string.on else R.string.off)))
                             }
                         }
-                        SettingsSection("Sound") {
+                        SettingsSection(stringResource(R.string.sound)) {
                             TextButton(onClick = { equalizerOpen = true }, modifier = Modifier.padding(8.dp)) {
-                                Text("Equalizer & sound profiles")
+                                Text(stringResource(R.string.sound_studio))
                             }
                         }
-                        SettingsSection("Discover") {
-                            SettingsSwitch("Playlist recommendations", "Show similar songs when the last playlist song starts. Only with shuffle and repeat off; never opens in the background.",
+                        SettingsSection(stringResource(R.string.discover)) {
+                            SettingsSwitch(stringResource(R.string.recommendations), stringResource(R.string.recommendations_help),
                                 value.autoRecommendations, !busy, viewModel::autoRecommendations)
                         }
-                        SettingsSection("Appearance") {
-                            SettingsSwitch("Dynamic cover theme", "Let your entire app follow the current cover. Without artwork, PYTE stays violet.",
+                        SettingsSection(stringResource(R.string.appearance)) {
+                            SettingsSwitch(stringResource(R.string.cover_theme), stringResource(R.string.cover_theme_help),
                                 value.dynamicCoverTheme, !busy, viewModel::dynamicCoverTheme)
-                            Text("Effekte", Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.titleSmall)
+                            Text(stringResource(R.string.effects), Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.titleSmall)
                             Column(Modifier.padding(horizontal = 16.dp)) {
                                 EffectLevel.entries.forEach { level ->
                                     FilterChip(selected = value.effectLevel == level, enabled = !busy,
                                         onClick = { viewModel.effectLevel(level) }, label = { Text(level.label) })
                                 }
                             }
-                            Text("System animation settings and battery saver take priority. Decorative effects stop in the background.",
+                            Text(stringResource(R.string.effects_help),
                                 Modifier.padding(16.dp), style = MaterialTheme.typography.bodySmall)
-                            SettingsSwitch("Haptic feedback", "Gentle feedback when favoriting a song. Respects system settings.",
+                            SettingsSwitch(stringResource(R.string.haptics), stringResource(R.string.haptics_help),
                                 value.hapticFeedback, !busy, viewModel::hapticFeedback)
                         }
-                        SettingsSection("Offline downloads") {
-                            Text("${offlineBytes / (1024 * 1024)} MB used · ${value.downloadLimitMb} MB limit",
+                        SettingsSection(stringResource(R.string.offline_downloads)) {
+                            Text(stringResource(R.string.storage_used, offlineBytes / (1024 * 1024), value.downloadLimitMb),
                                 Modifier.padding(16.dp), style = MaterialTheme.typography.titleMedium)
-                            Text("Only playlists you mark for offline use are downloaded, on Wi-Fi only. Existing downloads are never automatically evicted to make room.",
+                            Text(stringResource(R.string.downloads_help),
                                 Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("Separate temporary caches: audio up to 1.5 GB, artwork up to 96 MB, lyrics up to 8 MB.",
+                            Text(stringResource(R.string.cache_help),
                                 Modifier.padding(16.dp), style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            SettingsSwitch("Pause downloads", "Playback of completed downloads stays available.",
+                            SettingsSwitch(stringResource(R.string.pause_downloads), stringResource(R.string.pause_downloads_help),
                                 value.downloadsPaused, !busy, viewModel::pauseDownloads)
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                                TextButton(onClick = { viewModel.downloadLimit((value.downloadLimitMb / 2).coerceAtLeast(512)) }, enabled = !busy) { Text("Lower limit") }
-                                TextButton(onClick = { viewModel.downloadLimit((value.downloadLimitMb * 2).coerceAtMost(16384)) }, enabled = !busy) { Text("Raise limit") }
+                                TextButton(onClick = { viewModel.downloadLimit((value.downloadLimitMb / 2).coerceAtLeast(512)) }, enabled = !busy) { Text(stringResource(R.string.lower_limit)) }
+                                TextButton(onClick = { viewModel.downloadLimit((value.downloadLimitMb * 2).coerceAtMost(16384)) }, enabled = !busy) { Text(stringResource(R.string.raise_limit)) }
                             }
                         }
+                        SettingsInformation()
                     }
                 }
             }
@@ -126,45 +129,50 @@ internal fun SettingsContent(
     onSkipSilence: (Boolean) -> Unit,
     onRecordHistory: (Boolean) -> Unit,
     onClearHistory: () -> Unit,
+    showInfo: Boolean = true,
 ) {
     var confirmClear by rememberSaveable { mutableStateOf(false) }
-    ScreenHeading("Settings", "Make this space your own")
+    ScreenHeading(stringResource(R.string.settings), stringResource(R.string.settings_subtitle))
     if (settings == null) {
         CircularProgressIndicator(Modifier.padding(24.dp))
         return
     }
     Column(Modifier.padding(start = 20.dp, end = 20.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        SettingsSection("Playback") {
-            SettingsSwitch("Skip silence", "Skip quiet gaps in audio. Applies to current playback, too.",
+        SettingsSection(stringResource(R.string.playback)) {
+            SettingsSwitch(stringResource(R.string.skip_silence), stringResource(R.string.skip_silence_help),
                 settings.skipSilence, !busy, onSkipSilence)
         }
-        SettingsSection("Listening history") {
-            SettingsSwitch("Save listening history", "Show your recently played tracks on this device. Turning this off keeps existing history.",
+        SettingsSection(stringResource(R.string.history)) {
+            SettingsSwitch(stringResource(R.string.save_history), stringResource(R.string.save_history_help),
                 settings.recordHistory, !busy, onRecordHistory)
             TextButton(onClick = { confirmClear = true }, enabled = !busy, modifier = Modifier.padding(horizontal = 8.dp)) {
-                Text("Clear listening history")
+                Text(stringResource(R.string.clear_history))
             }
         }
-        SettingsSection("Your privacy") {
-            Text("Your playlists, favorites, history and settings stay on this device. No Google login. Android cloud backup and device transfer are disabled.",
-                Modifier.padding(16.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Online searches, song recommendations, streaming and playlist imports connect to YouTube; artwork may load from its image servers. Recommendations send up to four seed song IDs, not your playlist name or full library. Lyrics requests send song title, artist and duration to LRCLIB. Available lyrics are cached locally. Only completed playlist downloads guarantee offline playback; the streaming cache does not.",
-                Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        SettingsSection("About PYTE") {
-            Text("PYTE ${BuildConfig.VERSION_NAME}", Modifier.padding(16.dp), style = MaterialTheme.typography.titleMedium)
-            Text("Local-first · Android · Violet by design", Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+        if (showInfo) SettingsInformation()
     }
     if (confirmClear) {
         AlertDialog(
             onDismissRequest = { confirmClear = false },
-            title = { Text("Clear listening history?") },
-            text = { Text("This removes your recently played list. Your playlists, favorites and current queue stay untouched. This cannot be undone.") },
-            confirmButton = { TextButton(onClick = { confirmClear = false; onClearHistory() }, enabled = !busy) { Text("Clear history") } },
-            dismissButton = { TextButton(onClick = { confirmClear = false }) { Text("Cancel") } },
+            title = { Text(stringResource(R.string.clear_history_title)) },
+            text = { Text(stringResource(R.string.clear_history_body)) },
+            confirmButton = { TextButton(onClick = { confirmClear = false; onClearHistory() }, enabled = !busy) { Text(stringResource(R.string.delete)) } },
+            dismissButton = { TextButton(onClick = { confirmClear = false }) { Text(stringResource(R.string.cancel)) } },
         )
+    }
+}
+
+@Composable
+private fun SettingsInformation() {
+    SettingsSection(stringResource(R.string.privacy)) {
+        Text(stringResource(R.string.privacy_local), Modifier.padding(16.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(R.string.privacy_network), Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+    SettingsSection(stringResource(R.string.about)) {
+        Text("PYTE ${BuildConfig.VERSION_NAME}", Modifier.padding(16.dp), style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.about_tagline), Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

@@ -22,6 +22,8 @@ import androidx.compose.ui.unit.dp
 import dev.pyte.playback.EqPoint
 import dev.pyte.playback.EqualizerCurves
 import kotlin.math.*
+import dev.pyte.R
+import androidx.compose.ui.res.stringResource
 
 internal fun graphGain(y: Float, height: Float): Int =
     (((1 - (y / height.coerceAtLeast(1f)).coerceIn(0f, 1f)) * 1800 - 1200) / 50).roundToInt().times(50).coerceIn(-1200, 600)
@@ -36,18 +38,19 @@ fun EqualizerGraph(points: List<EqPoint>, spectrum: List<Float>, enabled: Boolea
     val accent = MaterialTheme.colorScheme.primary
     val secondary = MaterialTheme.colorScheme.tertiary
     val grid = MaterialTheme.colorScheme.onSurface.copy(alpha = .12f)
+    val graphLabel = stringResource(R.string.eq_graph_accessibility)
     fun x(hz: Int) = (ln(hz / 20.0) / ln(1000.0)).toFloat()
     Column(modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(24.dp)).padding(16.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("BANDKURVE", style = MaterialTheme.typography.labelSmall, color = accent)
-            Text(if (spectrum.isEmpty()) "Spektrum bei Wiedergabe" else "LIVE · PCM", style = MaterialTheme.typography.labelSmall,
+            Text(stringResource(R.string.eq_band_curve), style = MaterialTheme.typography.labelSmall, color = accent)
+            Text(if (spectrum.isEmpty()) stringResource(R.string.eq_spectrum_idle) else "LIVE · PCM", style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Row(Modifier.padding(top = 12.dp)) {
             Column(Modifier.height(200.dp).padding(end = 6.dp), verticalArrangement = Arrangement.SpaceBetween) {
                 listOf("+6", "0", "−6", "−12").forEach { Text(it, style = MaterialTheme.typography.labelSmall) }
             }
-            Canvas(Modifier.weight(1f).height(200.dp).semantics { contentDescription = "Equalizer-Bandkurve. Präzise Regler unter dem Diagramm." }
+            Canvas(Modifier.weight(1f).height(200.dp).semantics { contentDescription = graphLabel }
                 .pointerInput(enabled) {
                     if (!enabled) return@pointerInput
                     var selected = 0

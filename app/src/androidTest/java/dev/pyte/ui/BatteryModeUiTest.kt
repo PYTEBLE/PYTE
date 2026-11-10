@@ -18,11 +18,11 @@ class BatteryModeUiTest {
     @Test fun choicesAreDisabledUntilEnabledAndOnlyApplySaves() {
         var saved: BatterySettings? = null
         compose.setContent { PyteTheme { BatteryModeDialog(BatterySettings(), false, { saved = it }, {}) } }
-        compose.onNodeWithText("Lower mobile-data quality").assertExists()
-        compose.onNodeWithText("Enable battery mode").performClick()
+        compose.onNodeWithText("Qualität bei mobilen Daten senken").assertExists()
+        compose.onNodeWithText("Akkumodus aktivieren").performClick()
         assertNull(saved)
-        compose.onNodeWithText("Lower mobile-data quality").performScrollTo().performClick()
-        compose.onNodeWithText("Apply").performClick()
+        compose.onNodeWithText("Qualität bei mobilen Daten senken").performScrollTo().performClick()
+        compose.onNodeWithText("Übernehmen").performClick()
         compose.runOnIdle {
             assertTrue(saved!!.enabled)
             assertFalse(saved!!.lowData)
@@ -33,8 +33,8 @@ class BatteryModeUiTest {
     @Test fun cancelDoesNotSaveDraft() {
         var saved = false
         compose.setContent { PyteTheme { BatteryModeDialog(BatterySettings(), false, { saved = true }, {}) } }
-        compose.onNodeWithText("Enable battery mode").performClick()
-        compose.onNodeWithText("Cancel").performClick()
+        compose.onNodeWithText("Akkumodus aktivieren").performClick()
+        compose.onNodeWithText("Abbrechen").performClick()
         assertFalse(saved)
     }
 }

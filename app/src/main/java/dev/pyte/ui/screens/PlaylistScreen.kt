@@ -68,6 +68,12 @@ import dev.pyte.ui.components.TrackRow
 import dev.pyte.ui.components.BrandButton
 import dev.pyte.ui.viewmodels.PlaylistUiState
 import dev.pyte.ui.viewmodels.PlaylistViewModel
+import dev.pyte.R
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.clip
 
 @Composable
 fun PlaylistScreen(
@@ -75,6 +81,7 @@ fun PlaylistScreen(
     contentPadding: PaddingValues,
     viewModel: PlaylistViewModel = hiltViewModel(),
     onDiscover: (String, String) -> Unit = { _, _ -> },
+    onSearch: () -> Unit = {},
 ) {
     val detail by viewModel.detail.collectAsStateWithLifecycle()
     val action by viewModel.action.collectAsStateWithLifecycle()
@@ -87,6 +94,10 @@ fun PlaylistScreen(
     var renameOpen by rememberSaveable { mutableStateOf(false) }
     var deleteOpen by rememberSaveable { mutableStateOf(false) }
     var renameText by rememberSaveable { mutableStateOf("") }
+    val progressLabel = stringResource(R.string.download_progress)
+    val offlineLabel = stringResource(R.string.offline_available)
+    val listState = rememberLazyListState()
+    val motion = LocalLivingUi.current
 
     LaunchedEffect(action.message) {
         action.message?.let { snackbar.showSnackbar(it); viewModel.consumeMessage() }
@@ -100,23 +111,23 @@ fun PlaylistScreen(
     ) { inner ->
         Column(Modifier.fillMaxSize().padding(inner).statusBarsPadding()) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
+                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back)) }
                 Text("Playlist", modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
                 if (detail is PlaylistUiState.Loaded) {
                     Box {
                         IconButton(onClick = { menuOpen = true }, enabled = !action.busy) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "Playlist options")
+                            Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.playlist_options))
                         }
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                            DropdownMenuItem(text = { Text("Rename locally") }, onClick = {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.playlist_rename)) }, onClick = {
                                 menuOpen = false
                                 renameText = (detail as PlaylistUiState.Loaded).summary.title
                                 renameOpen = true
                             })
-                            if (!(detail as PlaylistUiState.Loaded).summary.isLocal) DropdownMenuItem(text = { Text("Refresh from YouTube") }, onClick = {
+                            if (!(detail as PlaylistUiState.Loaded).summary.isLocal) DropdownMenuItem(text = { Text(stringResource(R.string.playlist_refresh)) }, onClick = {
                                 menuOpen = false; viewModel.refresh()
                             })
-                            DropdownMenuItem(text = { Text("Delete playlist") }, onClick = {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.playlist_delete)) }, onClick = {
                                 menuOpen = false; deleteOpen = true
                             })
                         }
@@ -128,24 +139,44 @@ fun PlaylistScreen(
                 PlaylistUiState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
-                PlaylistUiState.Missing -> EmptyState("Playlist not found", "It may have been deleted.", "Go back", onBack)
+                PlaylistUiState.Missing -> EmptyState(stringResource(R.string.playlist_missing), stringResource(R.string.playlist_missing_body), stringResource(R.string.back), onBack)
                 is PlaylistUiState.Loaded -> {
                     val playlist = current.summary
                     val tracks = current.tracks
-                    LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
+                    LazyColumn(state = listState, contentPadding = PaddingValues(bottom = 24.dp)) {
                         item(key = "header") {
                             Column(
                                 Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(
                                     MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.background,
                                 ))).padding(20.dp),
                             ) {
-                                Artwork(playlist.thumbnailUrl, Modifier.size(200.dp).align(Alignment.CenterHorizontally), RoundedCornerShape(16.dp))
+                                Box(Modifier.size(200.dp).align(Alignment.CenterHorizontally).clip(MaterialTheme.shapes.large)) {
+                                Artwork(playlist.thumbnailUrl, Modifier.fillMaxSize().graphicsLayer {
+                                    val scroll = if (listState.firstVisibleItemIndex == 0) listState.firstVisibleItemScrollOffset.toFloat() else 0f
+                                    translationY = if (motion.animate) (scroll * .23f * motion.strength).coerceAtMost(48.dp.toPx()) else 0f
+                                    val scale = if (motion.animate) 1f - (scroll / 6000f).coerceIn(0f, .08f) else 1f
+                                    scaleX = scale; scaleY = scale
+                                }, MaterialTheme.shapes.large)
+                                }
                                 Spacer(Modifier.height(16.dp))
                                 Text(playlist.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,
                                     maxLines = 3, overflow = TextOverflow.Ellipsis)
-                                Text(listOfNotNull(playlist.owner, "${playlist.trackCount} tracks").joinToString(" • "),
+                                Text(listOfNotNull(playlist.owner?.let { if (it == "On this device") stringResource(R.string.on_device) else it }, pluralStringResource(R.plurals.songs_count, playlist.trackCount, playlist.trackCount)).joinToString(" • "),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                                  Spacer(Modifier.height(16.dp))
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    BrandButton(stringResource(R.string.play), { viewModel.play(tracks, 0) },
+                                        modifier = Modifier.weight(1f), enabled = tracks.isNotEmpty(), icon = Icons.Default.PlayArrow)
+                                    FilledTonalButton(onClick = { viewModel.shuffleAll(tracks) }, enabled = tracks.isNotEmpty(),
+                                        modifier = Modifier.height(56.dp), shape = MaterialTheme.shapes.medium) {
+                                        Icon(Icons.Default.Shuffle, stringResource(R.string.shuffle))
+                                    }
+                                }
+                                FilledTonalButton(onClick = { onDiscover(playlist.id, playlist.title) },
+                                    enabled = tracks.isNotEmpty(), modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
+                                    Icon(Icons.Default.AutoAwesome, null, Modifier.size(20.dp))
+                                    Text(stringResource(R.string.discover_similar), Modifier.padding(start = 8.dp))
+                                }
                                 val enabled = playlist.id in selected
                                 val relevant = downloads.filter { d -> tracks.any { it.videoId == d.videoId } }
                                 val complete = tracks.count { track -> relevant.any { it.videoId == track.videoId && it.state == "Downloaded" } }
@@ -160,40 +191,35 @@ fun PlaylistScreen(
                                 val ring by animateFloatAsState(fraction, tween(LocalLivingUi.current.duration(280)), label = "offlineProgress")
                                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                     Column(Modifier.weight(1f)) {
-                                        Text("Available offline", style = MaterialTheme.typography.titleMedium)
-                                        Text(if (enabled) "$complete / ${tracks.size} downloaded · Wi-Fi only" else "Download this playlist only",
+                                        Text(offlineLabel, style = MaterialTheme.typography.titleMedium)
+                                        Text(if (enabled) stringResource(R.string.download_count, complete, tracks.size) else stringResource(R.string.download_playlist_only),
                                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                     if (enabled) CircularProgressIndicator(progress = { ring }, strokeWidth = 3.dp,
                                         modifier = Modifier.padding(horizontal = 8.dp).size(32.dp)
-                                            .semantics { contentDescription = "Offline download progress" })
-                                    Switch(checked = enabled, onCheckedChange = viewModel::offlineEnabled, enabled = !action.busy)
+                                            .semantics { contentDescription = progressLabel })
+                                    Switch(checked = enabled, onCheckedChange = viewModel::offlineEnabled, enabled = !action.busy,
+                                        modifier = Modifier.semantics { contentDescription = offlineLabel })
                                 }
                                 if (enabled) {
                                     relevant.firstOrNull { it.state != "Downloaded" }?.let { download ->
-                                        Text(download.error ?: download.state, style = MaterialTheme.typography.bodySmall,
+                                        Text(stringResource(if (download.error != null) R.string.download_interrupted else downloadLabel(download.state)), style = MaterialTheme.typography.bodySmall,
                                             color = if (download.error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
                                         if (download.total > 0) LinearProgressIndicator(
                                             progress = { (download.bytes.toFloat() / download.total).coerceIn(0f, 1f) },
                                             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp))
                                     }
-                                    if (complete < tracks.size) TextButton(onClick = viewModel::retryDownloads) { Text("Retry downloads") }
+                                    if (complete < tracks.size) TextButton(onClick = viewModel::retryDownloads) { Text(stringResource(R.string.download_retry)) }
                                 }
-                                Spacer(Modifier.height(12.dp))
-                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    BrandButton("Play", { viewModel.play(tracks, 0) }, enabled = tracks.isNotEmpty(), icon = Icons.Default.PlayArrow)
-                                    OutlinedButton(onClick = { viewModel.shuffleAll(tracks) }, enabled = tracks.isNotEmpty(),
-                                        modifier = Modifier.height(56.dp), shape = RoundedCornerShape(18.dp)) {
-                                        Icon(Icons.Default.Shuffle, null); Spacer(Modifier.width(6.dp)); Text("Shuffle")
-                                    }
-                                }
-                                Spacer(Modifier.height(12.dp))
-                                FilledTonalButton(onClick = { onDiscover(playlist.id, playlist.title) },
-                                    enabled = tracks.isNotEmpty(), modifier = Modifier.fillMaxWidth()) {
-                                    Icon(Icons.Default.AutoAwesome, null, Modifier.size(20.dp))
-                                    Spacer(Modifier.width(8.dp))
-                                    Text("Find similar songs")
-                                }
+                                Text(stringResource(R.string.actions_hint), Modifier.padding(top = 12.dp),
+                                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                        if (tracks.isEmpty()) item(key = "empty-playlist") {
+                            Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text(stringResource(R.string.playlist_no_songs), style = MaterialTheme.typography.titleLarge)
+                                Text(stringResource(R.string.playlist_no_songs_body), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                BrandButton(stringResource(R.string.search), onSearch)
                             }
                         }
                         itemsIndexed(tracks, key = { index, track -> "$index:${track.videoId}" }) { index, track ->
@@ -211,20 +237,30 @@ fun PlaylistScreen(
     }
 
     if (renameOpen) {
-        AlertDialog(onDismissRequest = { renameOpen = false }, title = { Text("Rename playlist") }, text = {
+        AlertDialog(onDismissRequest = { renameOpen = false }, title = { Text(stringResource(R.string.playlist_rename)) }, text = {
             OutlinedTextField(renameText, { renameText = it.take(100) }, singleLine = true,
-                label = { Text("Local name") }, supportingText = { Text("${renameText.length}/100 · Kept when refreshing") })
+                label = { Text(stringResource(R.string.playlist_name)) }, supportingText = { Text(stringResource(R.string.playlist_name_hint, renameText.length)) })
         }, confirmButton = {
             TextButton(onClick = { viewModel.rename(renameText); renameOpen = false }, enabled = renameText.isNotBlank() && !action.busy) {
-                Text("Save")
+                Text(stringResource(R.string.save))
             }
-        }, dismissButton = { TextButton(onClick = { renameOpen = false }) { Text("Cancel") } })
+        }, dismissButton = { TextButton(onClick = { renameOpen = false }) { Text(stringResource(R.string.cancel)) } })
     }
     if (deleteOpen) {
-        AlertDialog(onDismissRequest = { deleteOpen = false }, title = { Text("Delete this playlist?") },
-            text = { Text("Only the local playlist is removed. Favorites and listening history are kept.") },
+        AlertDialog(onDismissRequest = { deleteOpen = false }, title = { Text(stringResource(R.string.playlist_delete_title)) },
+            text = { Text(stringResource(R.string.playlist_delete_body)) },
             confirmButton = {
-                TextButton(onClick = { deleteOpen = false; viewModel.deletePlaylist(onBack) }, enabled = !action.busy) { Text("Delete") }
-            }, dismissButton = { TextButton(onClick = { deleteOpen = false }) { Text("Cancel") } })
+                TextButton(onClick = { deleteOpen = false; viewModel.deletePlaylist(onBack) }, enabled = !action.busy) { Text(stringResource(R.string.delete)) }
+            }, dismissButton = { TextButton(onClick = { deleteOpen = false }) { Text(stringResource(R.string.cancel)) } })
     }
+}
+
+private fun downloadLabel(state: String) = when (state) {
+    "Downloaded" -> R.string.offline_available
+    "Downloading" -> R.string.download_loading
+    "Paused" -> R.string.download_paused
+    "Waiting for Wi-Fi" -> R.string.download_wait_wifi
+    "Storage limit reached" -> R.string.download_storage
+    "Retry pending" -> R.string.download_retry_pending
+    else -> R.string.download_wait
 }

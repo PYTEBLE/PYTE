@@ -36,10 +36,10 @@ class LivingUiTest {
                 }
             }
         }
-        compose.onNodeWithContentDescription("Play").performClick()
-        compose.onNodeWithContentDescription("Pause").assertExists()
-        compose.onNodeWithContentDescription("Add to favorites").performClick()
-        compose.onNodeWithContentDescription("Remove from favorites").assertExists()
+        compose.onNodeWithContentDescription("Abspielen").performClick()
+        compose.onNodeWithContentDescription("Pausieren").assertExists()
+        compose.onNodeWithContentDescription("Zu Favoriten hinzufügen").performClick()
+        compose.onNodeWithContentDescription("Aus Favoriten entfernen").assertExists()
         compose.runOnIdle { assertEquals(1, plays); assertEquals(1, favorites) }
     }
 

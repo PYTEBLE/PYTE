@@ -26,8 +26,8 @@ class ImportLoadingUiTest {
         }
         compose.onNodeWithTag("playlistImportSpinner").assertIsDisplayed()
             .assertWidthIsEqualTo(androidx.compose.ui.unit.Dp(18f)).assertHeightIsEqualTo(androidx.compose.ui.unit.Dp(18f))
-        compose.onNodeWithText("Importiere …").assertIsDisplayed()
-        compose.onNodeWithText("Cancel").assertIsNotEnabled()
+        compose.onNodeWithText("Wird importiert …").assertIsDisplayed()
+        compose.onNodeWithText("Abbrechen").assertIsNotEnabled()
         captureUi("import-loading.png")
     }
 }

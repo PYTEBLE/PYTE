@@ -59,17 +59,17 @@ class PlayerVisualUiTest {
                     .setArtworkUri(Uri.fromFile(cover)).setExtras(Bundle().apply { putString("queueEntryId", "ui-review"); putLong("durationMs", 120000) }).build()).build())
             }
             try {
-                val open = device.wait(Until.findObject(By.desc("Open player")), 60000)
+                val open = device.wait(Until.findObject(By.desc("Player öffnen")), 60000)
                 assertNotNull(open); open!!.click()
                 assertNotNull(device.wait(Until.findObject(By.text("Eine neue Klangwelt")), 60000))
-                assertNotNull(device.wait(Until.findObject(By.desc("Play")), 30000))
+                assertNotNull(device.wait(Until.findObject(By.desc("Abspielen")), 30000))
                 captureUi("player-artwork.png")
-                val sound = device.wait(Until.findObject(By.textContains("Sound")), 30000)
+                val sound = device.wait(Until.findObject(By.textContains("Klangstudio")), 30000)
                 assertNotNull(sound); sound!!.click()
                 assertNotNull(device.wait(Until.findObject(By.text("15 Bänder. Dein Klang.")), 30000))
                 captureUi("sound-studio.png")
-                device.findObject(By.desc("Close equalizer"))!!.click()
-                assertNotNull(device.wait(Until.findObject(By.desc("Open queue")), 30000))
+                device.findObject(By.desc("Schließen"))!!.click()
+                assertNotNull(device.wait(Until.findObject(By.desc("Warteschlange öffnen")), 30000))
             } finally {
                 instrumentation.runOnMainSync {
                     if (original.isEmpty()) { controller.stop(); controller.clearMediaItems() }

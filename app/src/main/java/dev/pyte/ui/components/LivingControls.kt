@@ -39,6 +39,8 @@ import dev.pyte.ui.theme.LocalLivingUi
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
+import dev.pyte.R
+import androidx.compose.ui.res.stringResource
 
 @Composable
 internal fun Modifier.pressMotion(source: MutableInteractionSource): Modifier {
@@ -65,7 +67,8 @@ private fun PlayPauseGlyph(isPlaying: Boolean, modifier: Modifier) {
     val policy = LocalLivingUi.current
     val progress = animateFloatAsState(if (isPlaying) 1f else 0f, tween(policy.duration(240)), label = "playPauseMorph")
     val color = MaterialTheme.colorScheme.onPrimary
-    Canvas(modifier.semantics { contentDescription = if (isPlaying) "Pause" else "Play" }) {
+    val label = stringResource(if (isPlaying) R.string.pause else R.string.play)
+    Canvas(modifier.semantics { contentDescription = label }) {
         val play = listOf(listOf(.25f to .14f, .25f to .86f, .52f to .68f, .52f to .32f),
             listOf(.52f to .32f, .52f to .68f, .82f to .5f, .82f to .5f))
         val pause = listOf(listOf(.24f to .17f, .24f to .83f, .43f to .83f, .43f to .17f),
@@ -104,7 +107,7 @@ fun FavoriteButton(isFavorite: Boolean, onClick: () -> Unit, modifier: Modifier 
             onClick()
         }, interactionSource = interaction, modifier = Modifier.pressMotion(interaction)) {
             Icon(if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                if (isFavorite) "Remove from favorites" else "Add to favorites",
+                stringResource(if (isFavorite) R.string.favorite_remove else R.string.favorite_add),
                 tint = if (isFavorite) accent else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.graphicsLayer {
                     val scale = 1f + sin(burst.value * PI).toFloat() * .24f

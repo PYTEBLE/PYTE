@@ -62,15 +62,26 @@ import androidx.compose.ui.platform.testTag
 import dev.pyte.ui.components.Reveal
 import dev.pyte.ui.theme.LocalLivingUi
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.combinedClickable
+import dev.pyte.ui.components.LocalSongActions
+import androidx.compose.material.icons.filled.PlaylistAdd
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import dev.pyte.R
 
 @Composable
 fun HomeScreen(
     onOpenPlaylist: (String) -> Unit,
     contentPadding: PaddingValues,
     viewModel: HomeViewModel = hiltViewModel(),
+    onSearch: () -> Unit = {},
 ) {
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
     val motion = LocalLivingUi.current
+    val songActions = LocalSongActions.current
     val pendingLink by viewModel.pendingLink.collectAsStateWithLifecycle()
     val recent by viewModel.recentTracks.collectAsStateWithLifecycle()
     var showImport by rememberSaveable { mutableStateOf(false) }
@@ -90,7 +101,7 @@ fun HomeScreen(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("Import", fontWeight = FontWeight.SemiBold) },
+                text = { Text(stringResource(R.string.import_playlist), fontWeight = FontWeight.SemiBold) },
             )
             }
         },
@@ -98,6 +109,7 @@ fun HomeScreen(
         if (playlists.isEmpty() && recent.isEmpty()) {
             LibraryWelcome(
                 onImport = { showImport = true },
+                onSearch = onSearch,
                 modifier = Modifier.padding(inner).statusBarsPadding(),
             )
         } else {
@@ -117,33 +129,43 @@ fun HomeScreen(
                             Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(
                                 MaterialTheme.colorScheme.primary.copy(alpha = .20f),
                                 MaterialTheme.colorScheme.tertiary.copy(alpha = .06f))), RoundedCornerShape(30.dp)).padding(24.dp)) {
-                                Text("YOUR MUSIC. YOUR SPACE.", style = MaterialTheme.typography.labelSmall,
+                                Text(stringResource(R.string.library_eyebrow), style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.primary, letterSpacing = 2.sp)
                                 Spacer(Modifier.height(16.dp))
-                                Text("Find your\nnext feeling.", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.library_title), style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
                                 Spacer(Modifier.height(12.dp))
-                                Text("${playlists.size} playlists. Endless possibilities.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                TextButton(onClick = { showImport = true }) { Icon(Icons.Default.Add, null); Text("  Grow your collection") }
+                                Text(stringResource(R.string.library_subtitle, pluralStringResource(R.plurals.playlists_count, playlists.size, playlists.size)), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Row {
+                                    TextButton(onClick = onSearch) { Icon(Icons.Default.Search, null); Text(stringResource(R.string.search), Modifier.padding(start = 8.dp)) }
+                                    TextButton(onClick = { showImport = true }) { Icon(Icons.Default.Add, null); Text(stringResource(R.string.import_action), Modifier.padding(start = 8.dp)) }
+                                }
                             }
                         }
                     }
                     if (recent.isNotEmpty()) {
                         item(key = "recent", span = { GridItemSpan(maxLineSpan) }) {
                             Column {
-                                Text("Recently played", style = MaterialTheme.typography.titleMedium,
+                                Text(stringResource(R.string.library_recent), style = MaterialTheme.typography.titleMedium,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp))
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp),
                                     contentPadding = PaddingValues(horizontal = 8.dp)) {
                                     itemsIndexed(recent, key = { _, track -> track.videoId }) { index, track ->
-                                        Column(Modifier.width(156.dp).clickable { viewModel.playRecent(recent, index) }.padding(bottom = 16.dp)) {
+                                        Column(Modifier.width(156.dp).combinedClickable(onClick = { viewModel.playRecent(recent, index) },
+                                            onLongClick = { songActions?.open?.invoke(track) }).padding(bottom = 16.dp)) {
                                             Artwork(track.thumbnailUrl, Modifier.fillMaxWidth().aspectRatio(1f),
                                                 shape = RoundedCornerShape(24.dp), videoId = track.videoId)
                                             Spacer(Modifier.height(8.dp))
                                             Text(track.title, maxLines = 1, overflow = TextOverflow.Ellipsis,
                                                 style = MaterialTheme.typography.bodyMedium)
-                                            Text(track.artist, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                             Text(track.artist, maxLines = 1, overflow = TextOverflow.Ellipsis,
                                                 style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                             songActions?.let { actions -> Row {
+                                                 IconButton(onClick = { actions.save(track) }) { Icon(Icons.Default.PlaylistAdd,
+                                                     stringResource(R.string.add_song_to_playlist, track.title), tint = MaterialTheme.colorScheme.primary) }
+                                                 IconButton(onClick = { actions.open(track) }) { Icon(Icons.Default.MoreVert,
+                                                     stringResource(R.string.song_options, track.title)) }
+                                             } }
                                         }
                                     }
                                 }
@@ -151,7 +173,7 @@ fun HomeScreen(
                         }
                     }
                     item(key = "collections-label", span = { GridItemSpan(maxLineSpan) }) {
-                        Text("Your collections", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
+                        Text(stringResource(R.string.library_collections), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
                     }
                     items(playlists, key = { it.id }) { playlist ->
@@ -205,10 +227,10 @@ internal fun ImportSheet(
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 32.dp),
         ) {
-            Text("Import a playlist", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.import_playlist), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(4.dp))
             Text(
-                "Paste a public YouTube Music or YouTube playlist link.",
+                stringResource(R.string.import_help),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -233,7 +255,7 @@ internal fun ImportSheet(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TextButton(onClick = onDismiss, enabled = !loading) { Text("Cancel") }
+                TextButton(onClick = onDismiss, enabled = !loading) { Text(stringResource(R.string.cancel)) }
                 Spacer(Modifier.width(8.dp))
                 Button(
                     onClick = { onImport(link) },
@@ -246,9 +268,9 @@ internal fun ImportSheet(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text("Importiere …")
+                        Text(stringResource(R.string.import_loading))
                     } else {
-                        Text("Import")
+                        Text(stringResource(R.string.import_action))
                     }
                 }
             }

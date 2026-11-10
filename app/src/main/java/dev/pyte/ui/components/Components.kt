@@ -5,6 +5,13 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.material.icons.filled.PlaylistAdd
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -145,10 +152,19 @@ fun TrackRow(
     isDownloaded: Boolean = false,
 ) {
     var menuOpen by remember(track.videoId) { mutableStateOf(false) }
+    val actions = LocalSongActions.current
+    val saveSong = actions?.let { { it.save(track) } } ?: onAddToPlaylist
+    val interaction = remember { MutableInteractionSource() }
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .pressMotion(interaction)
+            .clip(RoundedCornerShape(18.dp))
+            .touchBloom(interaction)
+            .background(if (isCurrent) MaterialTheme.colorScheme.primary.copy(alpha = .09f) else Color.Transparent, RoundedCornerShape(18.dp))
+            .combinedClickable(interactionSource = interaction, indication = null, onClick = onClick,
+                onLongClickLabel = stringResource(R.string.song_options, track.title),
+                onLongClick = { if (actions != null) actions.open(track) else menuOpen = true })
             .padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -175,7 +191,7 @@ fun TrackRow(
             )
         }
         if (isDownloaded) {
-            Icon(Icons.Default.DownloadDone, "Available offline", tint = MaterialTheme.colorScheme.primary,
+            Icon(Icons.Default.DownloadDone, stringResource(R.string.offline_available), tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(end = 8.dp).size(18.dp))
         }
         if (track.durationMs > 0) {
@@ -185,21 +201,23 @@ fun TrackRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        FavoriteButton(isFavorite, onFavoriteClick, key = track.videoId)
-        if (onPlayNext != null || onAddToQueue != null || onAddToPlaylist != null) {
+        if (saveSong != null) IconButton(onClick = saveSong) {
+            Icon(Icons.Default.PlaylistAdd, stringResource(R.string.add_song_to_playlist, track.title), tint = MaterialTheme.colorScheme.primary)
+        } else FavoriteButton(isFavorite, onFavoriteClick, key = track.videoId)
+        if (actions != null || onPlayNext != null || onAddToQueue != null || onAddToPlaylist != null) {
             Box {
-                IconButton(onClick = { menuOpen = true }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "Options for ${track.title}")
+                IconButton(onClick = { if (actions != null) actions.open(track) else menuOpen = true }) {
+                    Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.song_options, track.title))
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     onAddToPlaylist?.let { action ->
-                        DropdownMenuItem(text = { Text("Add to local playlist") }, onClick = { menuOpen = false; action() })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.add_to_playlist)) }, onClick = { menuOpen = false; action() })
                     }
                     onPlayNext?.let { action ->
-                        DropdownMenuItem(text = { Text("Play next") }, onClick = { menuOpen = false; action() })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.play_next)) }, onClick = { menuOpen = false; action() })
                     }
                     onAddToQueue?.let { action ->
-                        DropdownMenuItem(text = { Text("Add to queue") }, onClick = { menuOpen = false; action() })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.add_to_queue)) }, onClick = { menuOpen = false; action() })
                     }
                 }
             }
@@ -215,6 +233,7 @@ fun PlaylistCard(playlist: PlaylistSummary, onClick: () -> Unit, modifier: Modif
             .pressMotion(interaction)
             .aspectRatio(.88f)
             .clip(RoundedCornerShape(26.dp))
+            .touchBloom(interaction)
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(26.dp))
             .clickable(interactionSource = interaction, indication = null, onClick = onClick),
@@ -239,7 +258,7 @@ fun PlaylistCard(playlist: PlaylistSummary, onClick: () -> Unit, modifier: Modif
                 color = Color.White,
             )
             Text(
-                text = "${playlist.trackCount} tracks · Local collection",
+                text = stringResource(R.string.playlist_count, pluralStringResource(R.plurals.songs_count, playlist.trackCount, playlist.trackCount), stringResource(R.string.local_playlist)),
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.White.copy(alpha = .8f),
             )
@@ -259,9 +278,18 @@ fun MiniPlayer(
     onNext: () -> Unit,
     modifier: Modifier = Modifier,
     videoId: String? = null,
+    onSave: (() -> Unit)? = null,
+    onPrevious: (() -> Unit)? = null,
 ) {
     val morph = LocalPlayerMorph.current
     val miniTrack = Track(videoId ?: "mini", title, artist, 0, artworkUrl)
+    val openLabel = stringResource(R.string.open_player)
+    var swipe by remember { mutableStateOf(0f) }
+    val next by rememberUpdatedState(onNext)
+    val previous by rememberUpdatedState(onPrevious)
+    val policy = dev.pyte.ui.theme.LocalLivingUi.current
+    val swipeVisual by androidx.compose.animation.core.animateFloatAsState(swipe.coerceIn(-48f, 48f),
+        androidx.compose.animation.core.tween(policy.duration(100)), label = "miniSwipe")
     Surface(
         modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
         shape = RoundedCornerShape(22.dp),
@@ -280,8 +308,20 @@ fun MiniPlayer(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Brush.horizontalGradient(listOf(MaterialTheme.colorScheme.primary.copy(alpha = .14f), Color.Transparent)))
+                    .graphicsLayer { translationX = if (policy.animate) swipeVisual else 0f }
+                    .pointerInput(Unit) {
+                        detectHorizontalDragGestures(onDragStart = { swipe = 0f }, onDragCancel = { swipe = 0f },
+                            onHorizontalDrag = { change, delta -> change.consume(); swipe += delta },
+                            onDragEnd = {
+                                when (miniSwipeDirection(swipe, size.width)) {
+                                    1 -> next()
+                                    -1 -> previous?.invoke()
+                                }
+                                swipe = 0f
+                            })
+                    }
                     .clickable(onClick = onOpen)
-                    .semantics { contentDescription = "Open player" }
+                    .semantics { contentDescription = openLabel }
                     .padding(start = 12.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -290,8 +330,11 @@ fun MiniPlayer(
                     .graphicsLayer { alpha = if (videoId != null && morph?.hiddenId == videoId) 0f else 1f }, videoId = videoId)
                 SongMetadata(miniTrack, 1, Modifier.weight(1f).padding(horizontal = 12.dp), compact = true)
                 LivingPlayButton(isPlaying, onToggle, size = 42.dp)
+                onSave?.let { save -> IconButton(onClick = save) {
+                    Icon(Icons.Default.PlaylistAdd, stringResource(R.string.add_song_to_playlist, title), tint = MaterialTheme.colorScheme.primary)
+                } }
                 IconButton(onClick = onNext) {
-                    Icon(Icons.Default.SkipNext, contentDescription = "Next")
+                    Icon(Icons.Default.SkipNext, contentDescription = stringResource(R.string.next))
                 }
             }
         }
@@ -340,4 +383,11 @@ fun formatDuration(ms: Long): String {
     val m = (totalSeconds % 3600) / 60
     val s = totalSeconds % 60
     return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
+}
+
+internal fun miniSwipeDirection(distance: Float, width: Int): Int = when {
+    width <= 0 || !distance.isFinite() -> 0
+    distance < -width * .28f -> 1
+    distance > width * .28f -> -1
+    else -> 0
 }

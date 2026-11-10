@@ -45,7 +45,7 @@ class QueueUiTest {
         compose.onAllNodesWithText("Move down")[0].performClick()
         compose.runOnIdle { assertEquals(0 to 1, moved) }
         compose.onAllNodesWithText("Remove")[0].performClick()
-        compose.onNodeWithText("Queue · 1 tracks").assertExists()
+        compose.onNodeWithText("Warteschlange · 1 Song").assertExists()
         compose.runOnIdle { assertEquals(0, removed) }
     }
 
@@ -59,8 +59,8 @@ class QueueUiTest {
                     onPlayNext = { next = true }, onAddToQueue = {})
             }
         }
-        compose.onNodeWithContentDescription("Options for First song").performClick()
-        compose.onNodeWithText("Play next").performClick()
+        compose.onNodeWithContentDescription("Aktionen für „First song“").performClick()
+        compose.onNodeWithText("Als Nächstes abspielen").performClick()
         compose.runOnIdle { assertTrue(next); assertFalse(played) }
     }
 }

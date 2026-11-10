@@ -44,6 +44,9 @@ import dev.pyte.ui.theme.rememberAmbientMotion
 import dev.pyte.ui.viewmodels.PlayerViewModel
 import kotlin.math.PI
 import kotlin.math.sin
+import dev.pyte.ui.components.LocalSongActions
+import androidx.compose.ui.res.stringResource
+import dev.pyte.R
 
 @Composable
 internal fun LyricsPlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit, onCover: () -> Unit) {
@@ -51,6 +54,7 @@ internal fun LyricsPlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit,
     val lyricsState by viewModel.lyrics.collectAsStateWithLifecycle()
     val favorites by viewModel.favoriteIds.collectAsStateWithLifecycle()
     val track = state.current ?: return
+    val actions = LocalSongActions.current
     var queue by rememberSaveable { mutableStateOf(false) }
     var equalizerOpen by rememberSaveable { mutableStateOf(false) }
     if (equalizerOpen) EqualizerSheet(onDismiss = { equalizerOpen = false })
@@ -60,7 +64,7 @@ internal fun LyricsPlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit,
     val accent = MaterialTheme.colorScheme.primary
     LaunchedEffect(track.videoId, request) { viewModel.loadLyrics(track) }
     if (queue) QueueSheet(state, { queue = false }, viewModel::playIndex,
-        viewModel::moveQueueItem, viewModel::removeQueueItem)
+        viewModel::moveQueueItem, viewModel::removeQueueItem, onAddToPlaylist = viewModel::selectForPlaylist)
 
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Artwork(track.thumbnailUrl, Modifier.fillMaxSize().graphicsLayer { scaleX = 1.15f; scaleY = 1.15f }
@@ -71,28 +75,28 @@ internal fun LyricsPlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit,
         AuroraBackdrop(state.isPlaying, expanded = true)
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 20.dp)) {
             Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onClose) { Icon(Icons.Default.KeyboardArrowDown, "Close player") }
+                IconButton(onClick = onClose) { Icon(Icons.Default.KeyboardArrowDown, stringResource(R.string.close_player)) }
                 Artwork(track.thumbnailUrl, Modifier.size(48.dp), videoId = track.videoId)
                 SongMetadata(track, 1, Modifier.weight(1f).padding(horizontal = 12.dp), compact = true)
                 val favorite = track.videoId in favorites
-                IconButton(onClick = { equalizerOpen = true }) { Icon(Icons.Default.Equalizer, "Open equalizer") }
+                IconButton(onClick = { equalizerOpen = true }) { Icon(Icons.Default.Equalizer, stringResource(R.string.sound_studio)) }
                 FavoriteButton(favorite, { viewModel.toggleFavorite(track, !favorite) }, key = track.videoId)
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = onCover) { Text("Cover", color = Color.White.copy(alpha = .65f)) }
+                TextButton(onClick = onCover) { Text(stringResource(R.string.artwork), color = Color.White.copy(alpha = .65f)) }
                 Surface(shape = CircleShape, color = accent.copy(alpha = .18f),
                     border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = .7f))) {
-                    Text("Lyrics", Modifier.padding(horizontal = 28.dp, vertical = 8.dp), fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.lyrics), Modifier.padding(horizontal = 28.dp, vertical = 8.dp), fontWeight = FontWeight.SemiBold)
                 }
-                TextButton(onClick = { queue = true }) { Text("Queue", color = Color.White.copy(alpha = .65f)) }
+                TextButton(onClick = { queue = true }) { Text(stringResource(R.string.queue), color = Color.White.copy(alpha = .65f)) }
             }
 
             BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
                 val lyrics = lyricsState.lyrics.takeIf { lyricsState.trackId == track.videoId }
                 when {
                     lyricsState.loading || lyricsState.trackId != track.videoId -> CircularProgressIndicator(Modifier.align(Alignment.Center), color = accent)
-                    lyrics?.instrumental == true -> Text("Instrumental · no lyrics", Modifier.align(Alignment.Center), color = Color.White.copy(alpha = .7f))
+                    lyrics?.instrumental == true -> Text(stringResource(R.string.lyrics_instrumental), Modifier.align(Alignment.Center), color = Color.White.copy(alpha = .7f))
                     lyrics?.synced == true -> key(track.videoId) {
                         val listState = rememberLazyListState()
                         val active = LrcParser.activeIndex(lyrics.lines, state.positionMs)
@@ -133,38 +137,43 @@ internal fun LyricsPlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit,
                             }
                         }
                         if (!follow) FilledTonalButton(onClick = { follow = true }, modifier = Modifier.align(Alignment.BottomCenter)) {
-                            Text("Follow lyrics")
+                            Text(stringResource(R.string.lyrics_follow))
                         }
                     }
                     !lyrics?.plain.isNullOrBlank() -> {
                         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 28.dp)) {
-                            item { Text("No synchronized timing available", color = accent,
+                            item { Text(stringResource(R.string.lyrics_unsynced), color = accent,
                                 style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(bottom = 20.dp)) }
                             item { Text(lyrics!!.plain!!, fontSize = 25.sp, lineHeight = 36.sp,
                                 fontWeight = FontWeight.SemiBold, color = Color.White.copy(alpha = .85f)) }
                         }
                     }
                     else -> Column(Modifier.align(Alignment.Center).padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(lyricsState.message ?: "No lyrics available for this song.", color = Color.White.copy(alpha = .75f))
-                        TextButton(onClick = { request++ }) { Text("Try again") }
+                        Text(lyricsState.message ?: stringResource(R.string.lyrics_missing), color = Color.White.copy(alpha = .75f))
+                        TextButton(onClick = { request++ }) { Text(stringResource(R.string.retry)) }
                     }
                 }
             }
-            Text("Lyrics by LRCLIB", color = Color.White.copy(alpha = .45f),
-                style = MaterialTheme.typography.labelSmall, modifier = Modifier.align(Alignment.CenterHorizontally))
+            Text(stringResource(R.string.lyrics_credit), color = Color.White.copy(alpha = .45f),
+                 style = MaterialTheme.typography.labelSmall, modifier = Modifier.align(Alignment.CenterHorizontally))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                TextButton(onClick = { viewModel.selectForPlaylist(track) }) { Icon(Icons.Default.PlaylistAdd, null)
+                    Text(stringResource(R.string.add_to_playlist), Modifier.padding(start = 8.dp)) }
+                actions?.let { IconButton(onClick = { it.open(track) }) { Icon(Icons.Default.MoreVert, stringResource(R.string.song_options, track.title)) } }
+            }
             LyricWave(state.isPlaying && policy.ambient, Modifier.fillMaxWidth().height(42.dp))
             SeekBar(state.positionMs, state.durationMs, viewModel::seekTo)
             Row(Modifier.fillMaxWidth().padding(bottom = 12.dp), horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = viewModel::toggleShuffle) {
-                    Icon(Icons.Default.Shuffle, "Shuffle", tint = if (state.shuffle) accent else Color.White.copy(alpha = .6f))
+                    Icon(Icons.Default.Shuffle, stringResource(R.string.shuffle), tint = if (state.shuffle) accent else Color.White.copy(alpha = .6f))
                 }
-                IconButton(onClick = viewModel::previous) { Icon(Icons.Default.SkipPrevious, "Previous", Modifier.size(34.dp)) }
+                IconButton(onClick = viewModel::previous) { Icon(Icons.Default.SkipPrevious, stringResource(R.string.previous), Modifier.size(34.dp)) }
                 LivingPlayButton(state.isPlaying, viewModel::togglePlayPause, size = 72.dp)
-                IconButton(onClick = viewModel::next) { Icon(Icons.Default.SkipNext, "Next", Modifier.size(34.dp)) }
+                IconButton(onClick = viewModel::next) { Icon(Icons.Default.SkipNext, stringResource(R.string.next), Modifier.size(34.dp)) }
                 IconButton(onClick = viewModel::cycleRepeat) {
                     Icon(if (state.repeat == Player.REPEAT_MODE_ONE) Icons.Default.RepeatOne else Icons.Default.Repeat,
-                        "Repeat", tint = if (state.repeat != Player.REPEAT_MODE_OFF) accent else Color.White.copy(alpha = .6f))
+                        stringResource(R.string.repeat), tint = if (state.repeat != Player.REPEAT_MODE_OFF) accent else Color.White.copy(alpha = .6f))
                 }
             }
         }

@@ -30,6 +30,8 @@ import dev.pyte.ui.components.BandFader
 import dev.pyte.ui.theme.LocalLivingUi
 import dev.pyte.ui.theme.rememberLivingUiPolicy
 import dev.pyte.data.settings.AppSettings
+import dev.pyte.R
+import androidx.compose.ui.res.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,8 +49,8 @@ fun EqualizerSheet(onDismiss: () -> Unit, viewModel: EqualizerViewModel = hiltVi
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.statusBarsPadding().navigationBarsPadding()) {
             Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("SOUND STUDIO", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, "Close equalizer") }
+                Text(stringResource(R.string.sound_studio), Modifier.weight(1f), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, stringResource(R.string.close)) }
             }
         EqualizerContent(settings?.equalizer, device, error, viewModel::enabled, viewModel::select,
             viewModel::preview, viewModel::curve, viewModel::save, viewModel::delete, viewModel::retry,
@@ -74,32 +76,34 @@ internal fun EqualizerContent(
     var draft by remember(stored) {
         mutableStateOf(EqualizerCurves.frequencies.map { EqPoint(it, EqualizerCurves.gainAt(stored, it)) })
     }
+    val enableLabel = stringResource(R.string.eq_enable)
+    val limiterLabel = stringResource(R.string.eq_limiter)
     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)
         .padding(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Equalizer", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Text("15 Bänder. Dein Klang.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.eq_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.eq_subtitle), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Switch(checked = settings?.enabled == true, onCheckedChange = onEnabled,
                 enabled = settings != null && device.available,
-                modifier = Modifier.semantics { contentDescription = "Enable equalizer" })
+                modifier = Modifier.semantics { contentDescription = enableLabel })
         }
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Schutzbegrenzer", style = MaterialTheme.typography.titleSmall)
-                Text("Stereo-Pegelschutz bei kräftigen Anhebungen", style = MaterialTheme.typography.bodySmall,
+                Text(limiterLabel, style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.eq_limiter_help), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Switch(settings?.limiter != false, onCheckedChange = onLimiter, enabled = settings != null,
-                modifier = Modifier.semantics { contentDescription = "Schutzbegrenzer" })
+                modifier = Modifier.semantics { contentDescription = limiterLabel })
         }
         if (settings == null) CircularProgressIndicator()
         if (!device.available) {
             Text(device.message, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            TextButton(onClick = onRetry) { Text("Retry audio effect") }
+            TextButton(onClick = onRetry) { Text(stringResource(R.string.retry)) }
         }
-        Text("Klangprofile", style = MaterialTheme.typography.titleSmall)
+        Text(stringResource(R.string.eq_presets), style = MaterialTheme.typography.titleSmall)
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             EqualizerCurves.presets.forEach { profile ->
                 FilterChip(selected = settings?.selectedId == profile.id, onClick = { onSelect(profile.id) },
@@ -115,10 +119,10 @@ internal fun EqualizerContent(
                 })
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("25 Hz — 16 kHz", style = MaterialTheme.typography.labelMedium)
-                Text("Headroom ${String.format(Locale.ROOT, "%.1f dB", 20 * kotlin.math.log10(device.headroom.coerceAtLeast(.001f)))}",
+                Text(stringResource(R.string.eq_headroom, String.format(Locale.GERMAN, "%.1f dB", 20 * kotlin.math.log10(device.headroom.coerceAtLeast(.001f)))),
                     color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
             }
-            Text("Kurvenpunkte ziehen oder die Bandregler nutzen · 0,5-dB-Schritte", style = MaterialTheme.typography.bodySmall,
+            Text(stringResource(R.string.eq_edit_hint), style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                 draft.forEachIndexed { index, point ->
@@ -131,34 +135,34 @@ internal fun EqualizerContent(
             }
         }
         if (settings?.profiles?.isNotEmpty() == true) {
-            Text("Saved profiles", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.eq_saved_profiles), style = MaterialTheme.typography.titleSmall)
             settings.profiles.forEach { profile ->
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     FilterChip(selected = settings.selectedId == profile.id, onClick = { onSelect(profile.id) },
                         label = { Text(profile.name) }, modifier = Modifier.weight(1f))
-                    TextButton(onClick = { profileName = profile.name; saveOpen = true }) { Text("Replace") }
-                    TextButton(onClick = { deleteId = profile.id }) { Text("Delete") }
+                    TextButton(onClick = { profileName = profile.name; saveOpen = true }) { Text(stringResource(R.string.eq_replace)) }
+                    TextButton(onClick = { deleteId = profile.id }) { Text(stringResource(R.string.delete)) }
                 }
             }
         }
-        Text("Echte 15-Band-Verarbeitung in PYTE, unabhängig vom Geräte-Equalizer. Bestehende Profile werden übernommen. Hohe Bänder sind bei niedriger Abtastrate nicht verfügbar. Headroom reduziert Übersteuerung; der Schutzbegrenzer fängt verbleibende Spitzen ab.",
+        Text(stringResource(R.string.eq_help),
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            TextButton(onClick = { onSelect("neutral") }, enabled = settings != null) { Text("Reset to neutral") }
-            Button(onClick = { profileName = ""; saveOpen = true }, enabled = settings != null && device.available) { Text("Save profile") }
+            TextButton(onClick = { onSelect("neutral") }, enabled = settings != null) { Text(stringResource(R.string.eq_reset)) }
+            Button(onClick = { profileName = ""; saveOpen = true }, enabled = settings != null && device.available) { Text(stringResource(R.string.eq_save_profile)) }
         }
         error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     }
-    if (saveOpen) AlertDialog(onDismissRequest = { saveOpen = false }, title = { Text("Save sound profile") },
+    if (saveOpen) AlertDialog(onDismissRequest = { saveOpen = false }, title = { Text(stringResource(R.string.eq_save_profile)) },
         text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(profileName, { profileName = it.take(48) }, label = { Text("Profile name") }, singleLine = true)
-            Text("Saving with an existing name replaces that profile with the current slider values.")
-        } }, confirmButton = { TextButton(onClick = { onSave(profileName, draft); saveOpen = false }, enabled = profileName.isNotBlank()) { Text("Save") } },
-        dismissButton = { TextButton(onClick = { saveOpen = false }) { Text("Cancel") } })
-    deleteId?.let { id -> AlertDialog(onDismissRequest = { deleteId = null }, title = { Text("Delete sound profile?") },
-        text = { Text("Only this saved profile is removed. Your current sound curve stays unchanged.") },
-        confirmButton = { TextButton(onClick = { onDelete(id); deleteId = null }) { Text("Delete") } },
-        dismissButton = { TextButton(onClick = { deleteId = null }) { Text("Cancel") } }) }
+            OutlinedTextField(profileName, { profileName = it.take(48) }, label = { Text(stringResource(R.string.eq_profile_name)) }, singleLine = true)
+            Text(stringResource(R.string.eq_replace_hint))
+        } }, confirmButton = { TextButton(onClick = { onSave(profileName, draft); saveOpen = false }, enabled = profileName.isNotBlank()) { Text(stringResource(R.string.save)) } },
+        dismissButton = { TextButton(onClick = { saveOpen = false }) { Text(stringResource(R.string.cancel)) } })
+    deleteId?.let { id -> AlertDialog(onDismissRequest = { deleteId = null }, title = { Text(stringResource(R.string.eq_delete_title)) },
+        text = { Text(stringResource(R.string.eq_delete_body)) },
+        confirmButton = { TextButton(onClick = { onDelete(id); deleteId = null }) { Text(stringResource(R.string.delete)) } },
+        dismissButton = { TextButton(onClick = { deleteId = null }) { Text(stringResource(R.string.cancel)) } }) }
 }
 
 private fun frequencyLabel(hz: Int): String = if (hz >= 1000) String.format(Locale.ROOT, "%.1f kHz", hz / 1000f) else "$hz Hz"

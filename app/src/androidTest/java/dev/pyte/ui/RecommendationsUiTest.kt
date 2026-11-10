@@ -36,16 +36,16 @@ class RecommendationsUiTest {
                 CompositionLocalProvider(LocalLivingUi provides LivingUiPolicy(systemAnimations = false)) {
                     RecommendationsSheet(current, PlayerUiState(), {}, {}, { listened = it }, {}, {
                         adds++
-                        current = current.copy(added = setOf(it.videoId), status = "Added to your local playlist")
+                        current = current.copy(added = setOf(it.videoId), status = "Song gespeichert")
                     })
                 }
             }
         }
-        compose.onNodeWithText("Because of A favorite").assertExists()
-        compose.onNodeWithContentDescription("Listen to New discovery").performClick()
+        compose.onNodeWithText("Weil du A favorite hörst").assertExists()
+        compose.onNodeWithContentDescription("Probehören: New discovery").performClick()
         compose.runOnIdle { assertEquals(song, listened) }
-        compose.onNodeWithContentDescription("Add New discovery to a local playlist").performClick()
-        compose.onNodeWithText("Added").assertExists()
+        compose.onNodeWithContentDescription("„New discovery“ zur Playlist hinzufügen").performClick()
+        compose.onNodeWithText("Song gespeichert").assertExists()
         compose.runOnIdle { assertEquals(1, adds) }
     }
 
@@ -58,8 +58,8 @@ class RecommendationsUiTest {
                     { closed = true }, {}, {}, { returned = true }, {})
             }
         }
-        compose.onNodeWithText("Return to playback").performClick()
-        compose.onNodeWithContentDescription("Close suggestions").performClick()
+        compose.onNodeWithText("Zur bisherigen Wiedergabe").performClick()
+        compose.onNodeWithContentDescription("Schließen").performClick()
         compose.runOnIdle { assertTrue(returned); assertTrue(closed) }
     }
 
@@ -75,8 +75,8 @@ class RecommendationsUiTest {
             }
         }
         compose.onNodeWithText("No connection").assertExists()
-        compose.onNodeWithText("Try again").performClick()
-        compose.onNodeWithText("No new matches this time").assertExists()
+        compose.onNodeWithText("Erneut versuchen").performClick()
+        compose.onNodeWithText("Gerade keine neuen Treffer").assertExists()
         compose.runOnIdle { assertTrue(retried) }
     }
 }

@@ -6,6 +6,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -70,6 +71,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.Surface
 import androidx.compose.foundation.BorderStroke
 import dev.pyte.ui.components.PlayerAtmosphere
+import dev.pyte.ui.components.LocalSongActions
+import androidx.compose.material.icons.filled.PlaylistAdd
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.ui.res.stringResource
+import dev.pyte.R
+import dev.pyte.ui.components.CoverProgress
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 
 @Composable
 fun NowPlayingScreen(
@@ -92,6 +102,7 @@ fun NowPlayingScreen(
     var queueOpen by rememberSaveable { mutableStateOf(false) }
     var lyricsOpen by rememberSaveable { mutableStateOf(false) }
     var equalizerOpen by rememberSaveable { mutableStateOf(false) }
+    val songActions = LocalSongActions.current
     if (equalizerOpen) EqualizerSheet(onDismiss = { equalizerOpen = false })
 
     if (lyricsOpen && track != null) {
@@ -104,7 +115,7 @@ fun NowPlayingScreen(
             onMove = viewModel::moveQueueItem, onRemove = viewModel::removeQueueItem,
             onAddToPlaylist = viewModel::selectForPlaylist)
     }
-    save.track?.let { selected ->
+    if (songActions == null) save.track?.let { selected ->
         AddToPlaylistDialog(selected, playlists, save.saving, save.error, viewModel::dismissPlaylistSave,
             onChoose = { viewModel.saveToPlaylist(id = it) }, onCreate = { viewModel.saveToPlaylist(newTitle = it) })
     }
@@ -125,16 +136,16 @@ fun NowPlayingScreen(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = onClose) {
-                Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Close player")
+                Icon(Icons.Default.KeyboardArrowDown, contentDescription = stringResource(R.string.close_player))
             }
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(if (mix.title != null) "DEIN MIX" else "DEIN MOMENT", style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary, letterSpacing = 3.sp)
-                Text(mix.title ?: "NOW PLAYING", maxLines = 1, overflow = TextOverflow.Ellipsis,
+                Text(mix.title ?: stringResource(R.string.now_playing), maxLines = 1, overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.labelMedium)
             }
             IconButton(onClick = { queueOpen = true }) {
-                Icon(Icons.Default.QueueMusic, contentDescription = "Open queue")
+                Icon(Icons.Default.QueueMusic, contentDescription = stringResource(R.string.open_queue))
             }
         }
         }
@@ -145,13 +156,16 @@ fun NowPlayingScreen(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text("Nothing playing", style = MaterialTheme.typography.titleLarge)
+                Text(stringResource(R.string.nothing_playing), style = MaterialTheme.typography.titleLarge)
             }
             return@Column
         }
 
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
         CoverLight(state.isPlaying, Modifier.fillMaxWidth()) {
+        Box(Modifier.align(Alignment.Center).widthIn(max = coverSize + 16.dp).fillMaxWidth().aspectRatio(1f)) {
+            CoverProgress(if (state.durationMs > 0) state.positionMs.toFloat() / state.durationMs else 0f, Modifier.fillMaxSize())
+        }
         HeroCoverFrame(track.videoId, Modifier.align(Alignment.Center).padding(horizontal = 12.dp, vertical = 24.dp)
                 .widthIn(max = coverSize)
                 .fillMaxWidth()
@@ -184,9 +198,9 @@ fun NowPlayingScreen(
             Surface(Modifier.fillMaxWidth().padding(vertical = 12.dp), shape = RoundedCornerShape(22.dp),
                 color = MaterialTheme.colorScheme.surface.copy(alpha = .90f),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = .15f))) {
-            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                TextButton(onClick = { lyricsOpen = true }) { Text("Lyrics") }
-                TextButton(onClick = { equalizerOpen = true }) { Icon(Icons.Default.Equalizer, null, Modifier.size(18.dp)); Text("  Sound") }
+            FlowRow(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+                TextButton(onClick = { lyricsOpen = true }) { Text(stringResource(R.string.lyrics)) }
+                TextButton(onClick = { equalizerOpen = true }) { Icon(Icons.Default.Equalizer, null, Modifier.size(18.dp)); Text(stringResource(R.string.sound_studio), Modifier.padding(start = 6.dp)) }
                 TextButton(onClick = { onDiscover(track) }) { Text("Entdecken") }
             }
             }
@@ -194,10 +208,19 @@ fun NowPlayingScreen(
         }
 
         if (!compact) PlaybackDeck(state, viewModel)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilledTonalButton(onClick = { viewModel.selectForPlaylist(track) }, modifier = Modifier.weight(1f)) {
+                Icon(Icons.Default.PlaylistAdd, null, Modifier.size(20.dp))
+                Text(stringResource(R.string.add_to_playlist), Modifier.padding(start = 8.dp))
+            }
+            songActions?.let { actions -> IconButton(onClick = { actions.open(track) }) {
+                Icon(Icons.Default.MoreVert, stringResource(R.string.song_options, track.title))
+            } }
+        }
         // Outside the scrolling content: reachable even on small screens.
         MixPanel(mix, state.isPreview, viewModel::startMix, viewModel::cancelMixLoading, viewModel::restoreMixQueue,
             Modifier.fillMaxWidth().padding(bottom = 12.dp),
-            onSaveSong = if (mix.title != null && !state.isPreview) ({ viewModel.selectForPlaylist(track) }) else null)
+            onSaveSong = null)
     }
     }
 }
@@ -214,22 +237,22 @@ private fun PlaybackDeck(state: PlayerUiState, viewModel: PlayerViewModel) {
             IconButton(onClick = viewModel::toggleShuffle) {
                 Icon(
                     Icons.Default.Shuffle,
-                    contentDescription = "Shuffle",
+                    contentDescription = stringResource(R.string.shuffle),
                     tint = if (state.shuffle) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             IconButton(onClick = viewModel::previous, modifier = Modifier.size(56.dp)) {
-                Icon(Icons.Default.SkipPrevious, contentDescription = "Previous", modifier = Modifier.size(36.dp))
+                Icon(Icons.Default.SkipPrevious, contentDescription = stringResource(R.string.previous), modifier = Modifier.size(36.dp))
             }
             LivingPlayButton(state.isPlaying, viewModel::togglePlayPause)
             IconButton(onClick = viewModel::next, modifier = Modifier.size(56.dp)) {
-                Icon(Icons.Default.SkipNext, contentDescription = "Next", modifier = Modifier.size(36.dp))
+                Icon(Icons.Default.SkipNext, contentDescription = stringResource(R.string.next), modifier = Modifier.size(36.dp))
             }
             IconButton(onClick = viewModel::cycleRepeat) {
                 val repeatIcon = if (state.repeat == Player.REPEAT_MODE_ONE) Icons.Default.RepeatOne else Icons.Default.Repeat
                 Icon(
                     repeatIcon,
-                    contentDescription = "Repeat",
+                    contentDescription = stringResource(R.string.repeat),
                     tint = if (state.repeat == Player.REPEAT_MODE_OFF) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
                 )
             }
@@ -240,6 +263,7 @@ private fun PlaybackDeck(state: PlayerUiState, viewModel: PlayerViewModel) {
 
 @Composable
 internal fun SeekBar(positionMs: Long, durationMs: Long, onSeek: (Long) -> Unit) {
+    val seekLabel = stringResource(R.string.playback_position)
     var dragging by remember { mutableStateOf(false) }
     var dragFraction by remember { mutableFloatStateOf(0f) }
 
@@ -248,6 +272,7 @@ internal fun SeekBar(positionMs: Long, durationMs: Long, onSeek: (Long) -> Unit)
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Slider(
+            modifier = Modifier.semantics { contentDescription = seekLabel },
             value = shown,
             onValueChange = {
                 dragging = true

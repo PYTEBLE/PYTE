@@ -3,6 +3,7 @@ package dev.pyte.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -15,6 +16,8 @@ import android.net.NetworkCapabilities
 import android.os.Handler
 import android.os.Looper
 import androidx.compose.ui.platform.LocalContext
+import dev.pyte.R
+import androidx.compose.ui.res.stringResource
 
 @Composable
 internal fun BatteryModeDialog(settings: BatterySettings, busy: Boolean,
@@ -40,33 +43,33 @@ internal fun BatteryModeDialog(settings: BatterySettings, busy: Boolean,
         network.registerDefaultNetworkCallback(callback, Handler(Looper.getMainLooper()))
         onDispose { network.unregisterNetworkCallback(callback) }
     }
-    AlertDialog(onDismissRequest = onDismiss, title = { Text("Battery mode") },
+    AlertDialog(onDismissRequest = onDismiss, title = { Text(stringResource(R.string.battery)) },
         text = {
             Column(Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState())) {
-                Text("Choose your trade-offs. Changes apply only while battery mode is enabled. Savings depend on signal strength and your device.")
-                if (enabled) Text(if (metered) "Metered network: mobile-data quality saving can apply." else "Unmetered network: normal streaming quality.",
+                Text(stringResource(R.string.battery_intro))
+                if (enabled) Text(stringResource(if (metered) R.string.battery_metered else R.string.battery_unmetered),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-                SettingsSwitch("Enable battery mode", "Off restores normal behavior; your choices stay saved.", enabled, !busy, { enabled = it })
-                SettingsSwitch("Lower mobile-data quality", "Prefer audio up to 64 kbps on metered networks. Applies to newly loaded tracks; existing audio is not interrupted.", lowData, enabled && !busy, { lowData = it })
-                SettingsSwitch("Buffer in larger bursts", "Load up to 90 seconds before resting. Skipping can waste more data. Does not increase the startup threshold.", buffer, enabled && !busy, { buffer = it })
-                SettingsSwitch("Fast bypass for disabled EQ", "Skip per-sample processing when EQ and spectrum analysis are off. Enabled EQ stays intact.", eq, enabled && !busy, { eq = it })
-                SettingsSwitch("Reduce visual effects", "Pause decorative motion and spectrum analysis. Your normal effect level stays saved.", effects, enabled && !busy, { effects = it })
-                SettingsSwitch("Reduce background updates", "Stop polling playback position while the screen is off.", updates, enabled && !busy, { updates = it })
-                SettingsSwitch("Pause offline downloads", "Defer new download work. Completed downloads remain playable.", downloads, enabled && !busy, { downloads = it })
-                SettingsSwitch("Disable next-song lookahead", "Avoid speculative stream lookups; transitions may take longer.", prefetch, enabled && !busy, { prefetch = it })
-                Text("Screen-off sleep timer", style = MaterialTheme.typography.titleSmall)
-                Text("Optional: pause after continuous screen-off listening. Turning the screen on resets it; this is not needed for ordinary battery savings.")
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                SettingsSwitch(stringResource(R.string.battery_enable), stringResource(R.string.battery_enable_help), enabled, !busy, { enabled = it })
+                SettingsSwitch(stringResource(R.string.battery_quality), stringResource(R.string.battery_quality_help), lowData, enabled && !busy, { lowData = it })
+                SettingsSwitch(stringResource(R.string.battery_buffer), stringResource(R.string.battery_buffer_help), buffer, enabled && !busy, { buffer = it })
+                SettingsSwitch(stringResource(R.string.battery_eq), stringResource(R.string.battery_eq_help), eq, enabled && !busy, { eq = it })
+                SettingsSwitch(stringResource(R.string.battery_effects), stringResource(R.string.battery_effects_help), effects, enabled && !busy, { effects = it })
+                SettingsSwitch(stringResource(R.string.battery_updates), stringResource(R.string.battery_updates_help), updates, enabled && !busy, { updates = it })
+                SettingsSwitch(stringResource(R.string.battery_downloads), stringResource(R.string.battery_downloads_help), downloads, enabled && !busy, { downloads = it })
+                SettingsSwitch(stringResource(R.string.battery_prefetch), stringResource(R.string.battery_prefetch_help), prefetch, enabled && !busy, { prefetch = it })
+                Text(stringResource(R.string.battery_timer), style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.battery_timer_help))
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     listOf(0, 15, 30, 60).forEach { minutes ->
                         FilterChip(selected = timer == minutes, enabled = enabled && !busy,
-                            onClick = { timer = minutes }, label = { Text(if (minutes == 0) "Off" else "${minutes}m") })
+                            onClick = { timer = minutes }, label = { Text(if (minutes == 0) stringResource(R.string.off) else stringResource(R.string.minutes, minutes)) })
                     }
                 }
-                Text("Network/quality changes apply at the next load. Playback is never restarted just to save battery.", style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.battery_apply_help), style = MaterialTheme.typography.bodySmall)
             }
         },
         confirmButton = { TextButton(enabled = !busy, onClick = {
             onSave(BatterySettings(enabled, lowData, buffer, eq, effects, updates, downloads, prefetch, timer)); onDismiss()
-        }) { Text("Apply") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } })
+        }) { Text(stringResource(R.string.apply)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } })
 }

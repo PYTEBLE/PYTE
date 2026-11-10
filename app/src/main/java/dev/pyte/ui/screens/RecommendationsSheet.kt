@@ -48,6 +48,11 @@ import dev.pyte.ui.components.Artwork
 import dev.pyte.ui.theme.LocalLivingUi
 import dev.pyte.ui.theme.LivingUiPolicy
 import dev.pyte.ui.viewmodels.DiscoveryState
+import dev.pyte.R
+import androidx.compose.ui.res.stringResource
+import dev.pyte.ui.components.LocalSongActions
+import dev.pyte.ui.components.SongFeedbackBanner
+import androidx.compose.material.icons.filled.MoreVert
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,35 +71,36 @@ fun RecommendationsSheet(
         confirmValueChange = { it != SheetValue.Hidden || !saving }),
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
         DiscoveryMotion { policy ->
-        Column(Modifier.fillMaxWidth().fillMaxHeight(.92f)) {
+            Column(Modifier.fillMaxWidth().fillMaxHeight(.92f)) {
+            SongFeedbackBanner()
             Column(Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(
                 MaterialTheme.colorScheme.primary.copy(alpha = .14f), MaterialTheme.colorScheme.surfaceContainerLow))).padding(horizontal = 20.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text("Similar songs", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                        Text(if (context.automatic) "Your playlist, a little further" else "A new direction for your sound",
+                        Text(stringResource(R.string.discover_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                        Text(stringResource(if (context.automatic) R.string.discover_auto else R.string.discover_subtitle),
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    IconButton(onClick = onRetry, enabled = !state.loading && state.savingId == null) { Icon(Icons.Default.Refresh, "Refresh suggestions") }
-                    IconButton(onClick = onDismiss, enabled = state.savingId == null) { Icon(Icons.Default.Close, "Close suggestions") }
+                    IconButton(onClick = onRetry, enabled = !state.loading && state.savingId == null) { Icon(Icons.Default.Refresh, stringResource(R.string.discover_refresh)) }
+                    IconButton(onClick = onDismiss, enabled = state.savingId == null) { Icon(Icons.Default.Close, stringResource(R.string.close)) }
                 }
-                Text("Inspired by ${context.title}", Modifier.padding(top = 14.dp, bottom = 16.dp),
+                Text(stringResource(R.string.discover_inspired, context.title), Modifier.padding(top = 14.dp, bottom = 16.dp),
                     style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
             AnimatedVisibility(playback.isPreview, enter = fadeIn(tween(policy.duration(180))), exit = fadeOut(tween(policy.duration(120)))) {
                 Surface(color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     shape = RoundedCornerShape(18.dp)) {
                     Column(Modifier.padding(14.dp)) {
-                        Text("Listening preview · ${playback.current?.title.orEmpty()}", maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        Text(stringResource(R.string.discover_preview, playback.current?.title.orEmpty()), maxLines = 1, overflow = TextOverflow.Ellipsis,
                             style = MaterialTheme.typography.labelLarge)
-                        TextButton(onClick = onReturn) { Text("Return to playback") }
+                        TextButton(onClick = onReturn) { Text(stringResource(R.string.discover_return)) }
                         playback.errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
                     }
                 }
             }
-            if (!playback.isPreview) Text("Listen without losing your queue. Closing restores your original playback.",
+            if (!playback.isPreview) Text(stringResource(R.string.discover_preview_hint),
                 Modifier.padding(horizontal = 20.dp, vertical = 8.dp), style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             val feedback = state.saveError ?: state.status
@@ -103,13 +109,13 @@ fun RecommendationsSheet(
                     color = if (state.saveError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.bodyMedium)
             }
-            if (state.partial) Text("Some sources were unavailable. These suggestions are ready to explore.",
+            if (state.partial) Text(stringResource(R.string.discover_partial),
                 Modifier.padding(horizontal = 20.dp, vertical = 8.dp), style = MaterialTheme.typography.bodySmall)
             if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
             if (state.error != null) {
                 Column(Modifier.padding(20.dp)) {
                     Text(state.error, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    TextButton(onClick = onRetry, enabled = !state.loading) { Text("Try again") }
+                    TextButton(onClick = onRetry, enabled = !state.loading) { Text(stringResource(R.string.retry)) }
                 }
             }
             LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 32.dp),
@@ -128,8 +134,8 @@ fun RecommendationsSheet(
                 }
                 if (!state.loading && state.error == null && state.songs.isEmpty()) item {
                     Column(Modifier.fillMaxWidth().padding(24.dp)) {
-                        Text("No new matches this time", style = MaterialTheme.typography.titleMedium)
-                        Text("The available suggestions may already be in your playlist. Try another song or refresh later.",
+                        Text(stringResource(R.string.discover_empty_title), style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.discover_empty_body),
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -162,6 +168,9 @@ private fun RecommendationCard(
     added: Boolean, saving: Boolean, canAdd: Boolean, onListen: () -> Unit, onAdd: () -> Unit, modifier: Modifier,
 ) {
     val song = recommendation.track
+    val actions = LocalSongActions.current
+    val previewLabel = stringResource(if (playing) R.string.preview_pause else R.string.preview_listen)
+    val addLabel = stringResource(R.string.add_song_to_playlist, song.title)
     val policy = LocalLivingUi.current
     val scale by animateFloatAsState(if (added && policy.animate) 1.04f else 1f, tween(policy.duration(180)), label = "recommendationAdded")
     Surface(modifier.fillMaxWidth(), shape = RoundedCornerShape(22.dp),
@@ -176,24 +185,25 @@ private fun RecommendationCard(
                     Text(song.artist, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
+                actions?.let { IconButton(onClick = { it.open(song) }) { Icon(Icons.Default.MoreVert, stringResource(R.string.song_options, song.title)) } }
             }
-            Text("Because of ${recommendation.seedTitle}", Modifier.padding(top = 10.dp, bottom = 4.dp),
+            Text(stringResource(R.string.discover_because, recommendation.seedTitle), Modifier.padding(top = 10.dp, bottom = 4.dp),
                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = onListen, modifier = Modifier.semantics {
-                    contentDescription = if (playing) "Pause preview of ${song.title}" else "Listen to ${song.title}"
+                    contentDescription = "$previewLabel: ${song.title}"
                 }) {
                     Icon(if (playing) Icons.Default.Pause else Icons.Default.PlayArrow,
                         contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text(if (playing) "Pause preview" else "Listen")
+                    Text(previewLabel)
                 }
-                FilledTonalButton(onClick = onAdd, enabled = canAdd && !added,
+                FilledTonalButton(onClick = onAdd, enabled = canAdd,
                     colors = ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary),
                     modifier = Modifier.graphicsLayer { scaleX = scale; scaleY = scale }.semantics {
-                        contentDescription = if (added) "${song.title} added" else "Add ${song.title} to a local playlist"
+                        contentDescription = addLabel
                     }) {
                     AnimatedContent(targetState = added, transitionSpec = {
                         fadeIn(tween(policy.duration(180))) togetherWith fadeOut(tween(policy.duration(100)))
@@ -202,7 +212,7 @@ private fun RecommendationCard(
                             if (saving) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                             else Icon(if (checked) Icons.Default.Check else Icons.Default.Add, null, Modifier.size(18.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text(if (checked) "Added" else "Add")
+                            Text(stringResource(R.string.add_to_playlist))
                         }
                     }
                 }

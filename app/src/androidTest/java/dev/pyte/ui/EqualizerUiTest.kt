@@ -27,7 +27,7 @@ class EqualizerUiTest {
                     {}, {}, {}, {}, { _, _ -> }, {}, {})
             }
         }
-        compose.onNodeWithContentDescription("Enable equalizer").assertIsNotEnabled()
+        compose.onNodeWithContentDescription("Equalizer aktivieren").assertIsNotEnabled()
         compose.onNodeWithText("Unsupported output").assertExists()
         compose.onNodeWithContentDescription("Equalizer 63 Hz").assertDoesNotExist()
     }
@@ -40,11 +40,11 @@ class EqualizerUiTest {
                 EqualizerContent(settings, EqualizerState(), null, {}, {}, {}, {}, { _, _ -> }, { deleted = it }, {})
             }
         }
-        compose.onNodeWithText("Delete").performScrollTo().performClick()
+        compose.onNodeWithText("Löschen").performScrollTo().performClick()
         compose.runOnIdle { assertNull(deleted) }
-        compose.onNodeWithText("Cancel").performClick()
+        compose.onNodeWithText("Abbrechen").performClick()
         compose.runOnIdle { assertNull(deleted) }
-        compose.onNodeWithText("Delete").performClick()
+        compose.onNodeWithText("Löschen").performClick()
         compose.onAllNodesWithText("Delete").onLast().performClick()
         compose.runOnIdle { assertEquals("mine", deleted) }
     }

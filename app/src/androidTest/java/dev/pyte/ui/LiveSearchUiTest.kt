@@ -23,24 +23,24 @@ class LiveSearchUiTest {
     @Test fun onlineSongCanBeAddedToANewLocalPlaylistAndOpenedFromLibrary() {
         assumeTrue(InstrumentationRegistry.getArguments().getString("liveSearch") == "true")
         val title = "Search test ${System.currentTimeMillis()}"
-        compose.onNodeWithText("Search", useUnmergedTree = false).performClick()
+        compose.onNodeWithText("Suchen", useUnmergedTree = false).performClick()
         compose.onNode(hasSetTextAction()).performTextInput("schönhauser Gustav")
-        compose.onNodeWithContentDescription("Search YouTube Music").performClick()
-        val options = hasContentDescription("Options for schönhauser", substring = true)
+        compose.onNodeWithContentDescription("Auf YouTube Music suchen").performClick()
+        val options = hasContentDescription("Aktionen für „schönhauser", substring = true)
         compose.waitUntil(120_000) { compose.onAllNodes(options).fetchSemanticsNodes().isNotEmpty() }
         compose.onAllNodes(options)[0].performClick()
-        compose.onNodeWithText("Add to local playlist").performClick()
-        compose.onNodeWithText("New local playlist name").performTextInput(title)
-        compose.onNodeWithText("Create & add").performClick()
-        compose.waitUntil(60_000) { compose.onAllNodesWithText("Create & add").fetchSemanticsNodes().isEmpty() }
-        compose.onNodeWithText("Library").performClick()
+        compose.onNodeWithText("Zur Playlist").performClick()
+        compose.onNodeWithText("Name der neuen Playlist").performTextInput(title)
+        compose.onNodeWithText("Erstellen und hinzufügen").performClick()
+        compose.waitUntil(60_000) { compose.onAllNodesWithText("Erstellen und hinzufügen").fetchSemanticsNodes().isEmpty() }
+        compose.onNodeWithText("Bibliothek").performClick()
         compose.waitUntil(60_000) { compose.onAllNodesWithText(title).fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText(title).performClick()
-        compose.onNodeWithText("On this device • 1 tracks").assertExists()
-        compose.onNodeWithContentDescription("Playlist options").performClick()
-        compose.onNodeWithText("Refresh from YouTube").assertDoesNotExist()
-        compose.onNodeWithText("Delete playlist").performClick()
-        compose.onNodeWithText("Delete", substring = false).performClick()
+        compose.onNodeWithText("LOKAL • 1 Song").assertExists()
+        compose.onNodeWithContentDescription("Playlist-Aktionen").performClick()
+        compose.onNodeWithText("Von YouTube aktualisieren").assertDoesNotExist()
+        compose.onNodeWithText("Playlist löschen").performClick()
+        compose.onNodeWithText("Löschen", substring = false).performClick()
         compose.waitUntil(60_000) { compose.onAllNodesWithText(title).fetchSemanticsNodes().isEmpty() }
     }
 }

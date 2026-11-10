@@ -76,6 +76,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
+import androidx.compose.material3.SnackbarResult
+import dev.pyte.ui.components.SongActions
+import dev.pyte.ui.components.SongActionsSheet
+import dev.pyte.ui.components.LocalSongActions
+import dev.pyte.ui.components.LocalSongFeedback
+import dev.pyte.ui.components.SongFeedback
+import dev.pyte.R
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 
 private object Routes {
     const val HOME = "home"
@@ -88,13 +100,13 @@ private object Routes {
     fun playlist(id: String) = "playlist/$id"
 }
 
-private data class Tab(val route: String, val label: String, val icon: ImageVector)
+private data class Tab(val route: String, val label: Int, val icon: ImageVector)
 
 private val tabs = listOf(
-    Tab(Routes.HOME, "Library", Icons.Default.LibraryMusic),
-    Tab(Routes.SEARCH, "Search", Icons.Default.Search),
-    Tab(Routes.FAVORITES, "Favorites", Icons.Default.Favorite),
-    Tab(Routes.SETTINGS, "Settings", Icons.Default.Settings),
+    Tab(Routes.HOME, R.string.library, Icons.Default.LibraryMusic),
+    Tab(Routes.SEARCH, R.string.search, Icons.Default.Search),
+    Tab(Routes.FAVORITES, R.string.favorites, Icons.Default.Favorite),
+    Tab(Routes.SETTINGS, R.string.settings, Icons.Default.Settings),
 )
 
 @Composable
@@ -106,6 +118,10 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel(), recommendations
     val motion = rememberLivingUiPolicy(appearance)
     val report by playerViewModel.diagnosticReport.collectAsStateWithLifecycle()
     val playlistSave by playerViewModel.playlistSave.collectAsStateWithLifecycle()
+    val favorites by playerViewModel.favoriteIds.collectAsStateWithLifecycle()
+    val globalPlaylists by playerViewModel.playlists.collectAsStateWithLifecycle()
+    var actionTrack by remember { mutableStateOf<dev.pyte.domain.Track?>(null) }
+    val songActions = remember(playerViewModel) { SongActions({ actionTrack = it }, playerViewModel::selectForPlaylist) }
     val context = LocalContext.current
     val backStack by nav.currentBackStackEntryAsState()
     val route = backStack?.destination?.route
@@ -116,12 +132,12 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel(), recommendations
     val discoveryPlaylists by recommendationsViewModel.playlists.collectAsStateWithLifecycle()
     val lifecycle by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
     val windowFocused = LocalWindowInfo.current.isWindowFocused
-    LaunchedEffect(lifecycle, windowFocused, report, morph.hiddenId, playlistSave.track) {
+    LaunchedEffect(lifecycle, windowFocused, report, morph.hiddenId, playlistSave.track, actionTrack) {
         // UI eligibility is separate from the decorative animation policy.
         val foreground = lifecycle.isAtLeast(Lifecycle.State.RESUMED) && windowFocused &&
             context.getSystemService(PowerManager::class.java).isInteractive &&
             !context.getSystemService(KeyguardManager::class.java).isKeyguardLocked
-        recommendationsViewModel.visibility(foreground, report == null && morph.hiddenId == null && playlistSave.track == null)
+        recommendationsViewModel.visibility(foreground, report == null && morph.hiddenId == null && playlistSave.track == null && actionTrack == null)
     }
     val openPlayer = {
         if (nav.currentDestination?.route != Routes.NOW_PLAYING) {
@@ -140,14 +156,20 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel(), recommendations
     LaunchedEffect(playerState.errorMessage) {
         playerState.errorMessage?.let { snackbar.showSnackbar(it) }
     }
-    LaunchedEffect(playlistSave.message) {
-        playlistSave.message?.let {
-            snackbar.showSnackbar(it)
-            playerViewModel.consumePlaylistMessage()
+    val undoLabel = stringResource(R.string.undo)
+    LaunchedEffect(playlistSave.message, playlistSave.undo, undoLabel) {
+        val event = playlistSave
+        event.message?.let {
+            val result = snackbar.showSnackbar(it, actionLabel = event.undo?.let { undoLabel }, withDismissAction = true)
+            if (result == SnackbarResult.ActionPerformed) event.undo?.let(playerViewModel::undoSave)
+            playerViewModel.consumePlaylistMessage(event)
         }
     }
 
-    CompositionLocalProvider(LocalLivingUi provides motion, LocalPlayerMorph provides morph) {
+    val feedback = playlistSave.message?.let { message -> SongFeedback(message,
+        playlistSave.undo?.let { addition -> { playerViewModel.undoSave(addition) } }, playlistSave.messageIsError) }
+    CompositionLocalProvider(LocalLivingUi provides motion, LocalPlayerMorph provides morph, LocalSongActions provides songActions,
+        LocalSongFeedback provides feedback) {
     AppCoverTheme(coverColors) {
     AppBackground(playerState.isPlaying, onNowPlaying) {
     Box(Modifier.fillMaxSize().onGloballyPositioned { morph.rootBounds(it.boundsInWindow()) }) {
@@ -190,7 +212,9 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel(), recommendations
                             },
                             onOpen = openPlayer,
                             onToggle = playerViewModel::togglePlayPause,
-                            onNext = playerViewModel::next,
+                             onNext = playerViewModel::next,
+                             onSave = { playerViewModel.selectForPlaylist(current) },
+                             onPrevious = playerViewModel::previous,
                             videoId = current.videoId,
                         )
                     }
@@ -216,8 +240,8 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel(), recommendations
                                         restoreState = true
                                     }
                                 },
-                                icon = { Icon(tab.icon, contentDescription = tab.label, modifier = Modifier.graphicsLayer { scaleX = scale; scaleY = scale }) },
-                                label = { Text(tab.label) },
+                                icon = { Icon(tab.icon, contentDescription = null, modifier = Modifier.graphicsLayer { scaleX = scale; scaleY = scale }) },
+                                label = { Text(stringResource(tab.label), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                             )
                         }
                     }
@@ -228,22 +252,23 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel(), recommendations
         NavHost(
             navController = nav,
             startDestination = Routes.HOME,
-            enterTransition = { fadeIn(tween(motion.duration(220))) },
-            exitTransition = { fadeOut(tween(motion.duration(180))) },
-            popEnterTransition = { fadeIn(tween(motion.duration(220))) },
-            popExitTransition = { fadeOut(tween(motion.duration(180))) },
+            enterTransition = { fadeIn(tween(motion.duration(260))) + slideInHorizontally(tween(motion.duration(300))) { if (motion.animate) it / 12 else 0 } },
+            exitTransition = { fadeOut(tween(motion.duration(180))) + slideOutHorizontally(tween(motion.duration(220))) { if (motion.animate) -it / 16 else 0 } },
+            popEnterTransition = { fadeIn(tween(motion.duration(260))) + slideInHorizontally(tween(motion.duration(300))) { if (motion.animate) -it / 12 else 0 } },
+            popExitTransition = { fadeOut(tween(motion.duration(180))) + slideOutHorizontally(tween(motion.duration(220))) { if (motion.animate) it / 16 else 0 } },
         ) {
             composable(Routes.HOME) {
                 HomeScreen(
                     onOpenPlaylist = { nav.navigate(Routes.playlist(it)) },
                     contentPadding = padding,
+                    onSearch = { nav.navigate(Routes.SEARCH) { launchSingleTop = true } },
                 )
             }
             composable(Routes.SEARCH) {
                 SearchScreen(contentPadding = padding)
             }
             composable(Routes.FAVORITES) {
-                FavoritesScreen(contentPadding = padding)
+                FavoritesScreen(contentPadding = padding, onSearch = { nav.navigate(Routes.SEARCH) { launchSingleTop = true } })
             }
             composable(Routes.SETTINGS) {
                 SettingsScreen(contentPadding = padding)
@@ -256,6 +281,7 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel(), recommendations
                     onBack = { nav.popBackStack() },
                     contentPadding = padding,
                     onDiscover = { id, title -> recommendationsViewModel.openPlaylist(id, title) },
+                    onSearch = { nav.navigate(Routes.SEARCH) { launchSingleTop = true } },
                 )
             }
             composable(
@@ -265,14 +291,27 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel(), recommendations
                 popEnterTransition = { fadeIn(tween(motion.duration(380))) },
                 popExitTransition = { fadeOut(tween(motion.duration(300))) },
             ) {
-                NowPlayingScreen(onClose = closePlayer, onDiscover = recommendationsViewModel::openSong)
+                NowPlayingScreen(onClose = closePlayer, viewModel = playerViewModel, onDiscover = recommendationsViewModel::openSong)
             }
         }
     }
     PlayerMorphOverlay(morph, playerState.current?.videoId)
     RecommendationsSheet(discovery, playerState, recommendationsViewModel::dismiss,
         recommendationsViewModel::retry, recommendationsViewModel::listen,
-        recommendationsViewModel::returnToPlayback, recommendationsViewModel::add)
+        recommendationsViewModel::returnToPlayback, playerViewModel::selectForPlaylist)
+    actionTrack?.let { song ->
+        SongActionsSheet(song, song.videoId in favorites, { actionTrack = null },
+            onSave = { actionTrack = null; playerViewModel.selectForPlaylist(song) },
+            onNext = { actionTrack = null; playerViewModel.enqueueNext(song) },
+            onQueue = { actionTrack = null; playerViewModel.enqueueLater(song) },
+            onFavorite = { actionTrack = null; playerViewModel.toggleFavorite(song, song.videoId !in favorites) },
+            onDiscover = { actionTrack = null; recommendationsViewModel.openSong(song) })
+    }
+    playlistSave.track?.let { song ->
+        AddToPlaylistDialog(song, globalPlaylists, playlistSave.saving, playlistSave.error, playerViewModel::dismissPlaylistSave,
+            onChoose = { playerViewModel.saveToPlaylist(id = it) }, onCreate = { playerViewModel.saveToPlaylist(newTitle = it) },
+            recentId = appearance.recentPlaylistId)
+    }
     discovery.picker?.let { song ->
         AddToPlaylistDialog(song, discoveryPlaylists, discovery.savingId != null, discovery.saveError,
             recommendationsViewModel::dismissPicker, recommendationsViewModel::choosePlaylist,

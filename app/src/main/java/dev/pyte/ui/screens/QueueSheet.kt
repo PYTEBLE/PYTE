@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -31,6 +32,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlaylistAdd
+import androidx.compose.material.icons.filled.MoreVert
+import dev.pyte.ui.components.LocalSongActions
+import dev.pyte.ui.components.SongFeedbackBanner
+import dev.pyte.ui.components.SheetMotion
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import dev.pyte.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,13 +50,16 @@ fun QueueSheet(
     onRemove: (Int) -> Unit,
     onAddToPlaylist: ((Track) -> Unit)? = null,
 ) {
-    val motion = LocalLivingUi.current
+    val actions = LocalSongActions.current
     val keys = queueAnimationKeys(state)
     ModalBottomSheet(onDismissRequest = onDismiss) {
+        SheetMotion {
+        val motion = LocalLivingUi.current
         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-            Text("Queue · ${state.queue.size} tracks", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            SongFeedbackBanner()
+            Text(stringResource(R.string.queue_title, pluralStringResource(R.plurals.songs_count, state.queue.size, state.queue.size)), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             if (state.shuffle) {
-                Text("Shuffle is on. Moving tracks or choosing Play next switches it off.",
+                Text(stringResource(R.string.queue_shuffle_hint),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 8.dp))
             }
@@ -65,25 +76,28 @@ fun QueueSheet(
                             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                                 Text(track.title, maxLines = 1, overflow = TextOverflow.Ellipsis,
                                     color = if (index == state.currentIndex) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
-                                Text(if (index == state.currentIndex) "Now playing · ${track.artist}" else track.artist,
+                                Text(if (index == state.currentIndex) stringResource(R.string.queue_current, track.artist) else track.artist,
                                     maxLines = 1, overflow = TextOverflow.Ellipsis,
                                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             Text("${index + 1}", style = MaterialTheme.typography.labelSmall)
                             onAddToPlaylist?.let { add ->
                                 IconButton(onClick = { add(track) }) {
-                                    Icon(Icons.Default.PlaylistAdd, "${track.title} zur lokalen Playlist hinzufügen")
+                                    Icon(Icons.Default.PlaylistAdd, stringResource(R.string.add_song_to_playlist, track.title))
                                 }
                             }
+                            actions?.let { IconButton(onClick = { it.open(track) }) { Icon(Icons.Default.MoreVert,
+                                stringResource(R.string.song_options, track.title)) } }
                         }
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                            TextButton(onClick = { onMove(index, index - 1) }, enabled = index > 0) { Text("Move up") }
-                            TextButton(onClick = { onMove(index, index + 1) }, enabled = index < state.queue.lastIndex) { Text("Move down") }
-                            TextButton(onClick = { onRemove(index) }) { Text("Remove") }
+                        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                            TextButton(onClick = { onMove(index, index - 1) }, enabled = index > 0) { Text(stringResource(R.string.move_up)) }
+                            TextButton(onClick = { onMove(index, index + 1) }, enabled = index < state.queue.lastIndex) { Text(stringResource(R.string.move_down)) }
+                            TextButton(onClick = { onRemove(index) }) { Text(stringResource(R.string.remove)) }
                         }
                     }
                 }
             }
+        }
         }
     }
 }
