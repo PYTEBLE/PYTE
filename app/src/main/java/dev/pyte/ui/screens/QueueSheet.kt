@@ -50,54 +50,70 @@ fun QueueSheet(
     onRemove: (Int) -> Unit,
     onAddToPlaylist: ((Track) -> Unit)? = null,
 ) {
-    val actions = LocalSongActions.current
-    val keys = queueAnimationKeys(state)
     ModalBottomSheet(onDismissRequest = onDismiss) {
         SheetMotion {
-        val motion = LocalLivingUi.current
-        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-            SongFeedbackBanner()
-            Text(stringResource(R.string.queue_title, pluralStringResource(R.plurals.songs_count, state.queue.size, state.queue.size)), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            if (state.shuffle) {
-                Text(stringResource(R.string.queue_shuffle_hint),
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(vertical = 8.dp))
-            }
-            LazyColumn(Modifier.fillMaxWidth().heightIn(max = 520.dp), contentPadding = PaddingValues(bottom = 24.dp)) {
-                itemsIndexed(state.queue, key = { index, _ -> keys[index] }) { index, track ->
-                    Column(Modifier.animateItem(
-                        fadeInSpec = if (motion.animate) tween(motion.duration(180)) else null,
-                        placementSpec = if (motion.animate) tween(motion.duration(260)) else null,
-                        fadeOutSpec = if (motion.animate) tween(motion.duration(160)) else null,
-                    ).fillMaxWidth().padding(vertical = 6.dp)) {
-                        Row(Modifier.fillMaxWidth().clickable { onPlay(index) }.padding(vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically) {
-                            Artwork(track.thumbnailUrl, Modifier.size(44.dp), videoId = track.videoId)
-                            Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                                Text(track.title, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                                    color = if (index == state.currentIndex) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
-                                Text(if (index == state.currentIndex) stringResource(R.string.queue_current, track.artist) else track.artist,
-                                    maxLines = 1, overflow = TextOverflow.Ellipsis,
-                                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            Text("${index + 1}", style = MaterialTheme.typography.labelSmall)
-                            onAddToPlaylist?.let { add ->
-                                IconButton(onClick = { add(track) }) {
-                                    Icon(Icons.Default.PlaylistAdd, stringResource(R.string.add_song_to_playlist, track.title))
-                                }
-                            }
-                            actions?.let { IconButton(onClick = { it.open(track) }) { Icon(Icons.Default.MoreVert,
-                                stringResource(R.string.song_options, track.title)) } }
+            QueueContent(state, onPlay, onMove, onRemove, onAddToPlaylist, Modifier.fillMaxWidth().padding(horizontal = 16.dp))
+        }
+    }
+}
+
+@Composable
+fun QueueContent(
+    state: PlayerUiState,
+    onPlay: (Int) -> Unit,
+    onMove: (Int, Int) -> Unit,
+    onRemove: (Int) -> Unit,
+    onAddToPlaylist: ((Track) -> Unit)?,
+    modifier: Modifier = Modifier,
+    fillHeight: Boolean = false,
+) {
+    val actions = LocalSongActions.current
+    val keys = queueAnimationKeys(state)
+    val motion = LocalLivingUi.current
+    Column(modifier) {
+        SongFeedbackBanner()
+        Text(stringResource(R.string.queue_title, pluralStringResource(R.plurals.songs_count, state.queue.size, state.queue.size)), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        if (state.shuffle) {
+            Text(stringResource(R.string.queue_shuffle_hint),
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(vertical = 8.dp))
+        }
+        LazyColumn(
+            (if (fillHeight) Modifier.weight(1f) else Modifier.heightIn(max = 520.dp)).fillMaxWidth(),
+            contentPadding = PaddingValues(bottom = 24.dp),
+        ) {
+            itemsIndexed(state.queue, key = { index, _ -> keys[index] }) { index, track ->
+                Column(Modifier.animateItem(
+                    fadeInSpec = if (motion.animate) tween(motion.duration(180)) else null,
+                    placementSpec = if (motion.animate) tween(motion.duration(260)) else null,
+                    fadeOutSpec = if (motion.animate) tween(motion.duration(160)) else null,
+                ).fillMaxWidth().padding(vertical = 6.dp)) {
+                    Row(Modifier.fillMaxWidth().clickable { onPlay(index) }.padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically) {
+                        Artwork(track.thumbnailUrl, Modifier.size(44.dp), videoId = track.videoId)
+                        Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                            Text(track.title, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                color = if (index == state.currentIndex) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
+                            Text(if (index == state.currentIndex) stringResource(R.string.queue_current, track.artist) else track.artist,
+                                maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                            TextButton(onClick = { onMove(index, index - 1) }, enabled = index > 0) { Text(stringResource(R.string.move_up)) }
-                            TextButton(onClick = { onMove(index, index + 1) }, enabled = index < state.queue.lastIndex) { Text(stringResource(R.string.move_down)) }
-                            TextButton(onClick = { onRemove(index) }) { Text(stringResource(R.string.remove)) }
+                        Text("${index + 1}", style = MaterialTheme.typography.labelSmall)
+                        onAddToPlaylist?.let { add ->
+                            IconButton(onClick = { add(track) }) {
+                                Icon(Icons.Default.PlaylistAdd, stringResource(R.string.add_song_to_playlist, track.title))
+                            }
                         }
+                        actions?.let { IconButton(onClick = { it.open(track) }) { Icon(Icons.Default.MoreVert,
+                            stringResource(R.string.song_options, track.title)) } }
+                    }
+                    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        TextButton(onClick = { onMove(index, index - 1) }, enabled = index > 0) { Text(stringResource(R.string.move_up)) }
+                        TextButton(onClick = { onMove(index, index + 1) }, enabled = index < state.queue.lastIndex) { Text(stringResource(R.string.move_down)) }
+                        TextButton(onClick = { onRemove(index) }) { Text(stringResource(R.string.remove)) }
                     }
                 }
             }
-        }
         }
     }
 }

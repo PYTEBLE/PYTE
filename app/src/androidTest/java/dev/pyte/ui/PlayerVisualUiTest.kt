@@ -68,8 +68,10 @@ class PlayerVisualUiTest {
                 assertNotNull(sound); sound!!.click()
                 assertNotNull(device.wait(Until.findObject(By.text("15 Bänder. Dein Klang.")), 30000))
                 captureUi("sound-studio.png")
-                device.findObject(By.desc("Schließen"))!!.click()
-                assertNotNull(device.wait(Until.findObject(By.desc("Warteschlange öffnen")), 30000))
+                device.findObject(By.text("Warteschlange"))!!.click()
+                assertNotNull(device.wait(Until.findObject(By.text("Warteschlange · 1 Song")), 30000))
+                device.findObject(By.text("Cover"))!!.click()
+                assertNotNull(device.wait(Until.findObject(By.desc("Abspielen")), 30000))
             } finally {
                 instrumentation.runOnMainSync {
                     if (original.isEmpty()) { controller.stop(); controller.clearMediaItems() }

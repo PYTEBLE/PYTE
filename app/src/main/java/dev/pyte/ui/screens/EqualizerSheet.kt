@@ -62,6 +62,23 @@ fun EqualizerSheet(onDismiss: () -> Unit, viewModel: EqualizerViewModel = hiltVi
 }
 
 @Composable
+fun EqualizerPanel(modifier: Modifier = Modifier, viewModel: EqualizerViewModel = hiltViewModel()) {
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val device by viewModel.device.collectAsStateWithLifecycle()
+    val error by viewModel.error.collectAsStateWithLifecycle()
+    val spectrum by viewModel.spectrum.collectAsStateWithLifecycle()
+    val playing by viewModel.playing.collectAsStateWithLifecycle()
+    val motion = LocalLivingUi.current
+    DisposableEffect(viewModel) { onDispose { viewModel.analyzing(false); viewModel.cancelPreview() } }
+    LaunchedEffect(motion.foreground, motion.ambient, playing) { viewModel.analyzing(motion.foreground && motion.ambient && playing) }
+    Box(modifier) {
+        EqualizerContent(settings?.equalizer, device, error, viewModel::enabled, viewModel::select,
+            viewModel::preview, viewModel::curve, viewModel::save, viewModel::delete, viewModel::retry,
+            spectrum, viewModel::limiter)
+    }
+}
+
+@Composable
 internal fun EqualizerContent(
     settings: EqualizerSettings?, device: EqualizerState, error: String?,
     onEnabled: (Boolean) -> Unit, onSelect: (String) -> Unit,
