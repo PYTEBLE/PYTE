@@ -44,6 +44,10 @@ A local-first Android music player for public YouTube Music playlists.
   quality reduction, burst buffering, disabled-EQ bypass, reduced effects/background updates,
   download/lookahead suppression and an optional screen-off timer. Saving policies are gated
   by its master switch; see [docs/BATTERY.md](docs/BATTERY.md) for trade-offs and limits.
+- The Android UI uses German labels and shared song actions: visible playlist-add buttons,
+  playlist search/last-used destination, and undo for new local additions. Action sheets,
+  touch effects and loading states follow the same motion/battery policy. See
+  [docs/UI-UX.md](docs/UI-UX.md) for flows and the still-open device-validation requirements.
 - A 15-band software equalizer is available from the player, Lyrics and Settings. It uses
   the web version's 16 presets and up to 12 named local sound profiles. Curves
   remain compatible with older five-band profiles. Audio is processed in PYTE's own PCM

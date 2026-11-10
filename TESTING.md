@@ -1,5 +1,30 @@
 # Playback verification
 
+## German UI/UX refresh (unreleased)
+
+- `assembleDebug`, `assembleDebugAndroidTest`, `testDebugUnitTest` and `lintDebug` succeeded.
+  Opt-in live tests enabled: **147 tests passed, zero failures/errors/skips**. Lint: zero errors.
+- New unit coverage: playlist filtering and last-used ordering, recency persistence without
+  changing effects/battery preferences, German resources on English devices, singular/plural
+  labels, mini-player swipe thresholds, and transactional undo. Undo tests preserve imported
+  duplicates, favorites/history and playlist existence, and reject deleted/source-only links.
+- New Compose cases compile for direct saving/long-press without a screen-specific callback,
+  common sheet actions, playlist search, busy-state controls and save feedback/undo inside a
+  queue sheet. Existing instrumentation assertions now use German labels and the shared
+  recommendation picker. **These are not executed/passing device UI tests.**
+- No device is attached. No screenshot review, TalkBack run, large-font/narrow-screen visual
+  qualification, gesture usability review, CPU profiling or battery measurement was completed.
+  The previous emulator issue is not treated as successful evidence for this redesign.
+- Interrupted builds during environment/server restarts were superseded by the successful
+  final run. The temporary SDK had to be restored; no user/editor files were modified.
+- Recommended device checklist: save a song from favorites, an imported playlist, recent
+  cards, mini-player, full player, lyrics, queue and a discovery preview without playing it;
+  change tracks with the picker open and confirm its selection stays fixed; search/create a
+  destination; undo without losing existing songs or playback; verify feedback in modal sheets.
+  Check large fonts/keyboard, swipe cancellation, and reduced-motion/battery-mode behavior.
+- Changes remain local/unreleased with the existing app version. See [docs/UI-UX.md](docs/UI-UX.md)
+  for interaction rules, motion effects and the remaining qualification limits.
+
 ## Configurable battery mode (alpha.12)
 
 - `assembleDebug`, `assembleDebugAndroidTest` and `lintDebug` succeeded. Lint: zero errors.

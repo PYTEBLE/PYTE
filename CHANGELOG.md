@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased — consistent German UI and song actions
+
+- Add a common song-action sheet and visible playlist-save affordances across song lists,
+  recent cards, mini/full player, lyrics, queue and discovery. Saving no longer requires
+  searching for the currently playing song or starting a mix.
+- Add playlist-picker search, persisted last destination and safe undo of new local additions.
+  Keep the selected song fixed, preserve playback, and show feedback inside modal sheets too.
+- Move interface labels/help and user-facing messages to German resources, including settings,
+  battery controls, sound profiles, search and downloads. Keep labeled navigation destinations.
+- Improve empty states and playlist/settings hierarchy; add loading skeletons, input-driven
+  light blooms, clipped cover parallax, real position-ring decoration and mini-player swipes.
+- Honor existing effect levels, reduced motion and battery mode. Device visuals and interaction
+  behavior remain unqualified without an attached device; see `docs/UI-UX.md` and `TESTING.md`.
+
 ## 0.2.0-alpha.12 — configurable battery mode
 
 - Add a Battery mode popup in Settings with a master switch, independent saving methods,
