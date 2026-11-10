@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="appearance_title">Darstellung</string>
+    <string name="privacy_info">Datenschutz &amp; Info</string>
+    <string name="settings_group_listening">Hören</string>
+    <string name="settings_group_device">Gerät und Daten</string>
+    <string name="settings_value_playback">Stille überspringen: %1$s</string>
+    <string name="settings_value_sound">Equalizer: %1$s</string>
+    <string name="settings_value_discover">Empfehlungen: %1$s</string>
+    <string name="settings_value_appearance">Effekte: %1$s</string>
+    <string name="settings_value_battery">Akkumodus: %1$s</string>
+    <string name="settings_value_downloads">%1$s belegt · Limit %2$s</string>
+    <string name="settings_value_history">Speichern: %1$s</string>
+    <string name="settings_value_data">Export und Import als Datei</string>
+    <string name="settings_value_privacy">Lokal gespeichert · PYTE %1$s</string>
+    <string name="size_mb">%1$d MB</string>
+    <string name="size_gb">%1$d GB</string>
+    <string name="download_limit">Speicherlimit</string>
+    <string name="download_limit_decrease">Speicherlimit senken</string>
+    <string name="download_limit_increase">Speicherlimit erhöhen</string>
+    <string name="battery_methods">Sparmethoden</string>
+    <string name="battery_timer_title">Einschlaftimer</string>
+    <string name="data_title">Daten sichern</string>
+    <string name="data_intro">Sichere Playlists, Favoriten, Verlauf und Einstellungen in einer Datei. Alles bleibt auf deinem Gerät, PYTE lädt nichts hoch.</string>
+    <string name="data_export_title">Backup erstellen</string>
+    <string name="data_export_help">Speichere die Datei an einem Ort deiner Wahl, z. B. in Downloads oder auf einem USB-Stick.</string>
+    <string name="data_export_action">Backup speichern</string>
+    <string name="data_import_title">Backup laden</string>
+    <string name="data_import_help">Wähle eine PYTE-Backup-Datei. Playlists und Favoriten werden zusammengeführt, gleiche Playlists aus dem Backup aktualisiert und Einstellungen übernommen.</string>
+    <string name="data_import_action">Backup-Datei wählen</string>
+    <string name="data_not_included">Nicht enthalten sind heruntergeladene Audiodateien und Offline-Markierungen. Markiere Playlists nach dem Import erneut als offline.</string>
+    <string name="data_import_confirm_title">Backup laden?</string>
+    <string name="data_import_confirm_body">Deine Einstellungen werden durch das Backup ersetzt. Playlists, Favoriten und Verlauf werden zusammengeführt. Dieser Schritt lässt sich nicht rückgängig machen.</string>
+    <string name="data_import_confirm_action">Laden</string>
+    <string name="data_export_done">Backup gespeichert: %1$d Playlists, %2$d Favoriten, %3$d Verlaufseinträge</string>
+    <string name="data_import_done">Backup geladen: %1$d Playlists, %2$d Favoriten, %3$d Verlaufseinträge</string>
+    <string name="data_import_invalid">Diese Datei ist kein gültiges PYTE-Backup. Es wurde nichts geändert.</string>
+    <string name="data_export_error">Backup konnte nicht gespeichert werden.</string>
+    <string name="data_import_error">Backup konnte nicht gelesen werden. Es wurde nichts geändert.</string>
+</resources>

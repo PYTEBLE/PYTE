@@ -3,6 +3,7 @@ package dev.pyte.ui.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.pyte.data.backup.BackupRepository
 import dev.pyte.data.repository.LibraryRepository
 import dev.pyte.data.settings.SettingsRepository
 import kotlinx.coroutines.CancellationException
@@ -23,6 +24,7 @@ class SettingsViewModel @Inject constructor(
     private val repository: SettingsRepository,
     private val library: LibraryRepository,
     private val offline: OfflineStore,
+    private val backup: BackupRepository,
     private val text: dev.pyte.ui.UiStrings,
 ) : ViewModel() {
     private val _loadFailed = MutableStateFlow(false)
@@ -54,6 +56,15 @@ class SettingsViewModel @Inject constructor(
         library.clearHistory()
         _message.value = text.get(dev.pyte.R.string.history_cleared)
     }
+    fun exportBackup(uri: android.net.Uri) = update {
+        val summary = backup.export(uri)
+        _message.value = text.get(dev.pyte.R.string.data_export_done, summary.playlists, summary.favorites, summary.history)
+    }
+    fun importBackup(uri: android.net.Uri) = update {
+        val summary = backup.import(uri)
+        offline.schedule()
+        _message.value = text.get(dev.pyte.R.string.data_import_done, summary.playlists, summary.favorites, summary.history)
+    }
     fun dismissMessage() { _message.value = null }
 
     private fun update(action: suspend () -> Unit) {
@@ -64,6 +75,8 @@ class SettingsViewModel @Inject constructor(
                 action()
             } catch (e: CancellationException) {
                 throw e
+            } catch (e: dev.pyte.data.backup.BackupException) {
+                _message.value = text.get(e.messageRes)
             } catch (_: Exception) {
                 _message.value = text.get(dev.pyte.R.string.error_settings)
             } finally {

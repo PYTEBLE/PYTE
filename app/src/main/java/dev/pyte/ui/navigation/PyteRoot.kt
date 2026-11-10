@@ -55,6 +55,7 @@ import dev.pyte.ui.screens.LibraryScreen
 import dev.pyte.ui.screens.NowPlayingScreen
 import dev.pyte.ui.screens.PlaylistScreen
 import dev.pyte.ui.screens.SearchScreen
+import dev.pyte.ui.screens.SettingsCategory
 import dev.pyte.ui.screens.SettingsScreen
 import dev.pyte.ui.screens.RecommendationsSheet
 import dev.pyte.ui.components.AddToPlaylistDialog
@@ -93,10 +94,12 @@ private object Routes {
     const val SEARCH = "search"
     const val LIBRARY = "library"
     const val SETTINGS = "settings"
+    const val SETTINGS_PAGE = "settings/{category}"
     const val PLAYLIST = "playlist/{playlistId}"
     const val NOW_PLAYING = "now_playing"
 
     fun playlist(id: String) = "playlist/$id"
+    fun settingsPage(category: SettingsCategory) = "settings/${category.route}"
 }
 
 private data class Tab(val route: String, val label: Int, val icon: ImageVector)
@@ -232,7 +235,7 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel(), recommendations
                                     unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                 ),
                                 onClick = {
-                                    if (route == Routes.SETTINGS) nav.popBackStack(Routes.SETTINGS, inclusive = true)
+                                    if (route?.startsWith(Routes.SETTINGS) == true) nav.popBackStack(Routes.SETTINGS, inclusive = true)
                                     nav.navigate(tab.route) {
                                         popUpTo(Routes.HOME)
                                         launchSingleTop = true
@@ -277,7 +280,15 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel(), recommendations
                 )
             }
             composable(Routes.SETTINGS) {
-                SettingsScreen(contentPadding = padding, onClose = { nav.popBackStack() })
+                SettingsScreen(contentPadding = padding, category = null,
+                    onOpen = { nav.navigate(Routes.settingsPage(it)) }, onBack = { nav.popBackStack() })
+            }
+            composable(
+                route = Routes.SETTINGS_PAGE,
+                arguments = listOf(navArgument("category") { type = NavType.StringType }),
+            ) { entry ->
+                SettingsScreen(contentPadding = padding, category = SettingsCategory.fromRoute(entry.arguments?.getString("category")),
+                    onOpen = {}, onBack = { nav.popBackStack() })
             }
             composable(
                 route = Routes.PLAYLIST,

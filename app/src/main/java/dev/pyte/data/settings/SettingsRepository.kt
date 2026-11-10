@@ -58,6 +58,19 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
             runCatching { json.decodeFromString<BatterySettings>(values[batteryKey] ?: "{}").normalized() }.getOrDefault(BatterySettings()), values[recentPlaylistKey])
     }
 
+    suspend fun restore(value: AppSettings) {
+        store.edit {
+            it[silenceKey] = value.skipSilence
+            it[historyKey] = value.recordHistory
+            it[limitKey] = value.downloadLimitMb.coerceIn(512, 16384)
+            it[coverThemeKey] = value.dynamicCoverTheme
+            it[equalizerKey] = json.encodeToString(value.equalizer.normalized())
+            it[effectLevelKey] = value.effectLevel.name
+            it[hapticKey] = value.hapticFeedback
+            it[recommendationsKey] = value.autoRecommendations
+            it[batteryKey] = json.encodeToString(value.battery.normalized())
+        }
+    }
     suspend fun setSkipSilence(enabled: Boolean) { store.edit { it[silenceKey] = enabled } }
     suspend fun setBattery(value: BatterySettings) { store.edit { it[batteryKey] = json.encodeToString(value.normalized()) } }
     suspend fun rememberPlaylist(id: String?) { store.edit { if (id == null) it.remove(recentPlaylistKey) else it[recentPlaylistKey] = id } }

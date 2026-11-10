@@ -12,6 +12,9 @@ interface PlaylistDao {
     @Query("SELECT * FROM playlists ORDER BY importedAt DESC")
     fun observePlaylists(): Flow<List<PlaylistEntity>>
 
+    @Query("SELECT * FROM playlists")
+    suspend fun getPlaylists(): List<PlaylistEntity>
+
     @Query("SELECT * FROM playlists WHERE id = :id")
     fun observePlaylist(id: String): Flow<PlaylistEntity?>
 
@@ -64,6 +67,9 @@ interface FavoriteDao {
     @Query("SELECT videoId FROM favorites")
     fun observeFavoriteIds(): Flow<List<String>>
 
+    @Query("SELECT * FROM favorites")
+    suspend fun getFavorites(): List<FavoriteEntity>
+
     @Upsert
     suspend fun add(favorite: FavoriteEntity)
 
@@ -100,4 +106,10 @@ interface TrackDao {
 
     @Query("DELETE FROM history")
     suspend fun clearHistory()
+
+    @Query("SELECT * FROM history")
+    suspend fun getHistory(): List<HistoryEntity>
+
+    @Query("SELECT * FROM tracks")
+    suspend fun getAllTracks(): List<TrackEntity>
 }

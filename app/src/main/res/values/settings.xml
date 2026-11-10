@@ -4,7 +4,6 @@
     <string name="settings_load_error">Einstellungen konnten nicht geladen werden</string>
     <string name="settings_reopen">Bitte schließe die App und öffne sie erneut. Es wurde nichts geändert.</string>
     <string name="battery">Akkumodus</string>
-    <string name="battery_configure">Akkumodus · %1$s · Anpassen</string>
     <string name="on">An</string>
     <string name="off">Aus</string>
     <string name="sound">Klang</string>
@@ -24,8 +23,6 @@
     <string name="cache_help">Separate temporäre Zwischenspeicher: Audio bis 1,5 GB, Cover bis 96 MB, Songtexte bis 8 MB.</string>
     <string name="pause_downloads">Downloads pausieren</string>
     <string name="pause_downloads_help">Bereits gespeicherte Songs bleiben abspielbar.</string>
-    <string name="lower_limit">Limit senken</string>
-    <string name="raise_limit">Limit erhöhen</string>
     <string name="playback">Wiedergabe</string>
     <string name="skip_silence">Stille überspringen</string>
     <string name="skip_silence_help">Leise Pausen auslassen. Gilt auch für die laufende Wiedergabe.</string>

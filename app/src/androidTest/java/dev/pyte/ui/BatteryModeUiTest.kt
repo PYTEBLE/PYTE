@@ -4,7 +4,7 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.pyte.data.settings.BatterySettings
-import dev.pyte.ui.screens.BatteryModeDialog
+import dev.pyte.ui.screens.BatteryModePage
 import dev.pyte.ui.theme.PyteTheme
 import org.junit.Assert.*
 import org.junit.Rule
@@ -17,7 +17,7 @@ class BatteryModeUiTest {
 
     @Test fun choicesAreDisabledUntilEnabledAndOnlyApplySaves() {
         var saved: BatterySettings? = null
-        compose.setContent { PyteTheme { BatteryModeDialog(BatterySettings(), false, { saved = it }, {}) } }
+        compose.setContent { PyteTheme { BatteryModePage(BatterySettings(), false, { saved = it }, {}) } }
         compose.onNodeWithText("Qualität bei mobilen Daten senken").assertExists()
         compose.onNodeWithText("Akkumodus aktivieren").performClick()
         assertNull(saved)
@@ -32,7 +32,7 @@ class BatteryModeUiTest {
 
     @Test fun cancelDoesNotSaveDraft() {
         var saved = false
-        compose.setContent { PyteTheme { BatteryModeDialog(BatterySettings(), false, { saved = true }, {}) } }
+        compose.setContent { PyteTheme { BatteryModePage(BatterySettings(), false, { saved = true }, {}) } }
         compose.onNodeWithText("Akkumodus aktivieren").performClick()
         compose.onNodeWithText("Abbrechen").performClick()
         assertFalse(saved)

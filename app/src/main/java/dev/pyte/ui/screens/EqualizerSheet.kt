@@ -21,45 +21,12 @@ import dev.pyte.playback.EqualizerSettings
 import dev.pyte.playback.EqualizerState
 import dev.pyte.ui.viewmodels.EqualizerViewModel
 import java.util.Locale
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import dev.pyte.ui.components.EqualizerGraph
 import dev.pyte.ui.components.BandFader
 import dev.pyte.ui.theme.LocalLivingUi
-import dev.pyte.ui.theme.rememberLivingUiPolicy
-import dev.pyte.data.settings.AppSettings
 import dev.pyte.R
 import androidx.compose.ui.res.stringResource
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun EqualizerSheet(onDismiss: () -> Unit, viewModel: EqualizerViewModel = hiltViewModel()) {
-    val settings by viewModel.settings.collectAsStateWithLifecycle()
-    val device by viewModel.device.collectAsStateWithLifecycle()
-    val error by viewModel.error.collectAsStateWithLifecycle()
-    val spectrum by viewModel.spectrum.collectAsStateWithLifecycle()
-    val playing by viewModel.playing.collectAsStateWithLifecycle()
-    DisposableEffect(viewModel) { onDispose { viewModel.analyzing(false); viewModel.cancelPreview() } }
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
-        val motion = rememberLivingUiPolicy(settings ?: AppSettings())
-        LaunchedEffect(motion.foreground, motion.ambient, playing) { viewModel.analyzing(motion.foreground && motion.ambient && playing) }
-        CompositionLocalProvider(LocalLivingUi provides motion) {
-        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(Modifier.statusBarsPadding().navigationBarsPadding()) {
-            Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.sound_studio), Modifier.weight(1f), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, stringResource(R.string.close)) }
-            }
-        EqualizerContent(settings?.equalizer, device, error, viewModel::enabled, viewModel::select,
-            viewModel::preview, viewModel::curve, viewModel::save, viewModel::delete, viewModel::retry,
-            spectrum, viewModel::limiter)
-        }
-        }
-        }
-    }
-}
 
 @Composable
 fun EqualizerPanel(modifier: Modifier = Modifier, viewModel: EqualizerViewModel = hiltViewModel()) {
