@@ -234,9 +234,8 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel(), recommendations
                                 onClick = {
                                     if (route == Routes.SETTINGS) nav.popBackStack(Routes.SETTINGS, inclusive = true)
                                     nav.navigate(tab.route) {
-                                        popUpTo(Routes.HOME) { saveState = true }
+                                        popUpTo(Routes.HOME)
                                         launchSingleTop = true
-                                        restoreState = true
                                     }
                                 },
                                 icon = { Icon(tab.icon, contentDescription = null, modifier = Modifier.graphicsLayer { scaleX = scale; scaleY = scale }) },
