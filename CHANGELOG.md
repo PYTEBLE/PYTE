@@ -2,6 +2,9 @@
 
 ## 1.0.1 — discovery, library and playback fixes
 
+- **Wichtig vor der Installation:** 1.0.1 ist mit einem anderen Schlüssel signiert als 1.0.0.
+  Ein Update direkt über 1.0.0 ist nicht möglich. Exportiere zuerst unter Einstellungen →
+  Daten sichern, deinstalliere 1.0.0, installiere 1.0.1 und importiere das Backup.
 - Start/Suchen/Bibliothek: Suchen shows personal song suggestions from recent listening,
   mixed across artists and versions; shared tracks appear once.
 - Bibliothek: "Gerade angesagt" opens with a wide chart card, followed by paired chart

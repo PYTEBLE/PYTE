@@ -1,5 +1,15 @@
 # APK signing from alpha.7
 
+## 1.0.1 signature change (explicitly approved)
+
+Version 1.0.1 (versionCode 19) is signed with the local release key in
+`~/.android/pyte-release.keystore`, certificate SHA-256
+`285fc88b841b9dd23a3ae1a188271f854bf173989acad955b5a9c71c32d2bf4b`. This key does not match
+the 1.0.0 certificate `10218a7d…f728`, so Android will not install 1.0.1 over 1.0.0.
+Users must export their data (Einstellungen → Daten sichern), uninstall 1.0.0, then install
+1.0.1 and import the backup. `tools/sign-apk.sh` now pins this fingerprint. Future updates
+must use this certificate. Release notes must state this before installation instructions.
+
 ## 1.0.0 dedicated release key
 
 Version 1.0.0 (versionCode 18) is signed with a dedicated PYTE release key. It is the
