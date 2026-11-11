@@ -2,6 +2,9 @@ package dev.pyte.playback
 
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder
+import kotlin.random.Random
 import dev.pyte.domain.Track
 import org.junit.Assert.*
 import org.junit.Test
@@ -56,5 +59,35 @@ class QueueActionsTest {
     @Test fun `track duration survives media controller metadata round trip`() {
         val track = Track("YGr2G2fc48U", "Song", "Artist", 155000L, null)
         assertEquals(track, track.toMediaItem().toTrack())
+    }
+
+    @Test fun `shuffle visits every entry from every possible random start without repeat`() = withPlayer { player ->
+        player.setMediaItems((0 until 20).map { item("song$it") })
+        player.shuffleModeEnabled = true
+        for (start in 0 until 20) {
+            player.seekTo(start, 1234L)
+            player.shuffleFromCurrent(Random(start))
+            assertEquals(1234L, player.currentPosition)
+            assertEquals(Player.REPEAT_MODE_OFF, player.repeatMode)
+            val timeline = player.currentTimeline
+            val visited = mutableListOf(start)
+            var next = timeline.getNextWindowIndex(start, Player.REPEAT_MODE_OFF, true)
+            while (next != androidx.media3.common.C.INDEX_UNSET) {
+                visited += next
+                assertTrue("Traversal must terminate", visited.size <= 20)
+                next = timeline.getNextWindowIndex(next, Player.REPEAT_MODE_OFF, true)
+            }
+            assertEquals((0 until 20).toSet(), visited.toSet())
+            assertEquals(20, visited.size)
+        }
+    }
+
+    @Test fun `unanchored random start reproduces a short shuffle suffix`() = withPlayer { player ->
+        player.setShuffleOrder(DefaultShuffleOrder(intArrayOf(0, 1, 2), 0L))
+        player.shuffleModeEnabled = true
+        player.seekTo(2, 0L)
+        assertFalse(player.hasNextMediaItem())
+        player.shuffleFromCurrent(Random(1))
+        assertTrue(player.hasNextMediaItem())
     }
 }

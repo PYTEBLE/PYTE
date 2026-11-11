@@ -168,6 +168,8 @@ class PlayerController @Inject constructor(
                 PlaylistPlaybackOrigin(it, java.util.UUID.randomUUID().toString(),
                     checkNotNull(items.last().mediaMetadata.extras?.getString("queueEntryId")))
             }
+            // Ensure a new shuffle run also initializes its traversal when shuffle was already on.
+            c.shuffleModeEnabled = false
             c.setMediaItems(items.map { it.withPlaylistOrigin(origin) }, startIndex.coerceIn(0, tracks.lastIndex), 0L)
             c.shuffleModeEnabled = shuffle
             c.prepare()

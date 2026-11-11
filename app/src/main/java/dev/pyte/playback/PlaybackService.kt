@@ -82,6 +82,10 @@ class PlaybackService : MediaSessionService() {
             .build()
 
         exo.addListener(object : Player.Listener {
+            override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
+                if (shuffleModeEnabled) exo.shuffleFromCurrent()
+            }
+
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 retriesForItem = 0
                 lastRecordedMediaId = null
