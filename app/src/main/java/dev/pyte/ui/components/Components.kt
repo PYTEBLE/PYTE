@@ -90,6 +90,7 @@ fun Artwork(
     videoId: String? = null,
     requestedPixels: Int? = null,
     placeholderUrl: String? = null,
+    onArtworkError: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val local = videoId?.takeIf { it.matches(Regex("[A-Za-z0-9_-]{11}")) }
@@ -111,6 +112,7 @@ fun Artwork(
             var failed by remember(url, sized, revision) { mutableStateOf(false) }
             val data = if (preferLocal || failed && local != null) local else if (failed) url else sized
             var loading by remember(data) { mutableStateOf(true) }
+            var imageFailed by remember(data) { mutableStateOf(false) }
             AsyncImage(
                 model = ImageRequest.Builder(context).data(data)
                     .memoryCacheKey(if (data is File) "offline-cover:${data.path}:$revision" else data?.toString())
@@ -120,14 +122,20 @@ fun Artwork(
                             if (data is File) "offline-cover:${data.path}:$revision" else placeholderUrl)
                     }
                     .build(),
-                onLoading = { loading = true },
-                onSuccess = { loading = false },
-                onError = { loading = false; failed = true },
+                onLoading = { loading = true; imageFailed = false },
+                onSuccess = { loading = false; imageFailed = false },
+                onError = {
+                    loading = false
+                    imageFailed = true
+                    if (data !is File && data != url && url != null) failed = true
+                    else onArtworkError?.invoke()
+                },
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
             if (loading) ShimmerPlaceholder(Modifier.fillMaxSize())
+            if (imageFailed) Icon(Icons.Default.MusicNote, null, tint = MaterialTheme.colorScheme.primary)
         } else {
             Icon(
                 imageVector = Icons.Default.MusicNote,
@@ -232,7 +240,7 @@ fun TrackRow(
 }
 
 @Composable
-fun PlaylistCard(playlist: PlaylistSummary, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun PlaylistCard(playlist: PlaylistSummary, onClick: () -> Unit, modifier: Modifier = Modifier, onArtworkError: (() -> Unit)? = null) {
     val interaction = remember { MutableInteractionSource() }
     Box(
         modifier = modifier
@@ -248,6 +256,7 @@ fun PlaylistCard(playlist: PlaylistSummary, onClick: () -> Unit, modifier: Modif
             url = playlist.thumbnailUrl,
             modifier = Modifier.fillMaxSize(),
             shape = RoundedCornerShape(26.dp),
+            onArtworkError = onArtworkError,
         )
         Box(Modifier.matchParentSize().background(Brush.verticalGradient(listOf(
             Color.Black.copy(alpha = .05f), Color.Black.copy(alpha = .15f), Color.Black.copy(alpha = .92f)))))

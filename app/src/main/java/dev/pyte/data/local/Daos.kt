@@ -36,6 +36,9 @@ interface PlaylistDao {
     @Query("UPDATE playlists SET localTitle = :title WHERE id = :id")
     suspend fun renamePlaylist(id: String, title: String)
 
+    @Query("UPDATE playlists SET thumbnailUrl = :url WHERE id = :id")
+    suspend fun updatePlaylistArtwork(id: String, url: String)
+
     @Query("SELECT * FROM playlist_tracks WHERE playlistId = :playlistId ORDER BY position")
     suspend fun getPlaylistLinks(playlistId: String): List<PlaylistTrackEntity>
 

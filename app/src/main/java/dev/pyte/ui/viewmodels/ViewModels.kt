@@ -75,6 +75,14 @@ class HomeViewModel @Inject constructor(
     }
     fun consumeCreateMessage() { _createState.value = null }
 
+    fun refreshArtwork(id: String) {
+        viewModelScope.launch {
+            try { repo.refreshPlaylistArtwork(id) }
+            catch (e: CancellationException) { throw e }
+            catch (_: Exception) { /* Artwork is optional; the card keeps its fallback. */ }
+        }
+    }
+
     val pendingLink: StateFlow<String?> = inbox.pending
     val recentTracks = repo.observeHistory()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SHARE_TIMEOUT_MS), emptyList())
@@ -142,6 +150,13 @@ class PlaylistViewModel @Inject constructor(
 
     fun rename(title: String) = perform(text.get(dev.pyte.R.string.playlist_renamed)) { repo.renamePlaylist(playlistId, title) }
     fun refresh() = perform(text.get(dev.pyte.R.string.playlist_updated)) { repo.refreshPlaylist(playlistId) }
+    fun refreshArtwork() {
+        viewModelScope.launch {
+            try { repo.refreshPlaylistArtwork(playlistId) }
+            catch (e: CancellationException) { throw e }
+            catch (_: Exception) { /* Keep playback and the image fallback available offline. */ }
+        }
+    }
 
     private fun perform(message: String, block: suspend () -> Unit) {
         if (_action.value.busy) return

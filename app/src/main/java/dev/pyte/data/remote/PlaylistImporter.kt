@@ -19,6 +19,9 @@ data class ImportedPlaylist(
 class PlaylistImporter @Inject constructor(
     private val innerTube: InnerTubeClient,
 ) {
+    /** Cover URLs contain expiring signatures. Refresh just the header, never playlist contents. */
+    suspend fun cover(listId: String): String? = PlaylistParser.parse(innerTube.browse(browseId = "VL$listId")).thumbnailUrl
+
     suspend fun import(listId: String): ImportedPlaylist {
         val first = PlaylistParser.parse(innerTube.browse(browseId = "VL$listId"))
         if (first.title == null && first.tracks.isEmpty()) {

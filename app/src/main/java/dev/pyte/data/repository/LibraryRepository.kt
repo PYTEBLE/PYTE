@@ -23,6 +23,8 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import dev.pyte.data.settings.SettingsRepository
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -38,6 +40,9 @@ class LibraryRepository @Inject constructor(
     private val favorites = db.favoriteDao()
     private val tracks = db.trackDao()
     private val historyMutex = Mutex()
+    private val artworkMutex = Mutex()
+    private val artworkRequests = Semaphore(2)
+    private val artworkRefreshAt = mutableMapOf<String, Long>()
 
     fun observePlaylists(): Flow<List<PlaylistSummary>> =
         playlists.observePlaylists().map { list -> list.map { it.toSummary() } }
@@ -84,6 +89,26 @@ class LibraryRepository @Inject constructor(
     suspend fun refreshPlaylist(id: String) {
         require(!id.startsWith("local:")) { "This playlist is stored only on this device" }
         saveImported(importer.import(id), requireExisting = true)
+    }
+
+    /** Optional image recovery: bounded, rate limited, and never a source-song refresh. */
+    suspend fun refreshPlaylistArtwork(id: String): Boolean {
+        if (id.startsWith("local:")) return false
+        val previous = playlists.getPlaylist(id) ?: return false
+        val allowed = artworkMutex.withLock {
+            val now = System.currentTimeMillis()
+            if (artworkRefreshAt[id]?.let { now - it in 0 until 10 * 60_000L } == true) false
+            else { artworkRefreshAt[id] = now; true }
+        }
+        if (!allowed) return false
+        val cover = artworkRequests.withPermit { importer.cover(id) }?.takeIf { it.startsWith("https://") } ?: return false
+        return db.withTransaction {
+            val current = playlists.getPlaylist(id) ?: return@withTransaction false
+            // An explicit refresh/another action may have already installed newer artwork.
+            if (current.thumbnailUrl != previous.thumbnailUrl || current.thumbnailUrl == cover) return@withTransaction false
+            playlists.updatePlaylistArtwork(id, cover)
+            true
+        }
     }
 
     /** Adds metadata and an ordered link only; never writes to a YouTube account. */

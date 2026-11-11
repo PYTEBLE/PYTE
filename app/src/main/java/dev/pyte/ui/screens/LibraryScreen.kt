@@ -137,7 +137,7 @@ fun LibraryScreen(
                         fadeInSpec = if (motion.animate) tween(motion.duration(220)) else null,
                         placementSpec = if (motion.animate) tween(motion.duration(320)) else null,
                         fadeOutSpec = if (motion.animate) tween(motion.duration(180)) else null,
-                    )) { PlaylistCard(playlist, { onOpenPlaylist(playlist.id) }) }
+                    )) { PlaylistCard(playlist, { onOpenPlaylist(playlist.id) }, onArtworkError = { homeViewModel.refreshArtwork(playlist.id) }) }
                 }
             }
             if (filter == "playlists") item(key = "playlist-catalog", span = { GridItemSpan(maxLineSpan) }) {

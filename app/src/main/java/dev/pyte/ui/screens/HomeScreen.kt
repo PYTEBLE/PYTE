@@ -187,7 +187,8 @@ fun HomeScreen(
                             placementSpec = if (motion.animate) tween(motion.duration(320)) else null,
                             fadeOutSpec = if (motion.animate) tween(motion.duration(180)) else null,
                         )) {
-                            PlaylistCard(playlist = playlist, onClick = { onOpenPlaylist(playlist.id) })
+                            PlaylistCard(playlist = playlist, onClick = { onOpenPlaylist(playlist.id) },
+                                onArtworkError = { viewModel.refreshArtwork(playlist.id) })
                         }
                     }
                 }

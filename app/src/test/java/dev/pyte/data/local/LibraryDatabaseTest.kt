@@ -12,6 +12,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -183,6 +184,35 @@ class LibraryDatabaseTest {
         library.saveImported(playlist(song).copy(thumbnailUrl = cover))
         library.saveImported(playlist(song))
         assertEquals(cover, library.observePlaylist("PLtest").first()!!.first.thumbnailUrl)
+    }
+
+    @Test fun `expired cover recovery changes only artwork and rate limits repeated image failures`() = databaseTest { db ->
+        val calls = java.util.concurrent.atomic.AtomicInteger()
+        val http = OkHttpClient.Builder().addInterceptor { chain ->
+            calls.incrementAndGet()
+            val response = """{"header":{"musicResponsiveHeaderRenderer":{"title":{"simpleText":"Upstream title"},
+              "thumbnail":{"musicThumbnailRenderer":{"thumbnail":{"thumbnails":[{"url":"https://example.com/fresh-cover.jpg","width":544,"height":544}]}}}}}}"""
+            okhttp3.Response.Builder().request(chain.request()).protocol(okhttp3.Protocol.HTTP_1_1).code(200).message("test")
+                .body(response.toResponseBody()).build()
+        }.build()
+        val library = LibraryRepository(db, PlaylistImporter(InnerTubeClient(http, Json)), dev.pyte.data.settings.SettingsRepository(context))
+        library.saveImported(playlist(song).copy(thumbnailUrl = "https://example.com/expired.jpg"))
+        library.renamePlaylist("PLtest", "My title")
+        library.addToPlaylist("PLtest", song.copy(videoId = "dQw4w9WgXcQ"))
+        val before = db.playlistDao().getPlaylistLinks("PLtest")
+        assertTrue(library.refreshPlaylistArtwork("PLtest"))
+        assertFalse(library.refreshPlaylistArtwork("PLtest"))
+        assertEquals(1, calls.get())
+        val detail = library.observePlaylist("PLtest").first()!!
+        assertEquals("https://example.com/fresh-cover.jpg", detail.first.thumbnailUrl)
+        assertEquals("My title", detail.first.title)
+        assertEquals(2, detail.first.trackCount)
+        assertEquals(before, db.playlistDao().getPlaylistLinks("PLtest"))
+        val local = library.createPlaylist("Local", song)
+        assertFalse(library.refreshPlaylistArtwork(local))
+        library.deletePlaylist("PLtest")
+        assertFalse(library.refreshPlaylistArtwork("PLtest"))
+        assertEquals(1, calls.get())
     }
 
     @Test

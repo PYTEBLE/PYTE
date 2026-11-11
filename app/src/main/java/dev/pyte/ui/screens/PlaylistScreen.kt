@@ -156,7 +156,7 @@ fun PlaylistScreen(
                                     translationY = if (motion.animate) (scroll * .23f * motion.strength).coerceAtMost(48.dp.toPx()) else 0f
                                     val scale = if (motion.animate) 1f - (scroll / 6000f).coerceIn(0f, .08f) else 1f
                                     scaleX = scale; scaleY = scale
-                                }, MaterialTheme.shapes.large)
+                                }, MaterialTheme.shapes.large, onArtworkError = viewModel::refreshArtwork)
                                 }
                                 Spacer(Modifier.height(16.dp))
                                 Text(playlist.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,
