@@ -17,7 +17,8 @@ import dev.pyte.R
 import dev.pyte.domain.Track
 
 /** One entry point for every song surface. The selected Track is a snapshot, not "current song". */
-data class SongActions(val open: (Track) -> Unit, val save: (Track) -> Unit)
+data class SongActions(val open: (Track) -> Unit, val save: (Track) -> Unit,
+    val openFromPlaylist: (Track, String) -> Unit = { track, _ -> open(track) })
 val LocalSongActions = staticCompositionLocalOf<SongActions?> { null }
 data class SongFeedback(val message: String, val undo: (() -> Unit)?, val error: Boolean = false)
 val LocalSongFeedback = staticCompositionLocalOf<SongFeedback?> { null }
@@ -41,7 +42,7 @@ fun SongFeedbackBanner() {
 @Composable
 fun SongActionsSheet(track: Track, favorite: Boolean, onDismiss: () -> Unit,
     onSave: () -> Unit, onNext: () -> Unit, onQueue: () -> Unit,
-    onFavorite: () -> Unit, onDiscover: () -> Unit) {
+    onFavorite: () -> Unit, onDiscover: () -> Unit, onRemoveFromPlaylist: (() -> Unit)? = null) {
     ModalBottomSheet(onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         shape = MaterialTheme.shapes.extraLarge,
@@ -63,6 +64,7 @@ fun SongActionsSheet(track: Track, favorite: Boolean, onDismiss: () -> Unit,
             ActionTile(stringResource(if (favorite) R.string.favorite_remove else R.string.favorite_add),
                 if (favorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, onFavorite)
             ActionTile(stringResource(R.string.discover_similar), Icons.Default.AutoAwesome, onDiscover)
+            onRemoveFromPlaylist?.let { ActionTile(stringResource(R.string.remove_from_playlist), Icons.Default.PlaylistRemove, it) }
             Text(stringResource(R.string.offline_playlist_hint), style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }

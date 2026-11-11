@@ -39,6 +39,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -122,7 +123,18 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel(), recommendations
     val favorites by playerViewModel.favoriteIds.collectAsStateWithLifecycle()
     val globalPlaylists by playerViewModel.playlists.collectAsStateWithLifecycle()
     var actionTrack by remember { mutableStateOf<dev.pyte.domain.Track?>(null) }
-    val songActions = remember(playerViewModel) { SongActions({ actionTrack = it }, playerViewModel::selectForPlaylist) }
+    var actionPlaylistId by remember { mutableStateOf<String?>(null) }
+    val playbackPlaylist by playerViewModel.playbackPlaylist.collectAsStateWithLifecycle()
+    val currentPlaybackPlaylist by rememberUpdatedState(playbackPlaylist)
+    val currentOriginId by rememberUpdatedState(playerState.playlistOrigin?.playlistId)
+    val songActions = remember(playerViewModel) {
+        SongActions({ song ->
+            actionPlaylistId = currentPlaybackPlaylist?.takeIf { playlist ->
+                playlist.first.id == currentOriginId && playlist.second.any { it.videoId == song.videoId }
+            }?.first?.id
+            actionTrack = song
+        }, playerViewModel::selectForPlaylist, { song, id -> actionPlaylistId = id; actionTrack = song })
+    }
     val context = LocalContext.current
     val backStack by nav.currentBackStackEntryAsState()
     val route = backStack?.destination?.route
@@ -322,7 +334,11 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel(), recommendations
             onNext = { actionTrack = null; playerViewModel.enqueueNext(song) },
             onQueue = { actionTrack = null; playerViewModel.enqueueLater(song) },
             onFavorite = { actionTrack = null; playerViewModel.toggleFavorite(song, song.videoId !in favorites) },
-            onDiscover = { actionTrack = null; recommendationsViewModel.openSong(song) })
+            onDiscover = { actionTrack = null; recommendationsViewModel.openSong(song) },
+            onRemoveFromPlaylist = actionPlaylistId?.let { id -> {
+                actionTrack = null
+                playerViewModel.removeFromPlaylist(id, song)
+            } })
     }
     playlistSave.track?.let { song ->
         AddToPlaylistSheet(song, globalPlaylists, playlistSave.saving, playlistSave.error, playerViewModel::dismissPlaylistSave,

@@ -90,4 +90,49 @@ class QueueActionsTest {
         player.shuffleFromCurrent(Random(1))
         assertTrue(player.hasNextMediaItem())
     }
+
+    @Test fun `playlist removal skips current duplicates without touching other playlist entries`() = withPlayer { player ->
+        val song = Track("YGr2G2fc48U", "Song", "Artist", 1000, null)
+        val origin = PlaylistPlaybackOrigin("p", "run", "last")
+        val sameElsewhere = song.toMediaItem().withPlaylistOrigin(origin.copy(playlistId = "other"))
+        val current = song.toMediaItem().withPlaylistOrigin(origin)
+        val next = song.copy(videoId = "dQw4w9WgXcQ").toMediaItem().withPlaylistOrigin(origin)
+        player.setMediaItems(listOf(current, current, next, sameElsewhere), 1, 500L)
+        player.playWhenReady = true
+        player.removePlaylistTrack("p", song.videoId)
+        assertEquals(listOf(next, sameElsewhere), (0 until player.mediaItemCount).map(player::getMediaItemAt))
+        assertEquals(next, player.currentMediaItem)
+        assertTrue(player.playWhenReady)
+    }
+
+    @Test fun `playlist removal preserves shuffle position and paused intent for another song`() = withPlayer { player ->
+        val song = Track("YGr2G2fc48U", "Song", "Artist", 1000, null)
+        val origin = PlaylistPlaybackOrigin("p", "run", "last")
+        val current = song.toMediaItem().withPlaylistOrigin(origin)
+        val other = song.copy(videoId = "dQw4w9WgXcQ").toMediaItem().withPlaylistOrigin(origin)
+        player.setMediaItems(listOf(other, current, other), 1, 500L)
+        player.shuffleModeEnabled = true
+        player.removePlaylistTrack("p", other.mediaId)
+        assertEquals(current, player.currentMediaItem)
+        assertEquals(500L, player.currentPosition)
+        assertTrue(player.shuffleModeEnabled)
+        assertFalse(player.playWhenReady)
+        player.removePlaylistTrack("p", song.videoId)
+        assertEquals(0, player.mediaItemCount)
+    }
+
+    @Test fun `removing current song advances in shuffle order and keeps playback intent`() = withPlayer { player ->
+        val song = Track("YGr2G2fc48U", "Song", "Artist", 1000, null)
+        val origin = PlaylistPlaybackOrigin("p", "run", "last")
+        val items = (0 until 3).map { song.copy(videoId = "song$it").toMediaItem().withPlaylistOrigin(origin) }
+        player.setMediaItems(items, 1, 500L)
+        player.setShuffleOrder(DefaultShuffleOrder(intArrayOf(1, 0, 2), 0L))
+        player.shuffleModeEnabled = true
+        player.playWhenReady = true
+        player.removePlaylistTrack("p", "song1")
+        assertEquals(items[0], player.currentMediaItem)
+        assertEquals(0L, player.currentPosition)
+        assertTrue(player.playWhenReady)
+        assertTrue(player.shuffleModeEnabled)
+    }
 }

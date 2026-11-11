@@ -264,6 +264,12 @@ class PlayerController @Inject constructor(
     fun moveQueueItem(from: Int, to: Int) = act { cancelMixLoading(); it.moveQueuedItem(from, to) }
     fun removeQueueItem(index: Int) = act { cancelMixLoading(); it.removeQueuedItem(index) }
 
+    fun removePlaylistTrack(playlistId: String, videoId: String) = act { c ->
+        cancelMixLoading()
+        mix.removePlaylistTrack(playlistId, videoId)
+        c.removePlaylistTrack(playlistId, videoId)
+    }
+
     fun toggleShuffle() = act { c -> c.shuffleModeEnabled = !c.shuffleModeEnabled }
 
     fun cycleRepeat() = act { c ->

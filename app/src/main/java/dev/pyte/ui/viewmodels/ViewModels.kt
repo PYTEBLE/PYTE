@@ -238,6 +238,9 @@ class PlayerViewModel @Inject constructor(
     fun restoreMixQueue() = player.restoreMixQueue()
     val playlists = repo.observePlaylists()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SHARE_TIMEOUT_MS), emptyList())
+    val playbackPlaylist = player.state.map { it.playlistOrigin?.playlistId }.distinctUntilChanged()
+        .flatMapLatest { id -> if (id == null) flowOf(null) else repo.observePlaylist(id) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SHARE_TIMEOUT_MS), null)
     private val _playlistSave = MutableStateFlow(PlaylistSaveState())
     val playlistSave = _playlistSave.asStateFlow()
     fun selectForPlaylist(track: Track) {
@@ -251,6 +254,20 @@ class PlayerViewModel @Inject constructor(
     }
     fun enqueueNext(track: Track) { player.enqueueNext(track); _playlistSave.value = PlaylistSaveState(message = text.get(dev.pyte.R.string.queue_next_added)) }
     fun enqueueLater(track: Track) { player.enqueueLater(track); _playlistSave.value = PlaylistSaveState(message = text.get(dev.pyte.R.string.queue_added)) }
+    fun removeFromPlaylist(playlistId: String, track: Track) {
+        if (_playlistSave.value.saving) return
+        _playlistSave.value = PlaylistSaveState(saving = true)
+        viewModelScope.launch {
+            try {
+                if (!repo.removeFromPlaylist(playlistId, track.videoId)) error("Song is no longer in playlist")
+                player.removePlaylistTrack(playlistId, track.videoId)
+                _playlistSave.value = PlaylistSaveState(message = text.get(dev.pyte.R.string.song_removed_from_playlist))
+                offline.reconcile()
+                offline.schedule()
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) { _playlistSave.value = PlaylistSaveState(message = text.get(dev.pyte.R.string.error_action), messageIsError = true) }
+        }
+    }
     fun undoSave(addition: PlaylistAddition) {
         if (_playlistSave.value.undo != addition) return
         _playlistSave.value = _playlistSave.value.copy(message = null, undo = null)

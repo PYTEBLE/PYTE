@@ -150,10 +150,16 @@ fun TrackRow(
     onAddToQueue: (() -> Unit)? = null,
     onAddToPlaylist: (() -> Unit)? = null,
     isDownloaded: Boolean = false,
+    sourcePlaylistId: String? = null,
 ) {
     var menuOpen by remember(track.videoId) { mutableStateOf(false) }
     val actions = LocalSongActions.current
     val saveSong = actions?.let { { it.save(track) } } ?: onAddToPlaylist
+    val openActions = {
+        if (actions == null) menuOpen = true
+        else if (sourcePlaylistId != null) actions.openFromPlaylist(track, sourcePlaylistId)
+        else actions.open(track)
+    }
     val interaction = remember { MutableInteractionSource() }
     Row(
         modifier = modifier
@@ -164,7 +170,7 @@ fun TrackRow(
             .background(if (isCurrent) MaterialTheme.colorScheme.primary.copy(alpha = .09f) else Color.Transparent, RoundedCornerShape(18.dp))
             .combinedClickable(interactionSource = interaction, indication = null, onClick = onClick,
                 onLongClickLabel = stringResource(R.string.song_options, track.title),
-                onLongClick = { if (actions != null) actions.open(track) else menuOpen = true })
+                onLongClick = openActions)
             .padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -206,7 +212,7 @@ fun TrackRow(
         } else FavoriteButton(isFavorite, onFavoriteClick, key = track.videoId)
         if (actions != null || onPlayNext != null || onAddToQueue != null || onAddToPlaylist != null) {
             Box {
-                IconButton(onClick = { if (actions != null) actions.open(track) else menuOpen = true }) {
+                IconButton(onClick = openActions) {
                     Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.song_options, track.title))
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {

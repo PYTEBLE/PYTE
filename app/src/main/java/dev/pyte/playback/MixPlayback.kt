@@ -34,6 +34,12 @@ internal class MixPlayback {
     fun restore(player: Player) {
         val saved = snapshot ?: return
         snapshot = null
+        if (saved.items.isEmpty()) {
+            player.clearMediaItems()
+            player.shuffleModeEnabled = saved.shuffle
+            player.repeatMode = saved.repeat
+            return
+        }
         player.setMediaItems(saved.items, saved.index, saved.position)
         player.shuffleModeEnabled = saved.shuffle
         player.repeatMode = saved.repeat
@@ -42,4 +48,14 @@ internal class MixPlayback {
     }
 
     fun discard() { snapshot = null }
+
+    fun removePlaylistTrack(playlistId: String, videoId: String) {
+        val saved = snapshot ?: return
+        val remaining = saved.items.filterNot { it.belongsToPlaylist(playlistId, videoId) }
+        val current = saved.items.getOrNull(saved.index)
+        val index = remaining.indexOf(current)
+        val fallback = saved.items.take(saved.index).count { !it.belongsToPlaylist(playlistId, videoId) }
+        snapshot = saved.copy(items = remaining, index = if (index >= 0) index else fallback.coerceAtMost(remaining.lastIndex),
+            position = if (index >= 0) saved.position else 0L)
+    }
 }

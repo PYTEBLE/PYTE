@@ -37,3 +37,15 @@ internal fun Player.moveQueuedItem(from: Int, to: Int) {
 internal fun Player.removeQueuedItem(index: Int) {
     if (index in 0 until mediaItemCount) removeMediaItem(index)
 }
+
+internal fun MediaItem.belongsToPlaylist(playlistId: String, videoId: String): Boolean =
+    mediaId == videoId && mediaMetadata.extras?.getString("sourcePlaylistId") == playlistId
+
+/** Remove upcoming duplicates first so deleting the current item advances only once. */
+internal fun Player.removePlaylistTrack(playlistId: String, videoId: String) {
+    val current = currentMediaItemIndex
+    for (index in mediaItemCount - 1 downTo 0) {
+        if (index != current && getMediaItemAt(index).belongsToPlaylist(playlistId, videoId)) removeMediaItem(index)
+    }
+    if (currentMediaItem?.belongsToPlaylist(playlistId, videoId) == true) removeMediaItem(currentMediaItemIndex)
+}

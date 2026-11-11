@@ -90,6 +90,35 @@ class MixPlaybackTest {
     }
 
     private fun entry(player: Player) = player.currentMediaItem!!.mediaMetadata.extras!!.getString("queueEntryId")!!
+    @Test fun `removed playlist songs cannot return when a mix restores its snapshot`() = withPlayer { player ->
+        val origin = PlaylistPlaybackOrigin("p", "run", "last")
+        val current = seed.toMediaItem().withPlaylistOrigin(origin)
+        val next = other.toMediaItem().withPlaylistOrigin(origin)
+        player.setMediaItems(listOf(current, next), 0, 12000L)
+        val mix = MixPlayback()
+        assertTrue(mix.start(player, entry(player), listOf(other)))
+        mix.removePlaylistTrack("p", seed.videoId)
+        player.removePlaylistTrack("p", seed.videoId)
+        mix.restore(player)
+        assertEquals(next, player.currentMediaItem)
+        assertEquals(0L, player.currentPosition)
+        assertEquals(1, player.mediaItemCount)
+    }
+
+    @Test fun `removing every saved song restores an empty queue safely`() = withPlayer { player ->
+        val origin = PlaylistPlaybackOrigin("p", "run", "last")
+        player.setMediaItem(seed.toMediaItem().withPlaylistOrigin(origin))
+        player.shuffleModeEnabled = true
+        player.repeatMode = Player.REPEAT_MODE_ALL
+        val mix = MixPlayback()
+        assertTrue(mix.start(player, entry(player), listOf(other)))
+        mix.removePlaylistTrack("p", seed.videoId)
+        mix.restore(player)
+        assertEquals(0, player.mediaItemCount)
+        assertFalse(mix.active)
+        assertTrue(player.shuffleModeEnabled)
+        assertEquals(Player.REPEAT_MODE_ALL, player.repeatMode)
+    }
     private fun withPlayer(block: (ExoPlayer) -> Unit) {
         val player = ExoPlayer.Builder(RuntimeEnvironment.getApplication()).build()
         try { block(player) } finally { player.release() }

@@ -228,7 +228,8 @@ fun PlaylistScreen(
                                 onFavoriteClick = { viewModel.toggleFavorite(track, track.videoId !in favoriteIds) },
                                 onPlayNext = { viewModel.enqueueNext(track) },
                                 onAddToQueue = { viewModel.enqueueLater(track) },
-                                isDownloaded = downloads.any { it.videoId == track.videoId && it.state == "Downloaded" })
+                                isDownloaded = downloads.any { it.videoId == track.videoId && it.state == "Downloaded" },
+                                sourcePlaylistId = playlist.id)
                         }
                     }
                 }

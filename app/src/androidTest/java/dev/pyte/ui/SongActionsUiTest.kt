@@ -58,4 +58,26 @@ class SongActionsUiTest {
         compose.onNodeWithText("Rückgängig").performClick()
         compose.runOnIdle { assertTrue(undo) }
     }
+
+    @Test fun playlistRowKeepsItsSourceWhenAnotherPlaylistIsPlaying() {
+        var selected: Pair<Track, String>? = null
+        compose.setContent { PyteTheme {
+            CompositionLocalProvider(LocalSongActions provides SongActions({}, {}, { track, id -> selected = track to id })) {
+                TrackRow(song, false, false, {}, {}, sourcePlaylistId = "local:selected")
+            }
+        } }
+        compose.onNodeWithContentDescription("Aktionen für „Mein Song“").performClick()
+        compose.runOnIdle { assertEquals(song to "local:selected", selected) }
+    }
+
+    @Test fun playlistRemovalActionDispatchesOnceWithoutStartingPlayback() {
+        var removals = 0
+        var plays = 0
+        compose.setContent { PyteTheme {
+            SongActionsSheet(song, false, {}, {}, { plays++ }, { plays++ }, {}, {},
+                onRemoveFromPlaylist = { removals++ })
+        } }
+        compose.onNodeWithText("Aus dieser Playlist entfernen").performScrollTo().performClick()
+        compose.runOnIdle { assertEquals(1, removals); assertEquals(0, plays) }
+    }
 }
