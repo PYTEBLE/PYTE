@@ -177,6 +177,14 @@ class LibraryDatabaseTest {
         assertEquals(song.videoId, library.observePlaylist("PLtest").first()!!.second.single().videoId)
     }
 
+    @Test fun `refresh without artwork does not erase an existing playlist photo`() = databaseTest { db ->
+        val library = repo(db)
+        val cover = "https://example.com/my-playlist-photo.jpg"
+        library.saveImported(playlist(song).copy(thumbnailUrl = cover))
+        library.saveImported(playlist(song))
+        assertEquals(cover, library.observePlaylist("PLtest").first()!!.first.thumbnailUrl)
+    }
+
     @Test
     fun `version one data migrates without losing playlists favorites or order`() = migrationTest(1)
 

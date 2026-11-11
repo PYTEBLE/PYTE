@@ -24,12 +24,12 @@ object PlaylistParser {
 
     fun parse(root: JsonObject): PlaylistPage {
         val header = findObjects(root, "musicResponsiveHeaderRenderer").firstOrNull()
-            ?: findObjects(root, "musicEditablePlaylistDetailHeaderRenderer").firstOrNull()?.get("header")
-                ?.asObject()?.get("musicResponsiveHeaderRenderer")?.asObject()
+            ?: findObjects(root, "musicDetailHeaderRenderer").firstOrNull()
 
         val title = header?.get("title")?.let(::runsText)?.takeIf { it.isNotBlank() }
         val owner = header?.get("straplineTextOne")?.let(::runsText)?.takeIf { it.isNotBlank() }
-        val thumbnail = header?.let { thumbnailUrl(it) }
+        // Only the primary cover, never straplineThumbnail (the owner's avatar) or menu art.
+        val thumbnail = header?.get("thumbnail")?.asObject()?.let(::thumbnailUrl)
 
         val tracks = findObjects(root, "musicResponsiveListItemRenderer").mapNotNull { parseTrack(it) }
 
@@ -97,12 +97,13 @@ object PlaylistParser {
     }
 
     private fun thumbnailUrl(obj: JsonObject): String? =
-        findObjects(obj, "musicThumbnailRenderer").firstOrNull()
-            ?.get("thumbnail")?.asObject()
-            ?.get("thumbnails")?.asArray()
-            ?.mapNotNull { it.asObject() }
-            ?.maxByOrNull { (it["width"]?.asString()?.toIntOrNull() ?: 0) * (it["height"]?.asString()?.toIntOrNull() ?: 0) }
-            ?.get("url")?.asString()
+        (listOf(obj) + findObjects(obj, "musicThumbnailRenderer") + findObjects(obj, "croppedSquareThumbnailRenderer"))
+            .flatMap { image -> (image["thumbnails"]?.asArray() ?: image["thumbnail"]?.asObject()?.get("thumbnails")?.asArray()).orEmpty() }
+            .mapNotNull { it.asObject() }.filter { !it["url"]?.asString().isNullOrBlank() }
+            .maxByOrNull {
+                val width = it["width"]?.asString()?.toLongOrNull() ?: 0L
+                width * (it["height"]?.asString()?.toLongOrNull() ?: width)
+            }?.get("url")?.asString()
 
     private fun parseDurationMs(text: String): Long {
         val parts = text.split(":").map { it.toLongOrNull() ?: 0L }

@@ -193,7 +193,7 @@ class LibraryRepository @Inject constructor(
                     id = imported.id,
                     title = imported.title,
                     owner = imported.owner,
-                    thumbnailUrl = imported.thumbnailUrl,
+                    thumbnailUrl = imported.thumbnailUrl ?: previous?.thumbnailUrl,
                     sourceUrl = "https://music.youtube.com/playlist?list=${imported.id}",
                     trackCount = merged.size,
                     importedAt = previous?.importedAt ?: System.currentTimeMillis(),
