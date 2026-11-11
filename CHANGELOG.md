@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.0.1 — discovery, library and playback fixes
+
+- Start/Suchen/Bibliothek: Suchen shows personal song suggestions from recent listening,
+  mixed across artists and versions; shared tracks appear once.
+- Bibliothek: "Gerade angesagt" opens with a wide chart card, followed by paired chart
+  cards and a vertical grid of playlist tips. Importing a playlist asks for confirmation first.
+- Playlist covers that YouTube no longer serves are refreshed automatically without
+  changing songs, local additions or names.
+- Shuffle covers the full playlist before repeating and starts at the beginning.
+- Songs can be removed from their playlist while it plays; removals survive refreshes and backups.
+- System back closes the full player with its normal animation.
+- Installs over 1.0.0 in place with the same dedicated signing key; no data is cleared.
+
 ## 1.0.0 — first full version
 
 - First release without the alpha label. versionCode 18.
