@@ -10,4 +10,17 @@
     <string name="search_suggestions_private">Der Hörverlauf ist ausgeschaltet. Es werden keine persönlichen Vorschläge geladen.</string>
     <string name="discovery_partial">Ein Teil der Vorschläge ist gerade nicht erreichbar.</string>
     <string name="discovery_refresh">Neu laden</string>
+    <string name="catalog_heading">Charts &amp; Playlist-Tipps</string>
+    <string name="catalog_body">Aktuell von YouTube Music. Entdecke eine Sammlung und übernimm sie mit einem Tipp in deine Bibliothek.</string>
+    <string name="catalog_charts">Charts</string>
+    <string name="catalog_editorial">Playlist-Tipp</string>
+    <string name="catalog_saved">In deiner Bibliothek</string>
+    <string name="catalog_loading">Playlists werden geladen …</string>
+    <string name="catalog_error">YouTube-Music-Playlists sind gerade nicht erreichbar.</string>
+    <string name="catalog_import_title">Playlist übernehmen?</string>
+    <string name="catalog_import_body">„%1$s“ wird als lokale Sammlung in deiner Bibliothek gespeichert. Dein YouTube-Konto bleibt unverändert. Audio-Dateien werden erst geladen, wenn du die Playlist später für Offline aktivierst.</string>
+    <string name="catalog_import_confirm">In Bibliothek übernehmen</string>
+    <string name="catalog_import_loading">Playlist wird übernommen …</string>
+    <string name="catalog_import_error">Die Playlist konnte nicht übernommen werden. Bitte erneut versuchen.</string>
+    <string name="catalog_open">„%1$s“ entdecken</string>
 </resources>

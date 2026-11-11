@@ -45,6 +45,7 @@ fun LibraryScreen(
     homeViewModel: HomeViewModel = hiltViewModel(),
     libraryViewModel: LibraryViewModel = hiltViewModel(),
     playerViewModel: PlayerViewModel = hiltViewModel(),
+    catalogViewModel: dev.pyte.ui.viewmodels.PlaylistCatalogViewModel = hiltViewModel(),
 ) {
     val playlists by homeViewModel.playlists.collectAsStateWithLifecycle()
     val offlineIds by homeViewModel.offlinePlaylists.collectAsStateWithLifecycle()
@@ -52,6 +53,8 @@ fun LibraryScreen(
     val favoriteIds by libraryViewModel.favoriteIds.collectAsStateWithLifecycle()
     val playerState by playerViewModel.state.collectAsStateWithLifecycle()
     val created by homeViewModel.createMessage.collectAsStateWithLifecycle()
+    val catalog by catalogViewModel.state.collectAsStateWithLifecycle()
+    val catalogImport by catalogViewModel.import.collectAsStateWithLifecycle()
     val motion = LocalLivingUi.current
     var filter by rememberSaveable { mutableStateOf("playlists") }
     var alphabetical by rememberSaveable { mutableStateOf(false) }
@@ -137,9 +140,17 @@ fun LibraryScreen(
                     )) { PlaylistCard(playlist, { onOpenPlaylist(playlist.id) }) }
                 }
             }
+            if (filter == "playlists") item(key = "playlist-catalog", span = { GridItemSpan(maxLineSpan) }) {
+                dev.pyte.ui.components.PlaylistCatalogSection(catalog, playlists.map { it.id }.toSet(), catalogViewModel::retry) { playlist ->
+                    if (playlists.any { it.id == playlist.id }) onOpenPlaylist(playlist.id)
+                    else catalogViewModel.select(playlist)
+                }
+            }
         }
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(horizontal = 20.dp))
     }
+    dev.pyte.ui.components.PlaylistImportDialog(catalogImport,
+        onConfirm = { catalogViewModel.confirm(onOpenPlaylist) }, onDismiss = catalogViewModel::dismiss)
     if (createOpen) {
         var title by rememberSaveable { mutableStateOf("") }
         AlertDialog(onDismissRequest = { createOpen = false },
