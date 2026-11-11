@@ -186,6 +186,85 @@ class LibraryDatabaseTest {
     @Test
     fun `version three data migrates without losing local additions`() = migrationTest(3)
 
+    @Test fun `version four migrates without losing data`() = migrationTest(4)
+
+    @Test fun `removal survives refresh preserves other playlists favorites history and permits readding`() = databaseTest { db ->
+        val library = repo(db)
+        val other = song.copy(videoId = "dQw4w9WgXcQ")
+        library.saveImported(playlist(song, song, other))
+        val local = library.createPlaylist("Other", song)
+        library.setFavorite(song, true)
+        library.recordPlayed(song)
+        db.offlineDao().select(OfflinePlaylistEntity("PLtest"))
+        db.offlineDao().select(OfflinePlaylistEntity(local))
+        assertTrue(library.removeFromPlaylist("PLtest", song.videoId))
+        assertFalse(library.removeFromPlaylist("PLtest", song.videoId))
+        library.saveImported(playlist(song, other, song))
+        library.saveImported(playlist(song, other))
+        val detail = library.observePlaylist("PLtest").first()!!
+        assertEquals(listOf(other.videoId), detail.second.map { it.videoId })
+        assertEquals(1, detail.first.trackCount)
+        assertEquals(listOf(0), db.playlistDao().getPlaylistLinks("PLtest").map { it.position })
+        assertTrue(db.offlineDao().isWanted(song.videoId))
+        assertEquals(song.videoId, library.observeFavorites().first().single().videoId)
+        assertEquals(song.videoId, library.observeHistory().first().single().videoId)
+        assertTrue(library.addToPlaylist("PLtest", song))
+        assertTrue(db.playlistDao().getExclusions("PLtest").isEmpty())
+        library.saveImported(playlist(song, other))
+        assertEquals(listOf(other.videoId, song.videoId), library.observePlaylist("PLtest").first()!!.second.map { it.videoId })
+    }
+
+    @Test fun `removing last songs keeps empty playlists and deletion cleans exclusions`() = databaseTest { db ->
+        val library = repo(db)
+        library.saveImported(playlist(song))
+        assertTrue(library.removeFromPlaylist("PLtest", song.videoId))
+        library.saveImported(playlist(song))
+        assertEquals(0, library.observePlaylist("PLtest").first()!!.first.trackCount)
+        assertTrue(library.observePlaylist("PLtest").first()!!.second.isEmpty())
+        library.deletePlaylist("PLtest")
+        assertTrue(db.playlistDao().getExclusions("PLtest").isEmpty())
+        assertFalse(library.removeFromPlaylist("PLtest", song.videoId))
+        val local = library.createPlaylist("Local", song)
+        assertTrue(library.removeFromPlaylist(local, song.videoId))
+        assertTrue(library.observePlaylist(local).first()!!.second.isEmpty())
+        assertTrue(db.playlistDao().getExclusions(local).isEmpty())
+    }
+
+    @Test fun `exclusions survive database reopening and backup restoration`() = runBlocking {
+        withContext(Dispatchers.IO) {
+            val name = "exclusions-${UUID.randomUUID()}.db"
+            val restoredName = "restore-${UUID.randomUUID()}.db"
+            val backup = java.io.File(context.cacheDir, "${UUID.randomUUID()}.json")
+            val uri = android.net.Uri.fromFile(backup)
+            val settings = dev.pyte.data.settings.SettingsRepository(context)
+            val db = PyteDatabase.open(context, name)
+            try {
+                repo(db).saveImported(playlist(song))
+                repo(db).removeFromPlaylist("PLtest", song.videoId)
+                dev.pyte.data.backup.BackupRepository(context, db, settings).export(uri)
+            } finally { db.close() }
+            try {
+                PyteDatabase.open(context, name).let { reopened ->
+                    try {
+                        repo(reopened).saveImported(playlist(song))
+                        assertTrue(repo(reopened).observePlaylist("PLtest").first()!!.second.isEmpty())
+                    } finally { reopened.close() }
+                }
+                PyteDatabase.open(context, restoredName).let { restored ->
+                    try {
+                        dev.pyte.data.backup.BackupRepository(context, restored, settings).import(uri)
+                        repo(restored).saveImported(playlist(song))
+                        assertTrue(repo(restored).observePlaylist("PLtest").first()!!.second.isEmpty())
+                    } finally { restored.close() }
+                }
+            } finally {
+                context.deleteDatabase(name)
+                context.deleteDatabase(restoredName)
+                backup.delete()
+            }
+        }
+    }
+
     @Test
     fun `offline selection excludes history favorites and unselected playlists and deduplicates shared songs`() = databaseTest { db ->
         val library = repo(db)
@@ -229,7 +308,11 @@ class LibraryDatabaseTest {
                     old.execSQL("INSERT INTO tracks_fts(rowid, videoId, title, artist) SELECT rowid, videoId, title, artist FROM tracks")
                     old.execSQL("CREATE TRIGGER tracks_search_update AFTER UPDATE ON tracks BEGIN DELETE FROM tracks_fts WHERE rowid = old.rowid; INSERT INTO tracks_fts(rowid, videoId, title, artist) VALUES(new.rowid, new.videoId, new.title, new.artist); END")
                 }
-                if (version == 3) old.execSQL("ALTER TABLE playlist_tracks ADD COLUMN locallyAdded INTEGER NOT NULL DEFAULT 0")
+                if (version >= 3) old.execSQL("ALTER TABLE playlist_tracks ADD COLUMN locallyAdded INTEGER NOT NULL DEFAULT 0")
+                if (version >= 4) {
+                    old.execSQL("CREATE TABLE offline_playlists (playlistId TEXT NOT NULL PRIMARY KEY)")
+                    old.execSQL("CREATE TABLE downloads (videoId TEXT NOT NULL PRIMARY KEY, state TEXT NOT NULL, bytes INTEGER NOT NULL, total INTEGER NOT NULL, error TEXT)")
+                }
                 old.version = version
             }
             val db = PyteDatabase.open(context, name)

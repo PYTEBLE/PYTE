@@ -7,6 +7,10 @@ import dev.pyte.playback.EqualizerSettings
 import org.junit.Assert.assertEquals
 import org.junit.Assert.fail
 import org.junit.Test
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
 
 class BackupFormatTest {
     private val settings = BackupSettings(
@@ -32,6 +36,19 @@ class BackupFormatTest {
         assertInvalid { parseBackup(encodeBackup(file().copy(format = "other"))) }
         assertInvalid { parseBackup(encodeBackup(file().copy(version = 2))) }
         assertInvalid { parseBackup("not json") }
+    }
+
+    @Test fun exclusionsRoundTripAndOldBackupsDefaultToNone() {
+        val playlist = BackupPlaylist("p", "Mix", sourceUrl = "url", importedAt = 1,
+            excludedVideoIds = listOf("removed"))
+        val source = file(playlists = listOf(playlist))
+        assertEquals(source, parseBackup(encodeBackup(source)))
+        val root = Json.parseToJsonElement(encodeBackup(source)).jsonObject
+        val old = JsonObject(root + ("playlists" to JsonArray(listOf(
+            JsonObject(root.getValue("playlists").let { it as JsonArray }.single().jsonObject - "excludedVideoIds")
+        )))).toString()
+        // Missing optional fields in existing v1 backups remain compatible.
+        assertEquals(emptyList<String>(), parseBackup(old).playlists.single().excludedVideoIds)
     }
 
     @Test fun rejectsReferencesToMissingTracks() {

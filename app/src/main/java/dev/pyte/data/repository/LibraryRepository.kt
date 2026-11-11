@@ -4,6 +4,7 @@ import androidx.room.withTransaction
 import dev.pyte.data.local.FavoriteEntity
 import dev.pyte.data.local.PlaylistEntity
 import dev.pyte.data.local.PlaylistTrackEntity
+import dev.pyte.data.local.PlaylistExclusionEntity
 import dev.pyte.data.local.PyteDatabase
 import dev.pyte.data.local.TrackEntity
 import dev.pyte.data.local.HistoryEntity
@@ -91,6 +92,7 @@ class LibraryRepository @Inject constructor(
             val playlist = playlists.getPlaylist(id) ?: error("Playlist was deleted")
             val links = playlists.getPlaylistLinks(id)
             if (links.any { it.videoId == track.videoId }) return@withTransaction false
+            playlists.clearExclusion(id, track.videoId)
             tracks.upsertTracks(listOf(track.toEntity()))
             playlists.insertPlaylistTracks(listOf(PlaylistTrackEntity(id,
                 (links.maxOfOrNull { it.position } ?: -1) + 1, track.videoId, locallyAdded = true)))
@@ -131,6 +133,19 @@ class LibraryRepository @Inject constructor(
         true
     }
 
+    /** Remove all occurrences in this playlist only, retaining metadata, favorites and history. */
+    suspend fun removeFromPlaylist(id: String, videoId: String): Boolean = db.withTransaction {
+        val playlist = playlists.getPlaylist(id) ?: return@withTransaction false
+        val links = playlists.getPlaylistLinks(id)
+        if (links.none { it.videoId == videoId }) return@withTransaction false
+        val remaining = links.filterNot { it.videoId == videoId }.mapIndexed { index, link -> link.copy(position = index) }
+        if (!id.startsWith("local:")) playlists.insertExclusions(listOf(PlaylistExclusionEntity(id, videoId)))
+        playlists.clearPlaylistTracks(id)
+        playlists.insertPlaylistTracks(remaining)
+        playlists.upsertPlaylist(playlist.copy(trackCount = remaining.size))
+        true
+    }
+
     suspend fun setFavorite(track: Track, favorite: Boolean) {
         db.withTransaction {
             if (favorite) {
@@ -145,6 +160,7 @@ class LibraryRepository @Inject constructor(
     suspend fun deletePlaylist(id: String) {
         db.withTransaction {
             playlists.deletePlaylistLinks(id)
+            playlists.clearExclusions(id)
             playlists.deletePlaylist(id)
             db.offlineDao().deselect(id)
         }
@@ -168,8 +184,9 @@ class LibraryRepository @Inject constructor(
             val previous = playlists.getPlaylist(imported.id)
             if (requireExisting && previous == null) throw ImportException("Playlist was deleted")
             val additions = playlists.getPlaylistLinks(imported.id).filter { it.locallyAdded }
+            val exclusions = playlists.getExclusions(imported.id).toSet()
             val additionIds = additions.map { it.videoId }.toSet()
-            val remoteLinks = imported.tracks.filterNot { it.videoId in additionIds }.map { it.videoId }
+            val remoteLinks = imported.tracks.filterNot { it.videoId in additionIds || it.videoId in exclusions }.map { it.videoId }
             val merged = remoteLinks + additions.map { it.videoId }
             playlists.upsertPlaylist(
                 PlaylistEntity(

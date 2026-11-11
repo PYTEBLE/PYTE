@@ -12,13 +12,14 @@ import android.content.Context
         PlaylistEntity::class,
         TrackEntity::class,
         PlaylistTrackEntity::class,
+        PlaylistExclusionEntity::class,
         FavoriteEntity::class,
         HistoryEntity::class,
         TrackFtsEntity::class,
         OfflinePlaylistEntity::class,
         DownloadEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = false,
 )
 abstract class PyteDatabase : RoomDatabase() {
@@ -28,6 +29,11 @@ abstract class PyteDatabase : RoomDatabase() {
     abstract fun offlineDao(): OfflineDao
 
     companion object {
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS playlist_exclusions (playlistId TEXT NOT NULL, videoId TEXT NOT NULL, PRIMARY KEY(playlistId, videoId))")
+            }
+        }
         val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("CREATE TABLE IF NOT EXISTS offline_playlists (playlistId TEXT NOT NULL PRIMARY KEY)")
@@ -51,7 +57,7 @@ abstract class PyteDatabase : RoomDatabase() {
 
         fun open(context: Context, name: String = "pyte.db"): PyteDatabase =
             Room.databaseBuilder(context, PyteDatabase::class.java, name)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) = installSearchTriggers(db)
                 })

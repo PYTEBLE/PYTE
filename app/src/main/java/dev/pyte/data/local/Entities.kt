@@ -40,6 +40,10 @@ data class PlaylistTrackEntity(
     @ColumnInfo(defaultValue = "0") val locallyAdded: Boolean = false,
 )
 
+/** Local exclusions survive source refreshes; no changes are sent to YouTube. */
+@Entity(tableName = "playlist_exclusions", primaryKeys = ["playlistId", "videoId"])
+data class PlaylistExclusionEntity(val playlistId: String, val videoId: String)
+
 @Entity(tableName = "favorites")
 data class FavoriteEntity(
     @PrimaryKey val videoId: String,

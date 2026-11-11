@@ -55,6 +55,7 @@ data class BackupPlaylist(
     val importedAt: Long,
     val localTitle: String? = null,
     val tracks: List<BackupLink> = emptyList(),
+    val excludedVideoIds: List<String> = emptyList(),
 )
 
 @Serializable
@@ -80,7 +81,9 @@ internal fun parseBackup(text: String): BackupFile {
     val tracks = file.tracks.map { it.videoId }.toSet()
     val referenced = file.playlists.flatMap { playlist -> playlist.tracks.map { it.videoId } } +
         file.favorites.map { it.videoId } + file.history.map { it.videoId }
-    val valid = file.playlists.all { it.id.isNotBlank() } && tracks.none { it.isBlank() } && tracks.containsAll(referenced)
+    val valid = file.playlists.all { playlist -> playlist.id.isNotBlank() &&
+        playlist.excludedVideoIds.none { excluded -> excluded.isBlank() || playlist.tracks.any { link -> link.videoId == excluded } } } &&
+        tracks.none { it.isBlank() } && tracks.containsAll(referenced)
     if (!valid) throw BackupException(R.string.data_import_invalid)
     return file
 }

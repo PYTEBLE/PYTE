@@ -9,6 +9,18 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PlaylistDao {
+    @Query("SELECT videoId FROM playlist_exclusions WHERE playlistId = :playlistId")
+    suspend fun getExclusions(playlistId: String): List<String>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertExclusions(exclusions: List<PlaylistExclusionEntity>)
+
+    @Query("DELETE FROM playlist_exclusions WHERE playlistId = :playlistId AND videoId = :videoId")
+    suspend fun clearExclusion(playlistId: String, videoId: String)
+
+    @Query("DELETE FROM playlist_exclusions WHERE playlistId = :playlistId")
+    suspend fun clearExclusions(playlistId: String)
+
     @Query("SELECT * FROM playlists ORDER BY importedAt DESC")
     fun observePlaylists(): Flow<List<PlaylistEntity>>
 

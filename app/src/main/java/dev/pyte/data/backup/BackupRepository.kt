@@ -9,6 +9,7 @@ import dev.pyte.data.local.FavoriteEntity
 import dev.pyte.data.local.HistoryEntity
 import dev.pyte.data.local.PlaylistEntity
 import dev.pyte.data.local.PlaylistTrackEntity
+import dev.pyte.data.local.PlaylistExclusionEntity
 import dev.pyte.data.local.PyteDatabase
 import dev.pyte.data.local.TrackEntity
 import dev.pyte.data.settings.SettingsRepository
@@ -45,6 +46,7 @@ class BackupRepository @Inject constructor(
                         importedAt = playlist.importedAt,
                         localTitle = playlist.localTitle,
                         tracks = playlists.getPlaylistLinks(playlist.id).map { BackupLink(it.videoId, it.locallyAdded) },
+                        excludedVideoIds = playlists.getExclusions(playlist.id),
                     )
                 },
                 favorites = db.favoriteDao().getFavorites().map { BackupFavorite(it.videoId, it.addedAt) },
@@ -75,6 +77,8 @@ class BackupRepository @Inject constructor(
             playlists.upsertPlaylist(PlaylistEntity(playlist.id, playlist.title, playlist.owner, playlist.thumbnailUrl,
                 playlist.sourceUrl, playlist.tracks.size, playlist.importedAt, playlist.localTitle))
             playlists.clearPlaylistTracks(playlist.id)
+            playlists.clearExclusions(playlist.id)
+            playlists.insertExclusions(playlist.excludedVideoIds.map { PlaylistExclusionEntity(playlist.id, it) })
             playlists.insertPlaylistTracks(playlist.tracks.mapIndexed { index, link ->
                 PlaylistTrackEntity(playlist.id, index, link.videoId, link.locallyAdded)
             })
