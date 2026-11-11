@@ -71,7 +71,6 @@ import dev.pyte.playback.MixUiState
 import dev.pyte.playback.PlayerUiState
 import dev.pyte.ui.components.AddToPlaylistSheet
 import dev.pyte.ui.components.Artwork
-import dev.pyte.ui.components.CoverLight
 import dev.pyte.ui.components.CoverProgress
 import dev.pyte.ui.components.FavoriteButton
 import dev.pyte.ui.components.HeroCoverFrame
@@ -216,15 +215,15 @@ private fun PlayerSegments(selected: PlayerPanel, onSelect: (PlayerPanel) -> Uni
 @Composable
 private fun CoverPanel(track: Track, state: PlayerUiState, direction: Int, modifier: Modifier) {
     BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
-        val cover = minOf(maxWidth, maxHeight).coerceAtMost(360.dp)
-        CoverLight(state.isPlaying, Modifier.fillMaxSize()) {
+        val cover = (minOf(maxWidth, maxHeight) - 16.dp).coerceIn(0.dp, 360.dp)
+        Box(Modifier.fillMaxSize()) {
             Box(Modifier.align(Alignment.Center).size(cover + 16.dp)) {
                 CoverProgress(if (state.durationMs > 0) state.positionMs.toFloat() / state.durationMs else 0f, Modifier.fillMaxSize())
             }
             HeroCoverFrame(track.videoId, Modifier.align(Alignment.Center).size(cover)
                 .shadow(32.dp, RoundedCornerShape(30.dp), ambientColor = MaterialTheme.colorScheme.primary, spotColor = MaterialTheme.colorScheme.primary)
                 .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = .22f), RoundedCornerShape(30.dp))) { artworkModifier ->
-                SongSwap(track, direction, artworkModifier) { shown ->
+                SongSwap(track, direction, artworkModifier.clip(RoundedCornerShape(30.dp))) { shown ->
                     Artwork(shown.thumbnailUrl, Modifier.fillMaxSize(), RoundedCornerShape(30.dp), shown.videoId, requestedPixels = 1200)
                 }
             }
