@@ -12,6 +12,26 @@ screen. The player uses the approved hierarchy (artwork, plain metadata, transpo
 the migrated screens were not re-photographed on a device because the wireless ADB session
 ended before installation. The prototype screenshots remain the visual reference.
 
+## Discovery feeds
+
+The empty online Search view now shows recent listening and new song suggestions, with
+an explicit “Passt zu …” explanation for each result. Up to four recent artist-diverse
+seeds contribute in round-robin order; shared tracks are emitted once and artist/version
+limits still apply. Playlist discovery and mixes use the same ranking. Turning off
+history prevents personalized suggestion requests; loading/error/retry states never
+block the ordinary search field.
+
+Below the user's library collections, “Charts & Playlist-Tipps” presents current
+anonymous YouTube Music charts and editorial selections. Tapping an unsaved playlist
+opens confirmation, not playback or an immediate write. Confirmation imports metadata
+and song links locally without modifying a YouTube account or enabling audio downloads.
+Saved cards open the existing collection. The Offline and Favorites filters stay focused
+on the user's own content.
+
+Playlist photos use the primary header image, not the owner's avatar. Expired signed
+cover URLs can be refreshed independently of songs, with bounded/rate-limited lookups;
+offline/unavailable artwork keeps an explicit image fallback instead of a blank card.
+
 ## Common song actions
 
 `PyteRoot` provides a `LocalSongActions` entry point. Song rows use a visible playlist-add

@@ -1,5 +1,50 @@
 # Playback verification
 
+## Discovery feeds, playlist photos and physical-device follow-up (unreleased)
+
+- Final checks passed: `:app:testDebugUnitTest`, `:app:assembleDebug`,
+  `:app:assembleDebugAndroidTest`, `:app:lintDebug`. With `PYTE_LIVE_CATALOG`,
+  `PYTE_LIVE_RECOMMENDATIONS`, `PYTE_LIVE_ARTWORK` and `PYTE_LIVE_SEARCH` enabled:
+  **181 unit tests passed, zero failures/errors/skips**; lint has zero errors.
+- Search now uses up to four artist-diverse seeds from recent history, mixed via the
+  shared ranking. Tests cover overlapping radios, short/empty sources and seed selection.
+  Disabled history prevents personalized requests. Results are cached per recent-history
+  snapshot; loading, partial failure, retry and empty states are explicit.
+- Library discovery reads live anonymous YouTube Music charts/editorial pages (not a
+  hardcoded popularity list), deduplicates/samples playlist cards, and caches them for
+  15 minutes. Tests cover parsing, locale, partial/total failure, caching and explicit
+  refresh. A live test imported a finite editorial RDCLAK playlist; endless song radios
+  remain rejected. Import confirmation explains that audio downloads remain opt-in.
+- Cover regressions first failed against the previous parser: legacy/editable headers,
+  primary cover vs owner avatar, direct/cropped thumbnail formats and importer propagation.
+  Refresh without artwork no longer erases an existing photo.
+- On the user's restored playlist, the stored signed thumbnail URL returned **HTTP 404**,
+  while a fresh first-page header supplied an image returning **HTTP 200**. Cards and the
+  playlist header now request optional cover-only recovery after image failure, bounded
+  to two concurrent lookups and one attempt per playlist per ten minutes. A Room test
+  verifies title/count/order/local additions are untouched. The recovered custom photo
+  was visually verified in the normal app; private screenshots/database diagnostics were
+  not committed.
+- **Galaxy S25 Ultra / Android 17:** the final normal-package instrumentation run passed
+  **12 tests** across `PlayerBackNavigationTest`, `SongActionsUiTest`, `DiscoveryFeedUiTest`
+  and `PlaylistPlaybackRegressionTest`. The actual playback service decoded short silent
+  local fixtures through two full eight-entry shuffle runs, including starting a new run
+  with shuffle already enabled; removal preserved current position or advanced correctly.
+  Test cleanup deletes only its fixture history rows/files, not the user's collections.
+- Initial device tests were blocked by transitive Espresso 3.5.0 calling removed
+  `InputManager.getInstance`; test-only Espresso 3.7.0 resolves this. One subsequent Undo
+  click assertion failed transiently, then passed individually and in both complete
+  normal-app runs. Failed attempts are not counted as passes.
+- The locally available signing key did not match the installed release. Initial checks
+  used the isolated `deviceDebug` variant. The user then explicitly approved reinstalling
+  the normal app and confirmed a backup; subsequent builds were installed in-place over
+  that debug installation. Search recommendations, mixed seed labels, catalogue cards,
+  confirmation/cancel and the restored playlist photo were visually inspected there.
+- Remaining: hours-long online/background playback, offline network-failure combinations,
+  TalkBack, landscape, and maximum-font-size qualification were not performed. The Back
+  regression dispatches predictive events through a real NavHost; it is not a recorded
+  frame-time/physical-edge-swipe animation benchmark.
+
 ## Playlist playback corrections (unreleased)
 
 - `:app:testDebugUnitTest`, `:app:assembleDebug`, `:app:assembleDebugAndroidTest`
