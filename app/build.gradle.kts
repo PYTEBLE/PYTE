@@ -38,6 +38,12 @@ android {
     }
 
     buildTypes {
+        create("deviceDebug") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".devicedebug"
+            versionNameSuffix = "-device-test"
+            matchingFallbacks += "debug"
+        }
         create("designReview") {
             initWith(getByName("debug"))
             applicationIdSuffix = ".designreview"
@@ -96,6 +102,7 @@ dependencies {
     implementation(libs.compose.material.icons)
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+    add("deviceDebugImplementation", "androidx.compose.ui:ui-test-manifest")
 
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.session)
@@ -121,6 +128,8 @@ dependencies {
     testImplementation("org.robolectric:robolectric:4.16.1")
     androidTestImplementation("androidx.test:runner:1.7.0")
     androidTestImplementation("androidx.test.ext:junit:1.3.0")
+    // Compose's older transitive Espresso uses InputManager.getInstance, removed on Android 17.
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
     androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
