@@ -12,6 +12,12 @@
     <string name="discovery_refresh">Neu laden</string>
     <string name="catalog_heading">Charts &amp; Playlist-Tipps</string>
     <string name="catalog_body">Aktuell von YouTube Music. Entdecke eine Sammlung und übernimm sie mit einem Tipp in deine Bibliothek.</string>
+    <string name="catalog_source">YOUTUBE MUSIC</string>
+    <string name="catalog_charts_heading">Gerade angesagt</string>
+    <string name="catalog_charts_body">Die aktuellen Charts. Dein nächster Lieblingssong wartet schon.</string>
+    <string name="catalog_tips_heading">Entdecke deinen nächsten Mix</string>
+    <string name="catalog_tips_body">Neue Sounds und handverlesene Playlists für deine Sammlung.</string>
+    <string name="catalog_explore">Entdecken</string>
     <string name="catalog_charts">Charts</string>
     <string name="catalog_editorial">Playlist-Tipp</string>
     <string name="catalog_saved">In deiner Bibliothek</string>

@@ -28,6 +28,14 @@ and song links locally without modifying a YouTube account or enabling audio dow
 Saved cards open the existing collection. The Offline and Favorites filters stay focused
 on the user's own content.
 
+The library uses a vertically browsable magazine layout: a lone saved playlist is a
+full-width, compact collection card; “Gerade angesagt” leads with a wide chart feature,
+followed by smaller chart cards. “Entdecke deinen nächsten Mix” has its own two-column
+playlist grid. Every item participates in the screen's existing lazy grid, with no nested
+vertical scroller or hidden horizontal shelf. At font scales above 130%, cards use one
+column. Cover overlays keep a dark scrim behind white text; no new decorative motion,
+network requests, playlist mutations or playback actions are introduced by the layout.
+
 Playlist photos use the primary header image, not the owner's avatar. Expired signed
 cover URLs can be refreshed independently of songs, with bounded/rate-limited lookups;
 offline/unavailable artwork keeps an explicit image fallback instead of a blank card.

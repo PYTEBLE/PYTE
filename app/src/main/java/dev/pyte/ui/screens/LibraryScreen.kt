@@ -29,6 +29,8 @@ import dev.pyte.ui.components.PlaylistCard
 import dev.pyte.ui.components.Reveal
 import dev.pyte.ui.components.TrackRow
 import dev.pyte.ui.components.EmptyState
+import dev.pyte.ui.components.LibraryCollectionCard
+import dev.pyte.ui.components.playlistCatalogItems
 import dev.pyte.ui.theme.LocalLivingUi
 import dev.pyte.ui.viewmodels.HomeViewModel
 import dev.pyte.ui.viewmodels.LibraryViewModel
@@ -132,16 +134,20 @@ fun LibraryScreen(
                     EmptyState(stringResource(R.string.library_offline_empty), stringResource(R.string.library_offline_empty_body),
                         stringResource(R.string.library_filter_playlists), onAction = { filter = "playlists" })
                 }
-                else -> items(visible, key = { it.id }) { playlist ->
+                else -> items(visible, key = { it.id }, span = { GridItemSpan(if (filter == "playlists" && visible.size == 1) maxLineSpan else 1) }) { playlist ->
                     Reveal(playlist.id, modifier = Modifier.animateItem(
                         fadeInSpec = if (motion.animate) tween(motion.duration(220)) else null,
                         placementSpec = if (motion.animate) tween(motion.duration(320)) else null,
                         fadeOutSpec = if (motion.animate) tween(motion.duration(180)) else null,
-                    )) { PlaylistCard(playlist, { onOpenPlaylist(playlist.id) }, onArtworkError = { homeViewModel.refreshArtwork(playlist.id) }) }
+                    )) {
+                        if (filter == "playlists" && visible.size == 1) {
+                            LibraryCollectionCard(playlist, { onOpenPlaylist(playlist.id) }, { homeViewModel.refreshArtwork(playlist.id) })
+                        } else PlaylistCard(playlist, { onOpenPlaylist(playlist.id) }, onArtworkError = { homeViewModel.refreshArtwork(playlist.id) })
+                    }
                 }
             }
-            if (filter == "playlists") item(key = "playlist-catalog", span = { GridItemSpan(maxLineSpan) }) {
-                dev.pyte.ui.components.PlaylistCatalogSection(catalog, playlists.map { it.id }.toSet(), catalogViewModel::retry) { playlist ->
+            if (filter == "playlists") {
+                playlistCatalogItems(catalog, playlists.map { it.id }.toSet(), catalogViewModel::retry) { playlist ->
                     if (playlists.any { it.id == playlist.id }) onOpenPlaylist(playlist.id)
                     else catalogViewModel.select(playlist)
                 }
