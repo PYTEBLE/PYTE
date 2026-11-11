@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.boundsInWindow
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material.icons.Icons
@@ -350,7 +349,7 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel(), recommendations
             recommendationsViewModel::dismissPicker, recommendationsViewModel::choosePlaylist,
             recommendationsViewModel::createPlaylist)
     }
-    BackHandler(enabled = onNowPlaying) { closePlayer() }
+    PlayerBackHandler(enabled = onNowPlaying, onClose = closePlayer)
     }
     }
     }

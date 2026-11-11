@@ -1,5 +1,27 @@
 # Playback verification
 
+## Playlist playback corrections (unreleased)
+
+- `:app:testDebugUnitTest`, `:app:assembleDebug`, `:app:assembleDebugAndroidTest`
+  and `:app:lintDebug` succeeded: **160 unit tests passed, zero failures/errors;
+  three opt-in live-network tests skipped**.
+- Shuffle regression reproduces the short suffix caused by a random starting item in
+  an unrelated shuffle order. Anchoring the current item first reaches all 20 queue
+  entries exactly once from every starting index without enabling repeat.
+- Removal checks cover current/upcoming/duplicate entries, shuffle transitions, paused
+  intent, empty queues, mix snapshot restoration, unaffected favorites/history/other
+  playlists and shared offline references. Room v1–v4 data migrates to v5. Local source
+  exclusions survive repeated refreshes, database reopening and backup export/import;
+  explicit re-adding clears the exclusion. Existing v1 backups remain readable.
+- Full-player Back uses the same navigation-event dispatcher as NavHost and invokes
+  the existing close/morph callback on completion, not cancellation. New instrumentation
+  cases cover gesture cancellation/commit, direct close, non-predictive Back, playlist
+  action context and removal dispatch. **These UI tests compile but have not run.**
+- No device was connected. Physical qualification remains necessary for left/right-edge
+  gestures, sheets/dialog precedence, animation/reduced-motion appearance and a long
+  online/offline shuffle session. Stream failures and configured sleep-timer pauses are
+  separate from shuffle traversal and are not claimed fixed by this change.
+
 ## Alpha.13 production design migration
 
 - `assembleDebug`, `assembleDebugAndroidTest`, `testDebugUnitTest` and `lintDebug` succeeded
