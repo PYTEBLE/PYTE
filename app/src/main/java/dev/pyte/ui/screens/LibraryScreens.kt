@@ -96,6 +96,7 @@ fun SearchScreen(
     playerViewModel: PlayerViewModel = hiltViewModel(),
     musicViewModel: MusicSearchViewModel = hiltViewModel(),
     onSettings: (() -> Unit)? = null,
+    suggestionsViewModel: dev.pyte.ui.viewmodels.SearchSuggestionsViewModel = hiltViewModel(),
 ) {
     val query by musicViewModel.query.collectAsStateWithLifecycle()
     val localResults by viewModel.results.collectAsStateWithLifecycle()
@@ -107,6 +108,7 @@ fun SearchScreen(
     val saving by musicViewModel.saving.collectAsStateWithLifecycle()
     val message by musicViewModel.message.collectAsStateWithLifecycle()
     val saveError by musicViewModel.saveError.collectAsStateWithLifecycle()
+    val suggestions by suggestionsViewModel.state.collectAsStateWithLifecycle()
     var onlineMode by rememberSaveable { mutableStateOf(true) }
     val results = if (onlineMode) online.tracks else localResults
     val snackbar = remember { SnackbarHostState() }
@@ -150,6 +152,12 @@ fun SearchScreen(
             TextButton(onClick = { musicViewModel.submit(loadMore = online.tracks.isNotEmpty()) }) { Text(stringResource(R.string.retry)) }
         }
         when {
+            query.isBlank() && onlineMode -> dev.pyte.ui.components.SearchSuggestionsContent(
+                suggestions, playerState, favoriteIds, suggestionsViewModel::retry,
+                onPlay = viewModel::play,
+                onFavorite = { track -> viewModel.toggleFavorite(track, track.videoId !in favoriteIds) },
+                onNext = viewModel::enqueueNext, onQueue = viewModel::enqueueLater,
+            )
             onlineMode && online.loading && results.isEmpty() -> TrackListSkeleton()
             query.isBlank() || (onlineMode && !online.searched) -> EmptyState(
                 title = stringResource(if (onlineMode) R.string.search_empty_title else R.string.search_local_placeholder),

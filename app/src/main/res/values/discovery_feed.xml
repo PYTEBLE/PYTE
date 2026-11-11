@@ -1,0 +1,13 @@
+<resources>
+    <string name="search_for_you">Neue Musik für dich</string>
+    <string name="search_for_you_body">Aus deinen letzten Songs – abwechslungsreich gemischt statt immer derselbe Sound.</string>
+    <string name="search_recent_heading">Zuletzt gehört</string>
+    <string name="search_seed_reason">Passt zu „%1$s“</string>
+    <string name="search_suggestions_loading">Deine Songvorschläge werden gemischt …</string>
+    <string name="search_suggestions_error">Songvorschläge gerade nicht verfügbar. Deine Suche funktioniert weiterhin.</string>
+    <string name="search_suggestions_empty">Hör ein paar Songs – hier findest du danach neue Musik, die dazu passt.</string>
+    <string name="search_suggestions_no_matches">Noch keine neuen Treffer. Hör weiter oder versuche es später noch einmal.</string>
+    <string name="search_suggestions_private">Der Hörverlauf ist ausgeschaltet. Es werden keine persönlichen Vorschläge geladen.</string>
+    <string name="discovery_partial">Ein Teil der Vorschläge ist gerade nicht erreichbar.</string>
+    <string name="discovery_refresh">Neu laden</string>
+</resources>
