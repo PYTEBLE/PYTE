@@ -75,6 +75,36 @@ class RecommendationsTest {
         } catch (_: IllegalStateException) { }
     }
 
+    @Test fun `ranking alternates seeds instead of exhausting a dominant radio first`() {
+        val third = song("ccccccccccc")
+        val radios = listOf(seed, other, third).mapIndexed { group, source ->
+            source to (0 until 12).map { index -> song("$group-$index") }
+        }
+        val ranked = rankRecommendations(radios, emptySet())
+        assertEquals(30, ranked.size)
+        ranked.chunked(3).forEach { round ->
+            assertEquals(setOf(seed.title, other.title, third.title), round.map { it.seedTitle }.toSet())
+        }
+    }
+
+    @Test fun `overlapping radios are attributed fairly and never repeat a track`() {
+        val common = (0 until 15).map { song("common$it") }
+        val ranked = rankRecommendations(listOf(seed to common, other to common), emptySet())
+        assertEquals(15, ranked.size)
+        assertEquals(15, ranked.map { it.track.videoId }.toSet().size)
+        assertTrue(ranked.zipWithNext().all { (a, b) -> a.seedTitle != b.seedTitle })
+    }
+
+    @Test fun `short or empty radios do not starve remaining sources`() {
+        val short = song("short")
+        val rest = (0 until 12).map { song("other$it") }
+        val ranked = rankRecommendations(listOf(seed to listOf(short), other to rest), emptySet())
+        assertEquals(13, ranked.size)
+        assertEquals(short, ranked.first().track)
+        assertEquals(rest.map { it.videoId }.toSet(), ranked.drop(1).map { it.track.videoId }.toSet())
+        assertTrue(rankRecommendations(listOf(seed to emptyList()), emptySet()).isEmpty())
+    }
+
     @Test fun `live anonymous radio yields new recommendations`() = runBlocking {
         assumeTrue(System.getenv("PYTE_LIVE_RECOMMENDATIONS") == "true")
         val batch = RecommendationsRepository(InnerTubeClient(OkHttpClient(), Json)).discover(listOf(seed), emptySet())

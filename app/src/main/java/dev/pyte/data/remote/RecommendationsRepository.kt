@@ -50,29 +50,47 @@ internal fun recommendationSeeds(tracks: List<Track>): List<Track> {
 }
 
 internal fun rankRecommendations(radios: List<Pair<Track, List<Track>>>, excluded: Set<String>): List<SongRecommendation> {
-    data class Candidate(val song: SongRecommendation, var score: Double)
+    data class Candidate(val track: Track, var score: Double, val sources: MutableSet<String>)
     val candidates = linkedMapOf<String, Candidate>()
     radios.forEach { (seed, songs) ->
         songs.distinctBy { it.videoId }.forEachIndexed { index, track ->
             if (track.videoId !in excluded) {
                 val score = 1.0 / (index + 5)
                 val existing = candidates[track.videoId]
-                if (existing == null) candidates[track.videoId] = Candidate(SongRecommendation(track, seed.title), score)
-                else existing.score += score
+                if (existing == null) candidates[track.videoId] = Candidate(track, score, mutableSetOf(seed.videoId))
+                else { existing.score += score; existing.sources += seed.videoId }
             }
         }
     }
     val artists = mutableMapOf<String, Int>()
     val versions = mutableSetOf<String>()
-    return candidates.values.sortedByDescending { it.score }.mapNotNull { candidate ->
-        val track = candidate.song.track
+    val ranked = candidates.values.sortedByDescending { it.score }
+    val used = mutableSetOf<String>()
+    val result = mutableListOf<SongRecommendation>()
+    fun eligible(track: Track): Boolean {
         val artist = track.artist.lowercase(Locale.ROOT).trim()
         val version = "$artist:${track.title.lowercase(Locale.ROOT).trim()}"
-        if ((artists[artist] ?: 0) >= 4 || !versions.add(version)) null else {
+        return track.videoId !in used && (artists[artist] ?: 0) < 4 && version !in versions
+    }
+    // Relevance within each radio, round-robin between radios. Overlapping tracks can be
+    // attributed to either seed, but are emitted only once across the entire result.
+    do {
+        val before = result.size
+        for ((seed, _) in radios) {
+            val available = ranked.filter { seed.videoId in it.sources && eligible(it.track) }
+            val previousArtist = result.lastOrNull()?.track?.artist?.lowercase(Locale.ROOT)?.trim()
+            val candidate = available.firstOrNull { it.track.artist.lowercase(Locale.ROOT).trim() != previousArtist }
+                ?: available.firstOrNull() ?: continue
+            val track = candidate.track
+            val artist = track.artist.lowercase(Locale.ROOT).trim()
+            used += track.videoId
+            versions += "$artist:${track.title.lowercase(Locale.ROOT).trim()}"
             artists[artist] = (artists[artist] ?: 0) + 1
-            candidate.song
+            result += SongRecommendation(track, seed.title)
+            if (result.size == 30) return result
         }
-    }.take(30)
+    } while (result.size > before)
+    return result
 }
 
 @Singleton
