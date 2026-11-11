@@ -9,7 +9,7 @@ sealed interface ListIdResult {
 object ListIdParser {
     private val listParam = Regex("""[?&]list=([A-Za-z0-9_-]+)""")
     private val hostPattern = Regex("""^https?://([^/?#]+)""", RegexOption.IGNORE_CASE)
-    private val bareId = Regex("""^(PL|OL|UU|VL|FL)[A-Za-z0-9_-]+$""")
+    private val bareId = Regex("""^(PL|OL|UU|VL|FL|RDCLAK)[A-Za-z0-9_-]+$""")
     private val supportedHost = Regex("""(^|\.)(youtube\.com|youtu\.be)$""", RegexOption.IGNORE_CASE)
 
     fun parse(raw: String): ListIdResult {
@@ -29,7 +29,7 @@ object ListIdParser {
         }
 
         return when {
-            id.startsWith("RD") -> ListIdResult.Invalid("Radio mixes are endless and can't be imported")
+            id.startsWith("RD") && !id.startsWith("RDCLAK") -> ListIdResult.Invalid("Radio mixes are endless and can't be imported")
             id.startsWith("LM") || id.startsWith("LL") || id.startsWith("WL") ->
                 ListIdResult.Invalid("Liked and Watch Later need a YouTube account. Import a regular playlist instead")
             else -> ListIdResult.Valid(id)

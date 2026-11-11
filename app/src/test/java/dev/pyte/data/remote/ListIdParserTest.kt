@@ -45,6 +45,12 @@ class ListIdParserTest {
         assertTrue(invalidReason("https://music.youtube.com/playlist?list=RDdQw4w9WgXcQ")!!.contains("Radio"))
     }
 
+    @Test fun `finite editorial playlists are accepted but song radios remain rejected`() {
+        assertEquals("RDCLAK5uy_editorial", valid("RDCLAK5uy_editorial"))
+        assertEquals("RDCLAK5uy_editorial", valid("https://music.youtube.com/playlist?list=RDCLAK5uy_editorial"))
+        assertTrue(ListIdParser.parse("https://music.youtube.com/playlist?list=RDAMVMdQw4w9WgXcQ") is ListIdResult.Invalid)
+    }
+
     @Test
     fun `liked music is rejected because it needs an account`() {
         assertTrue(invalidReason("https://music.youtube.com/playlist?list=LM")!!.contains("account"))

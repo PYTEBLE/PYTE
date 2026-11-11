@@ -135,9 +135,9 @@ class InnerTubeClient @Inject constructor(
         return JsonObject(response.toMutableMap().apply { put("streamingData", JsonObject(updated)) })
     }
 
-    suspend fun browse(browseId: String? = null, continuation: String? = null): JsonObject {
+    suspend fun browse(browseId: String? = null, continuation: String? = null, localized: Boolean = false): JsonObject {
         val body = buildJsonObject {
-            putJsonObject("context") { putWebRemix() }
+            putJsonObject("context") { putWebRemix(localized) }
             browseId?.let { put("browseId", it) }
             continuation?.let { put("continuation", it) }
         }
@@ -232,12 +232,12 @@ class InnerTubeClient @Inject constructor(
         }
     }
 
-    private fun kotlinx.serialization.json.JsonObjectBuilder.putWebRemix() {
+    private fun kotlinx.serialization.json.JsonObjectBuilder.putWebRemix(localized: Boolean = false) {
         putJsonObject("client") {
             put("clientName", "WEB_REMIX")
             put("clientVersion", WEB_REMIX_VERSION)
-            put("hl", "en")
-            put("gl", "US")
+            put("hl", if (localized) "de" else "en")
+            put("gl", if (localized) "DE" else "US")
         }
     }
 }
