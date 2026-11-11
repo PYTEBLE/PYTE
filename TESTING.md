@@ -1,5 +1,21 @@
 # Playback verification
 
+## Library magazine layout (unreleased)
+
+- `:app:testDebugUnitTest`, `:app:assembleDebug`, `:app:assembleDebugAndroidTest`
+  and `:app:lintDebug` passed: **177 unit tests passed, zero failures/errors;
+  four optional live-network tests skipped**. Lint has zero errors.
+- On the Galaxy S25 Ultra / Android 17, **15 instrumentation tests passed** across
+  `DiscoveryFeedUiTest`, `PlayerBackNavigationTest` and `SongActionsUiTest`. New layout
+  assertions check the full-width feature, paired chart/tip cards, single collection
+  width/tap handling, retry, and a reachable single-column catalogue at local 160% text.
+  Confirmation/cancel and pending-import guards remain covered.
+- The normal app was updated in place (no uninstall/data clearing). Real collection,
+  charts and editorial-grid screens were visually inspected on the device. Playlist
+  contents, download settings, network/catalogue logic and playback were not changed.
+- Tablets, landscape, maximum system font scale and a TalkBack session were not newly
+  qualified. Private collection screenshots remain local, not in the repository.
+
 ## Discovery feeds, playlist photos and physical-device follow-up (unreleased)
 
 - Final checks passed: `:app:testDebugUnitTest`, `:app:assembleDebug`,
