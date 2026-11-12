@@ -22,6 +22,8 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -137,6 +139,29 @@ fun HomeScreen(
                                 Row {
                                     TextButton(onClick = onSearch) { Icon(Icons.Default.Search, null); Text(stringResource(R.string.search), Modifier.padding(start = 8.dp)) }
                                     TextButton(onClick = { showImport = true }) { Icon(Icons.Default.Add, null); Text(stringResource(R.string.import_action), Modifier.padding(start = 8.dp)) }
+                                }
+                            }
+                        }
+                    }
+                    if (recent.isNotEmpty()) {
+                        item(key = "continue", span = { GridItemSpan(maxLineSpan) }) {
+                            val track = recent.first()
+                            Reveal("continue") {
+                                Surface(onClick = { viewModel.playRecent(recent, 0) }, shape = RoundedCornerShape(28.dp),
+                                    color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = Modifier.fillMaxWidth()) {
+                                    Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                        Artwork(track.thumbnailUrl, Modifier.size(96.dp), shape = RoundedCornerShape(20.dp), videoId = track.videoId)
+                                        Column(Modifier.weight(1f)) {
+                                            Text(stringResource(R.string.start_continue), style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.primary, letterSpacing = 2.sp)
+                                            Text(track.title, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                                                style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                                            Text(track.artist, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                        Icon(Icons.Default.PlayArrow, stringResource(R.string.play), tint = MaterialTheme.colorScheme.primary)
+                                    }
                                 }
                             }
                         }

@@ -5,6 +5,7 @@
     <string name="library_subtitle">%1$s · auf deinem Gerät</string>
     <string name="library_collections">Deine Playlists</string>
     <string name="library_recent">Zuletzt gehört</string>
+    <string name="start_continue">WEITERHÖREN</string>
     <string name="import_playlist">Playlist importieren</string>
     <string name="import_action">Importieren</string>
     <string name="import_help">Füge den Link einer öffentlichen YouTube- oder YouTube-Music-Playlist ein.</string>
