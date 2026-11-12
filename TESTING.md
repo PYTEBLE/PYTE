@@ -11,7 +11,12 @@
   uninstalling it, the new build and the test APK were signed with that same key using
   `tools/sign-apk.sh` and installed with `adb install -r`. App data was not cleared. The
   test package `dev.pyte.test` was reinstalled because its previous signature did not match.
-- Start was checked visually via screenshot; Suchen was not screenshotted.
+- Start and Suchen were checked on the device after the motion pass: the featured pick is
+  above "Zuletzt gehört", and the loading state shows the skeleton. The cover-tinted card
+  uses the existing `CoverPaletteRepository`; its colors were not verified against every
+  artwork, so check dark covers on device before release.
+- Already present and not changed: favorite burst with haptics, cover light, song swap in the
+  player, mini/full player morph and shimmer placeholders.
 
 ## Library magazine layout (unreleased)
 

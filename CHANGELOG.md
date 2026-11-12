@@ -3,8 +3,10 @@
 ## Unreleased — livelier Start and Suchen
 
 - Start: "Weiterhören" shows the most recent song as a large card; one tap resumes it.
-- Suchen: the top personal suggestion is featured above compact song rows, with its
-  "Passt zu …" reason.
+- Suchen: the top personal suggestion is featured above recent cards and compact song rows,
+  tinted with its cover colors, with its "Passt zu …" reason.
+- Start and Suchen: smaller intro cards, pressable cards with a short scale feedback, and
+  a shimmer skeleton while suggestions load.
 
 ## 1.0.1 — discovery, library and playback fixes
 
