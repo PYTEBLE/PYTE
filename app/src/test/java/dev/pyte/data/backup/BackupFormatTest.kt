@@ -63,6 +63,16 @@ class BackupFormatTest {
         assertEquals(settings, app.toBackup())
     }
 
+    @Test fun soundPreferenceRoundTripsAndOldBackupsDefaultToOff() {
+        val source = file().copy(settings = settings.copy(uiSounds = true))
+        val restored = parseBackup(encodeBackup(source)).settings.toAppSettings()
+        assertEquals(true, restored.uiSounds)
+        assertEquals(source.settings, restored.toBackup())
+        val root = Json.parseToJsonElement(encodeBackup(source)).jsonObject
+        val old = JsonObject(root + ("settings" to JsonObject(root.getValue("settings").jsonObject - "uiSounds")))
+        assertEquals(false, parseBackup(old.toString()).settings.toAppSettings().uiSounds)
+    }
+
     private fun assertInvalid(block: () -> Unit) {
         try {
             block()

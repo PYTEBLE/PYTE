@@ -40,6 +40,7 @@ data class BackupSettings(
     val autoRecommendations: Boolean,
     val equalizer: EqualizerSettings,
     val battery: BatterySettings,
+    val uiSounds: Boolean = false,
 )
 
 @Serializable
@@ -98,6 +99,7 @@ internal fun AppSettings.toBackup() = BackupSettings(
     autoRecommendations = autoRecommendations,
     equalizer = equalizer,
     battery = battery,
+    uiSounds = uiSounds,
 )
 
 internal fun BackupSettings.toAppSettings() = AppSettings(
@@ -110,4 +112,5 @@ internal fun BackupSettings.toAppSettings() = AppSettings(
     hapticFeedback = hapticFeedback,
     autoRecommendations = autoRecommendations,
     battery = battery,
+    uiSounds = uiSounds,
 )

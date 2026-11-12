@@ -12,6 +12,24 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class SettingsRepositoryTest {
+    @Test fun `UI sounds persist restore and stay independent of haptics and playback`() = runBlocking {
+        val context = RuntimeEnvironment.getApplication()
+        val repository = SettingsRepository(context)
+        val before = repository.settings.first()
+        try {
+            repository.setUiSounds(true)
+            assertEquals(before.copy(uiSounds = true), SettingsRepository(context).settings.first())
+            repository.restore(before.copy(uiSounds = false))
+            assertFalse(repository.settings.first().uiSounds)
+            repository.restore(before.copy(uiSounds = true, hapticFeedback = false))
+            val restored = SettingsRepository(context).settings.first()
+            assertTrue(restored.uiSounds)
+            assertFalse(restored.hapticFeedback)
+            assertEquals(before.skipSilence, restored.skipSilence)
+            assertEquals(before.equalizer, restored.equalizer)
+        } finally { repository.restore(before) }
+    }
+
     @Test fun `last playlist choice persists without changing battery or effects`() = runBlocking {
         val repository = SettingsRepository(RuntimeEnvironment.getApplication())
         val before = repository.settings.first()

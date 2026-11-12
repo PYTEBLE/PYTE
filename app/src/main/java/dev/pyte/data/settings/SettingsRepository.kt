@@ -69,6 +69,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
             it[equalizerKey] = json.encodeToString(value.equalizer.normalized())
             it[effectLevelKey] = value.effectLevel.name
             it[hapticKey] = value.hapticFeedback
+            it[uiSoundsKey] = value.uiSounds
             it[recommendationsKey] = value.autoRecommendations
             it[batteryKey] = json.encodeToString(value.battery.normalized())
         }
