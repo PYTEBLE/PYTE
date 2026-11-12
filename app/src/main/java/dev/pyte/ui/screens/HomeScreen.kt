@@ -53,6 +53,8 @@ import dev.pyte.ui.components.PlaylistCard
 import dev.pyte.ui.components.Artwork
 import dev.pyte.ui.components.ScreenHeading
 import dev.pyte.ui.components.LibraryWelcome
+import dev.pyte.ui.components.pressMotion
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import dev.pyte.ui.viewmodels.HomeViewModel
 import dev.pyte.ui.viewmodels.ImportUiState
 import androidx.compose.foundation.background
@@ -121,7 +123,7 @@ fun HomeScreen(
                         Reveal("library-hero") {
                             Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(
                                 MaterialTheme.colorScheme.primary.copy(alpha = .20f),
-                                MaterialTheme.colorScheme.tertiary.copy(alpha = .06f))), RoundedCornerShape(30.dp)).padding(24.dp)) {
+                                MaterialTheme.colorScheme.tertiary.copy(alpha = .06f))), RoundedCornerShape(30.dp)).padding(20.dp)) {
                                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                     Text("START", Modifier.weight(1f), style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.primary, letterSpacing = 3.sp)
@@ -133,8 +135,8 @@ fun HomeScreen(
                                     }
                                 }
                                 Spacer(Modifier.height(12.dp))
-                                Text(stringResource(R.string.start_subtitle), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
-                                Spacer(Modifier.height(12.dp))
+                                Text(stringResource(R.string.start_subtitle), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                                Spacer(Modifier.height(8.dp))
                                 Text(stringResource(R.string.library_subtitle, pluralStringResource(R.plurals.playlists_count, playlists.size, playlists.size)), color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Row {
                                     TextButton(onClick = onSearch) { Icon(Icons.Default.Search, null); Text(stringResource(R.string.search), Modifier.padding(start = 8.dp)) }
@@ -146,9 +148,11 @@ fun HomeScreen(
                     if (recent.isNotEmpty()) {
                         item(key = "continue", span = { GridItemSpan(maxLineSpan) }) {
                             val track = recent.first()
+                            val interaction = remember { MutableInteractionSource() }
                             Reveal("continue") {
                                 Surface(onClick = { viewModel.playRecent(recent, 0) }, shape = RoundedCornerShape(28.dp),
-                                    color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = Modifier.fillMaxWidth()) {
+                                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    modifier = Modifier.fillMaxWidth().pressMotion(interaction), interactionSource = interaction) {
                                     Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                                         Artwork(track.thumbnailUrl, Modifier.size(96.dp), shape = RoundedCornerShape(20.dp), videoId = track.videoId)
