@@ -46,8 +46,8 @@ fun SearchSuggestionsContent(
             Surface(Modifier.padding(horizontal = 20.dp), shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
                 Column(Modifier.background(Brush.linearGradient(listOf(MaterialTheme.colorScheme.primary.copy(alpha = .13f),
                     MaterialTheme.colorScheme.surfaceContainerHigh))).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Default.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary)
-                    Text(stringResource(R.string.search_for_you), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Icon(Icons.Default.AutoAwesome, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(R.string.search_for_you), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     Text(stringResource(R.string.search_for_you_body), style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
