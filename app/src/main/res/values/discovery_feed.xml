@@ -2,6 +2,7 @@
     <string name="search_for_you">Neue Musik für dich</string>
     <string name="search_for_you_body">Aus deinen letzten Songs – abwechslungsreich gemischt statt immer derselbe Sound.</string>
     <string name="search_recent_heading">Zuletzt gehört</string>
+    <string name="search_featured">TOP-VORSCHLAG FÜR DICH</string>
     <string name="search_seed_reason">Passt zu „%1$s“</string>
     <string name="search_suggestions_loading">Deine Songvorschläge werden gemischt …</string>
     <string name="search_suggestions_error">Songvorschläge gerade nicht verfügbar. Deine Suche funktioniert weiterhin.</string>

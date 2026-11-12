@@ -67,6 +67,20 @@ class DiscoveryFeedUiTest {
         compose.runOnIdle { assertEquals(listOf(song), played); assertEquals(0, playedIndex) }
     }
 
+    @Test fun featuredPickAndCompactRowsPlayTheirOwnPositionInTheFullList() {
+        var playedIndex = -1
+        val second = Track("second12345A", "Zweiter Song", "Anderer Künstler", 1000, null)
+        val state = SearchSuggestionsState(songs = listOf(SongRecommendation(song, "Letzter Song"),
+            SongRecommendation(second, "Anderer Song")))
+        compose.setContent { PyteTheme { SearchSuggestionsContent(state, PlayerUiState(), emptySet(), {},
+            { _, index -> playedIndex = index }, {}, {}, {}) } }
+        compose.onNodeWithText("TOP-VORSCHLAG FÜR DICH").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Zweiter Song").performScrollTo().performClick()
+        compose.runOnIdle { assertEquals(1, playedIndex) }
+        compose.onNodeWithText(song.title).performClick()
+        compose.runOnIdle { assertEquals(0, playedIndex) }
+    }
+
     @Test fun disabledHistoryShowsAnHonestEmptyState() {
         compose.setContent { PyteTheme { SearchSuggestionsContent(SearchSuggestionsState(historyEnabled = false), PlayerUiState(), emptySet(), {}, { _, _ -> }, {}, {}, {}) } }
         compose.onNodeWithText("Der Hörverlauf ist ausgeschaltet. Es werden keine persönlichen Vorschläge geladen.")

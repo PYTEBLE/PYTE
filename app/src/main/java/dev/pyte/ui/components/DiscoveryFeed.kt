@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -92,7 +93,27 @@ fun SearchSuggestionsContent(
                 }
             }
             if (state.partial) item(key = "suggestion-partial") { DiscoveryNotice(stringResource(R.string.discovery_partial), onRetry) }
-            itemsIndexed(state.songs, key = { _, song -> song.track.videoId }) { index, song ->
+            item(key = "suggestion-featured") {
+                val featured = state.songs.first()
+                Surface(onClick = { onPlay(songs, 0) }, shape = RoundedCornerShape(28.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
+                    Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Artwork(featured.track.thumbnailUrl, Modifier.size(96.dp), shape = RoundedCornerShape(20.dp), videoId = featured.track.videoId)
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(stringResource(R.string.search_featured), style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary, letterSpacing = 2.sp)
+                            Text(featured.track.title, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                                style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            Text(featured.track.artist, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                style = MaterialTheme.typography.bodyMedium)
+                            Text(stringResource(R.string.search_seed_reason, featured.seedTitle), maxLines = 2, overflow = TextOverflow.Ellipsis,
+                                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+            itemsIndexed(state.songs.drop(1), key = { _, song -> song.track.videoId }) { offset, song ->
+                val index = offset + 1
                 Column {
                     TrackRow(song.track, player.current?.videoId == song.track.videoId, song.track.videoId in favoriteIds,
                         onClick = { onPlay(songs, index) }, onFavoriteClick = { onFavorite(song.track) },
