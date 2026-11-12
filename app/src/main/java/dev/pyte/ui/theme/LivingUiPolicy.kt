@@ -26,6 +26,7 @@ data class LivingUiPolicy(
     val systemAnimations: Boolean = true,
     val powerSaver: Boolean = false,
     val haptics: Boolean = true,
+    val sounds: Boolean = false,
 ) {
     val animate: Boolean get() = foreground && systemAnimations && !powerSaver
     val ambient: Boolean get() = animate && level != EffectLevel.SUBTLE
@@ -85,5 +86,6 @@ fun rememberLivingUiPolicy(settings: AppSettings): LivingUiPolicy {
         }
     }
     return LivingUiPolicy(settings.effectLevel, lifecycle.isAtLeast(Lifecycle.State.STARTED) && focused && interactive,
-        animations, powerSaver || settings.battery.active(settings.battery.reduceEffects), settings.hapticFeedback)
+        animations, powerSaver || settings.battery.active(settings.battery.reduceEffects), settings.hapticFeedback,
+        settings.uiSounds && !powerSaver)
 }

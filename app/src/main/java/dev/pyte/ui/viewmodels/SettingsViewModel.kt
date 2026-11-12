@@ -51,6 +51,7 @@ class SettingsViewModel @Inject constructor(
     fun effectLevel(level: dev.pyte.data.settings.EffectLevel) = update { repository.setEffectLevel(level) }
     fun hapticFeedback(enabled: Boolean) = update { repository.setHapticFeedback(enabled) }
     fun autoRecommendations(enabled: Boolean) = update { repository.setAutoRecommendations(enabled) }
+    fun uiSounds(enabled: Boolean) = update { repository.setUiSounds(enabled) }
     fun recordHistory(enabled: Boolean) = update { library.setHistoryEnabled(enabled) }
     fun clearHistory() = update {
         library.clearHistory()

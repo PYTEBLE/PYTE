@@ -117,6 +117,7 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel(), recommendations
     val coverColors by playerViewModel.coverColors.collectAsStateWithLifecycle()
     val appearance by playerViewModel.appearance.collectAsStateWithLifecycle()
     val motion = rememberLivingUiPolicy(appearance)
+    val uiSounds = dev.pyte.ui.components.rememberUiSoundPlayer()
     val report by playerViewModel.diagnosticReport.collectAsStateWithLifecycle()
     val playlistSave by playerViewModel.playlistSave.collectAsStateWithLifecycle()
     val favorites by playerViewModel.favoriteIds.collectAsStateWithLifecycle()
@@ -181,7 +182,7 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel(), recommendations
     val feedback = playlistSave.message?.let { message -> SongFeedback(message,
         playlistSave.undo?.let { addition -> { playerViewModel.undoSave(addition) } }, playlistSave.messageIsError) }
     CompositionLocalProvider(LocalLivingUi provides motion, LocalPlayerMorph provides morph, LocalSongActions provides songActions,
-        LocalSongFeedback provides feedback) {
+        LocalSongFeedback provides feedback, dev.pyte.ui.components.LocalUiSounds provides uiSounds) {
     AppCoverTheme(coverColors) {
     AppBackground(playerState.isPlaying, onNowPlaying) {
     Box(Modifier.fillMaxSize().onGloballyPositioned { morph.rootBounds(it.boundsInWindow()) }) {

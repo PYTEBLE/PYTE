@@ -123,7 +123,7 @@ private fun SettingsDetailPage(
         SettingsCategory.SOUND -> SoundPage(onBack)
         SettingsCategory.DISCOVER -> DiscoverPage(settings, busy, viewModel::autoRecommendations, onBack)
         SettingsCategory.APPEARANCE -> AppearancePage(settings, busy, viewModel::dynamicCoverTheme, viewModel::effectLevel,
-            viewModel::hapticFeedback, onBack)
+            viewModel::hapticFeedback, viewModel::uiSounds, onBack)
         SettingsCategory.BATTERY -> BatteryModePage(settings.battery, busy, viewModel::battery, onBack)
         SettingsCategory.DOWNLOADS -> DownloadsPage(settings, busy, offlineBytes, viewModel::downloadLimit,
             viewModel::pauseDownloads, onBack)

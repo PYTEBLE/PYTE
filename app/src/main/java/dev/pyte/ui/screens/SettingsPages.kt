@@ -80,6 +80,7 @@ internal fun AppearancePage(
     onCoverTheme: (Boolean) -> Unit,
     onEffectLevel: (EffectLevel) -> Unit,
     onHaptics: (Boolean) -> Unit,
+    onUiSounds: (Boolean) -> Unit,
     onBack: () -> Unit,
 ) {
     SettingsDetail(stringResource(R.string.appearance_title), onBack) {
@@ -97,6 +98,8 @@ internal fun AppearancePage(
         SettingsSection {
             SettingsSwitch(stringResource(R.string.haptics), stringResource(R.string.haptics_help),
                 settings.hapticFeedback, !busy, onHaptics)
+            SettingsSwitch(stringResource(R.string.ui_sounds), stringResource(R.string.ui_sounds_help),
+                settings.uiSounds, !busy, onUiSounds)
         }
     }
 }

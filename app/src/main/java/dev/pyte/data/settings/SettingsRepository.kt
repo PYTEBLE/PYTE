@@ -32,6 +32,7 @@ data class AppSettings(
     val autoRecommendations: Boolean = true,
     val battery: BatterySettings = BatterySettings(),
     val recentPlaylistId: String? = null,
+    val uiSounds: Boolean = false,
 )
 
 @Singleton
@@ -48,6 +49,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     private val recommendationsKey = booleanPreferencesKey("auto_recommendations")
     private val batteryKey = stringPreferencesKey("battery_v1")
     private val recentPlaylistKey = stringPreferencesKey("recent_playlist_id")
+    private val uiSoundsKey = booleanPreferencesKey("ui_sounds")
     private val json = Json { ignoreUnknownKeys = true }
 
     val settings = store.data.map { values ->
@@ -55,7 +57,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
             values[limitKey] ?: 2048, values[pauseKey] ?: false, values[coverThemeKey] ?: true,
             runCatching { json.decodeFromString<EqualizerSettings>(values[equalizerKey] ?: "{}").normalized() }.getOrDefault(EqualizerSettings()),
             EffectLevel.fromStored(values[effectLevelKey]), values[hapticKey] ?: true, values[recommendationsKey] ?: true,
-            runCatching { json.decodeFromString<BatterySettings>(values[batteryKey] ?: "{}").normalized() }.getOrDefault(BatterySettings()), values[recentPlaylistKey])
+            runCatching { json.decodeFromString<BatterySettings>(values[batteryKey] ?: "{}").normalized() }.getOrDefault(BatterySettings()), values[recentPlaylistKey], values[uiSoundsKey] ?: false)
     }
 
     suspend fun restore(value: AppSettings) {
@@ -81,6 +83,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     suspend fun setEffectLevel(level: EffectLevel) { store.edit { it[effectLevelKey] = level.name } }
     suspend fun setHapticFeedback(enabled: Boolean) { store.edit { it[hapticKey] = enabled } }
     suspend fun setAutoRecommendations(enabled: Boolean) { store.edit { it[recommendationsKey] = enabled } }
+    suspend fun setUiSounds(enabled: Boolean) { store.edit { it[uiSoundsKey] = enabled } }
     private suspend fun editEqualizer(change: (EqualizerSettings) -> EqualizerSettings) {
         store.edit { values ->
             val old = runCatching { json.decodeFromString<EqualizerSettings>(values[equalizerKey] ?: "{}").normalized() }

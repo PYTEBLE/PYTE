@@ -17,6 +17,8 @@
     <string name="effects_help">Reduzierte Systemanimationen und Energiesparen haben Vorrang. Dekorative Effekte pausieren im Hintergrund.</string>
     <string name="haptics">Haptisches Feedback</string>
     <string name="haptics_help">Sanfte Rückmeldung beim Favorisieren. Berücksichtigt die Systemeinstellungen.</string>
+    <string name="ui_sounds">Klänge bei Bedienung</string>
+    <string name="ui_sounds_help">Kurze Klicks für Play, Favoriten und Entdecken. Aus, solange du es nicht einschaltest.</string>
     <string name="offline_downloads">Offline-Downloads</string>
     <string name="storage_used">%1$d MB belegt · %2$d MB Limit</string>
     <string name="downloads_help">Nur als offline markierte Playlists werden über WLAN geladen. Vorhandene Downloads werden nicht automatisch gelöscht, um Platz zu schaffen.</string>
