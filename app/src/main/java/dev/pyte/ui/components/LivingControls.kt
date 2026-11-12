@@ -54,7 +54,12 @@ internal fun Modifier.pressMotion(source: MutableInteractionSource): Modifier {
 @Composable
 fun LivingPlayButton(isPlaying: Boolean, onClick: () -> Unit, size: Dp = 80.dp) {
     val interaction = remember { MutableInteractionSource() }
-    FilledIconButton(onClick = onClick, interactionSource = interaction,
+    val policy = LocalLivingUi.current
+    val sounds = LocalUiSounds.current
+    FilledIconButton(onClick = {
+        if (policy.sounds) sounds?.play(if (isPlaying) UiSound.OFF else UiSound.ON)
+        onClick()
+    }, interactionSource = interaction,
         modifier = Modifier.size(size).pressMotion(interaction).background(Brush.linearGradient(listOf(
             MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary)), CircleShape),
         colors = IconButtonDefaults.filledIconButtonColors(containerColor = Color.Transparent)) {
@@ -89,6 +94,7 @@ private fun PlayPauseGlyph(isPlaying: Boolean, modifier: Modifier) {
 @Composable
 fun FavoriteButton(isFavorite: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, key: String = "favorite") {
     val policy = LocalLivingUi.current
+    val sounds = LocalUiSounds.current
     val view = LocalView.current
     val interaction = remember { MutableInteractionSource() }
     val burst = remember(key) { Animatable(1f) }
@@ -103,6 +109,7 @@ fun FavoriteButton(isFavorite: Boolean, onClick: () -> Unit, modifier: Modifier 
     Box(modifier) {
         IconButton(onClick = {
             adding = !isFavorite; event++
+            if (policy.sounds) sounds?.play(if (adding) UiSound.SUCCESS else UiSound.OFF)
             if (policy.haptics && policy.foreground) view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
             onClick()
         }, interactionSource = interaction, modifier = Modifier.pressMotion(interaction)) {

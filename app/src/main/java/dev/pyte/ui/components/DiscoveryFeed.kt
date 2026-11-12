@@ -24,6 +24,7 @@ import dev.pyte.data.remote.SongRecommendation
 import dev.pyte.domain.Track
 import dev.pyte.playback.PlayerUiState
 import dev.pyte.ui.theme.CoverColors
+import dev.pyte.ui.theme.LocalLivingUi
 import dev.pyte.ui.viewmodels.SearchSuggestionsState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.remember
@@ -126,11 +127,16 @@ fun SearchSuggestionsContent(
 @Composable
 private fun FeaturedSuggestion(featured: SongRecommendation, colors: CoverColors?, onClick: () -> Unit) {
     val interaction = remember { MutableInteractionSource() }
+    val policy = LocalLivingUi.current
+    val sounds = LocalUiSounds.current
     val accent = colors?.accent ?: MaterialTheme.colorScheme.primary
-    Surface(onClick = onClick, shape = RoundedCornerShape(28.dp), interactionSource = interaction,
+    Surface(onClick = {
+            if (policy.sounds) sounds?.play(UiSound.TAP)
+            onClick()
+        }, shape = RoundedCornerShape(28.dp), interactionSource = interaction,
         color = colors?.background ?: MaterialTheme.colorScheme.primaryContainer,
         contentColor = if (colors != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onPrimaryContainer,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).pressMotion(interaction)) {
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).pressMotion(interaction).touchBloom(interaction)) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Artwork(featured.track.thumbnailUrl, Modifier.size(96.dp), shape = RoundedCornerShape(20.dp), videoId = featured.track.videoId)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {

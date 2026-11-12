@@ -54,6 +54,9 @@ import dev.pyte.ui.components.Artwork
 import dev.pyte.ui.components.ScreenHeading
 import dev.pyte.ui.components.LibraryWelcome
 import dev.pyte.ui.components.pressMotion
+import dev.pyte.ui.components.LocalUiSounds
+import dev.pyte.ui.components.UiSound
+import dev.pyte.ui.components.touchBloom
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import dev.pyte.ui.viewmodels.HomeViewModel
 import dev.pyte.ui.viewmodels.ImportUiState
@@ -87,6 +90,7 @@ fun HomeScreen(
 ) {
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
     val motion = LocalLivingUi.current
+    val uiSounds = LocalUiSounds.current
     val songActions = LocalSongActions.current
     val pendingLink by viewModel.pendingLink.collectAsStateWithLifecycle()
     val recent by viewModel.recentTracks.collectAsStateWithLifecycle()
@@ -150,9 +154,13 @@ fun HomeScreen(
                             val track = recent.first()
                             val interaction = remember { MutableInteractionSource() }
                             Reveal("continue") {
-                                Surface(onClick = { viewModel.playRecent(recent, 0) }, shape = RoundedCornerShape(28.dp),
+                                Surface(onClick = {
+                                    if (motion.sounds) uiSounds?.play(UiSound.TAP)
+                                    viewModel.playRecent(recent, 0)
+                                }, shape = RoundedCornerShape(28.dp),
                                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                    modifier = Modifier.fillMaxWidth().pressMotion(interaction), interactionSource = interaction) {
+                                    modifier = Modifier.fillMaxWidth().pressMotion(interaction).touchBloom(interaction),
+                                    interactionSource = interaction) {
                                     Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                                         Artwork(track.thumbnailUrl, Modifier.size(96.dp), shape = RoundedCornerShape(20.dp), videoId = track.videoId)
