@@ -3,11 +3,13 @@ package dev.pyte.ui.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.pyte.data.remote.CoverPaletteRepository
 import dev.pyte.data.remote.RecommendationsRepository
 import dev.pyte.data.remote.SongRecommendation
 import dev.pyte.data.repository.LibraryRepository
 import dev.pyte.data.settings.SettingsRepository
 import dev.pyte.domain.Track
+import dev.pyte.ui.theme.CoverColors
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
@@ -35,6 +37,7 @@ class SearchSuggestionsViewModel @Inject constructor(
     library: LibraryRepository,
     settings: SettingsRepository,
     private val recommendations: RecommendationsRepository,
+    private val palette: CoverPaletteRepository,
 ) : ViewModel() {
     private val refresh = MutableStateFlow(0)
     private var cachedKey: List<String>? = null
@@ -66,6 +69,11 @@ class SearchSuggestionsViewModel @Inject constructor(
         catch (_: Exception) { emit(SearchSuggestionsState(recent = recent, error = true)) }
     }.catch { emit(SearchSuggestionsState(error = true)) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SearchSuggestionsState(loading = true))
+
+    val featuredColors: StateFlow<CoverColors?> = state.map { it.songs.firstOrNull()?.track }.distinctUntilChanged()
+        .transformLatest { track -> emit(track?.let { palette.colors(it) }) }
+        .catch { emit(null) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     fun retry() { cached = null; refresh.value++ }
 }

@@ -109,6 +109,7 @@ fun SearchScreen(
     val message by musicViewModel.message.collectAsStateWithLifecycle()
     val saveError by musicViewModel.saveError.collectAsStateWithLifecycle()
     val suggestions by suggestionsViewModel.state.collectAsStateWithLifecycle()
+    val featuredColors by suggestionsViewModel.featuredColors.collectAsStateWithLifecycle()
     var onlineMode by rememberSaveable { mutableStateOf(true) }
     val results = if (onlineMode) online.tracks else localResults
     val snackbar = remember { SnackbarHostState() }
@@ -157,6 +158,7 @@ fun SearchScreen(
                 onPlay = viewModel::play,
                 onFavorite = { track -> viewModel.toggleFavorite(track, track.videoId !in favoriteIds) },
                 onNext = viewModel::enqueueNext, onQueue = viewModel::enqueueLater,
+                featuredColors = featuredColors,
             )
             onlineMode && online.loading && results.isEmpty() -> TrackListSkeleton()
             query.isBlank() || (onlineMode && !online.searched) -> EmptyState(

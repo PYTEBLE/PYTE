@@ -81,6 +81,16 @@ class DiscoveryFeedUiTest {
         compose.runOnIdle { assertEquals(0, playedIndex) }
     }
 
+    @Test fun featuredSuggestionComesBeforeRecentCards() {
+        val recentTrack = Track("recentSong1", "Zuletzt gehört Song", "Künstler", 1000, null)
+        val state = SearchSuggestionsState(songs = listOf(SongRecommendation(song, "Letzter Song")), recent = listOf(recentTrack))
+        compose.setContent { PyteTheme { SearchSuggestionsContent(state, PlayerUiState(), emptySet(), {}, { _, _ -> }, {}, {}, {}) } }
+        compose.onNodeWithText("Zuletzt gehört").performScrollTo()
+        val featured = compose.onNodeWithText("TOP-VORSCHLAG FÜR DICH").fetchSemanticsNode().boundsInRoot
+        val recentHeading = compose.onNodeWithText("Zuletzt gehört").fetchSemanticsNode().boundsInRoot
+        assertTrue(featured.top < recentHeading.top)
+    }
+
     @Test fun disabledHistoryShowsAnHonestEmptyState() {
         compose.setContent { PyteTheme { SearchSuggestionsContent(SearchSuggestionsState(historyEnabled = false), PlayerUiState(), emptySet(), {}, { _, _ -> }, {}, {}, {}) } }
         compose.onNodeWithText("Der Hörverlauf ist ausgeschaltet. Es werden keine persönlichen Vorschläge geladen.")

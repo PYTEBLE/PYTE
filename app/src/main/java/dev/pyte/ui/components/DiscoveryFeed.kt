@@ -20,9 +20,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.pyte.R
+import dev.pyte.data.remote.SongRecommendation
 import dev.pyte.domain.Track
 import dev.pyte.playback.PlayerUiState
+import dev.pyte.ui.theme.CoverColors
 import dev.pyte.ui.viewmodels.SearchSuggestionsState
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.runtime.remember
 
 @Composable
 fun SearchSuggestionsContent(
@@ -34,18 +38,24 @@ fun SearchSuggestionsContent(
     onFavorite: (Track) -> Unit,
     onNext: (Track) -> Unit,
     onQueue: (Track) -> Unit,
+    featuredColors: CoverColors? = null,
 ) {
     val songs = state.songs.map { it.track }
     LazyColumn(contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item(key = "suggestion-heading") {
             Surface(Modifier.padding(horizontal = 20.dp), shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
                 Column(Modifier.background(Brush.linearGradient(listOf(MaterialTheme.colorScheme.primary.copy(alpha = .13f),
-                    MaterialTheme.colorScheme.surfaceContainerHigh))).padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    MaterialTheme.colorScheme.surfaceContainerHigh))).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Default.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary)
                     Text(stringResource(R.string.search_for_you), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                     Text(stringResource(R.string.search_for_you_body), style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+            }
+        }
+        if (state.songs.isNotEmpty()) {
+            item(key = "suggestion-featured") {
+                FeaturedSuggestion(state.songs.first(), featuredColors) { onPlay(songs, 0) }
             }
         }
         if (state.recent.isNotEmpty()) {
@@ -71,9 +81,13 @@ fun SearchSuggestionsContent(
         }
         when {
             state.loading -> item(key = "suggestion-loading") {
-                Row(Modifier.padding(24.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                    Text(stringResource(R.string.search_suggestions_loading), style = MaterialTheme.typography.bodyMedium)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(Modifier.padding(start = 20.dp, top = 12.dp, end = 20.dp), verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                        Text(stringResource(R.string.search_suggestions_loading), style = MaterialTheme.typography.bodyMedium)
+                    }
+                    TrackListSkeleton()
                 }
             }
             state.error -> item(key = "suggestion-error") { DiscoveryNotice(stringResource(R.string.search_suggestions_error), onRetry) }
@@ -93,25 +107,6 @@ fun SearchSuggestionsContent(
                 }
             }
             if (state.partial) item(key = "suggestion-partial") { DiscoveryNotice(stringResource(R.string.discovery_partial), onRetry) }
-            item(key = "suggestion-featured") {
-                val featured = state.songs.first()
-                Surface(onClick = { onPlay(songs, 0) }, shape = RoundedCornerShape(28.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
-                    Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Artwork(featured.track.thumbnailUrl, Modifier.size(96.dp), shape = RoundedCornerShape(20.dp), videoId = featured.track.videoId)
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(stringResource(R.string.search_featured), style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary, letterSpacing = 2.sp)
-                            Text(featured.track.title, maxLines = 2, overflow = TextOverflow.Ellipsis,
-                                style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                            Text(featured.track.artist, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                                style = MaterialTheme.typography.bodyMedium)
-                            Text(stringResource(R.string.search_seed_reason, featured.seedTitle), maxLines = 2, overflow = TextOverflow.Ellipsis,
-                                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                }
-            }
             itemsIndexed(state.songs.drop(1), key = { _, song -> song.track.videoId }) { offset, song ->
                 val index = offset + 1
                 Column {
@@ -123,6 +118,30 @@ fun SearchSuggestionsContent(
                         style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FeaturedSuggestion(featured: SongRecommendation, colors: CoverColors?, onClick: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
+    val accent = colors?.accent ?: MaterialTheme.colorScheme.primary
+    Surface(onClick = onClick, shape = RoundedCornerShape(28.dp), interactionSource = interaction,
+        color = colors?.background ?: MaterialTheme.colorScheme.primaryContainer,
+        contentColor = if (colors != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onPrimaryContainer,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).pressMotion(interaction)) {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Artwork(featured.track.thumbnailUrl, Modifier.size(96.dp), shape = RoundedCornerShape(20.dp), videoId = featured.track.videoId)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(stringResource(R.string.search_featured), style = MaterialTheme.typography.labelSmall,
+                    color = accent, letterSpacing = 2.sp)
+                Text(featured.track.title, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(featured.track.artist, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.search_seed_reason, featured.seedTitle), maxLines = 2, overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
