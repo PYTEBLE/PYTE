@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — livelier Start and Suchen
+
+- Start: "Weiterhören" shows the most recent song as a large card; one tap resumes it.
+- Suchen: the top personal suggestion is featured above compact song rows, with its
+  "Passt zu …" reason.
+
 ## 1.0.1 — discovery, library and playback fixes
 
 - **Wichtig vor der Installation:** 1.0.1 ist mit einem anderen Schlüssel signiert als 1.0.0.

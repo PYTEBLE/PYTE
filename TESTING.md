@@ -1,5 +1,18 @@
 # Playback verification
 
+## Start and Suchen highlights (unreleased)
+
+- `:app:testDebugUnitTest` (181 tests, 4 optional live tests skipped), `:app:assembleDebug`,
+  `:app:assembleDebugAndroidTest` and `:app:lintDebug` passed with zero lint errors.
+- On the Galaxy S25 Ultra, **16 instrumentation tests passed** across `DiscoveryFeedUiTest`,
+  `PlayerBackNavigationTest` and `SongActionsUiTest`, including the new featured-suggestion test
+  (top pick plays index 0, the compact row plays its real position in the full queue).
+- The device app is the official 1.0.1 release signed with the release key. To test without
+  uninstalling it, the new build and the test APK were signed with that same key using
+  `tools/sign-apk.sh` and installed with `adb install -r`. App data was not cleared. The
+  test package `dev.pyte.test` was reinstalled because its previous signature did not match.
+- Start was checked visually via screenshot; Suchen was not screenshotted.
+
 ## Library magazine layout (unreleased)
 
 - `:app:testDebugUnitTest`, `:app:assembleDebug`, `:app:assembleDebugAndroidTest`
