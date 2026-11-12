@@ -1,5 +1,7 @@
 package dev.pyte.ui.screens
 
+import dev.pyte.ui.components.feedbackClick
+
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -79,9 +81,9 @@ internal fun LyricsPanel(viewModel: PlayerViewModel, track: Track, state: Player
                                 tween(if (motion) 350 else 0), label = "lyricColor")
                             val scale by animateFloatAsState(if (selected) 1f else .96f,
                                 tween(if (motion) 350 else 0), label = "lyricScale")
-                            Row(Modifier.fillMaxWidth().clickable {
+                            Row(Modifier.fillMaxWidth().clickable(onClick = feedbackClick {
                                 viewModel.seekTo(line.timeMs); follow = true
-                            }.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            }).padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Box(Modifier.width(4.dp).height(56.dp).clip(CircleShape)
                                     .background(if (selected) accent else Color.Transparent))
                                 Text(line.text.ifBlank { "♪" }, Modifier.padding(start = 16.dp, end = 4.dp)
@@ -90,7 +92,7 @@ internal fun LyricsPanel(viewModel: PlayerViewModel, track: Track, state: Player
                             }
                         }
                     }
-                    if (!follow) FilledTonalButton(onClick = { follow = true }, modifier = Modifier.align(Alignment.BottomCenter)) {
+                    if (!follow) FilledTonalButton(onClick = feedbackClick { follow = true }, modifier = Modifier.align(Alignment.BottomCenter)) {
                         Text(stringResource(R.string.lyrics_follow))
                     }
                 }
@@ -104,7 +106,7 @@ internal fun LyricsPanel(viewModel: PlayerViewModel, track: Track, state: Player
                 }
                 else -> Column(Modifier.align(Alignment.Center).padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(lyricsState.message ?: stringResource(R.string.lyrics_missing), color = Color.White.copy(alpha = .75f))
-                    TextButton(onClick = { request++ }) { Text(stringResource(R.string.retry)) }
+                    TextButton(onClick = feedbackClick { request++ }) { Text(stringResource(R.string.retry)) }
                 }
             }
         }

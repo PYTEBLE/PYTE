@@ -1,5 +1,7 @@
 package dev.pyte.ui.components
 
+import dev.pyte.ui.components.TactileIconButton as IconButton
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.BorderStroke
@@ -36,7 +38,6 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
@@ -176,9 +177,9 @@ fun TrackRow(
             .clip(RoundedCornerShape(18.dp))
             .touchBloom(interaction)
             .background(if (isCurrent) MaterialTheme.colorScheme.primary.copy(alpha = .09f) else Color.Transparent, RoundedCornerShape(18.dp))
-            .combinedClickable(interactionSource = interaction, indication = null, onClick = onClick,
+            .combinedClickable(interactionSource = interaction, indication = null, onClick = feedbackClick(onClick),
                 onLongClickLabel = stringResource(R.string.song_options, track.title),
-                onLongClick = openActions)
+                onLongClick = feedbackClick(openActions))
             .padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -225,13 +226,13 @@ fun TrackRow(
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     onAddToPlaylist?.let { action ->
-                        DropdownMenuItem(text = { Text(stringResource(R.string.add_to_playlist)) }, onClick = { menuOpen = false; action() })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.add_to_playlist)) }, onClick = feedbackClick { menuOpen = false; action() })
                     }
                     onPlayNext?.let { action ->
-                        DropdownMenuItem(text = { Text(stringResource(R.string.play_next)) }, onClick = { menuOpen = false; action() })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.play_next)) }, onClick = feedbackClick { menuOpen = false; action() })
                     }
                     onAddToQueue?.let { action ->
-                        DropdownMenuItem(text = { Text(stringResource(R.string.add_to_queue)) }, onClick = { menuOpen = false; action() })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.add_to_queue)) }, onClick = feedbackClick { menuOpen = false; action() })
                     }
                 }
             }
@@ -250,7 +251,7 @@ fun PlaylistCard(playlist: PlaylistSummary, onClick: () -> Unit, modifier: Modif
             .touchBloom(interaction)
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(26.dp))
-            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
+            .clickable(interactionSource = interaction, indication = null, onClick = feedbackClick(onClick)),
     ) {
         Artwork(
             url = playlist.thumbnailUrl,
@@ -335,7 +336,7 @@ fun MiniPlayer(
                                 swipe = 0f
                             })
                     }
-                    .clickable(onClick = onOpen)
+                    .clickable(onClick = feedbackClick(onOpen))
                     .semantics { contentDescription = openLabel }
                     .padding(start = 12.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -387,7 +388,7 @@ fun EmptyState(
         )
         if (actionLabel != null && onAction != null) {
             Spacer(Modifier.height(24.dp))
-            Button(onClick = onAction) { Text(actionLabel) }
+            Button(onClick = feedbackClick(onAction)) { Text(actionLabel) }
         }
     }
 }

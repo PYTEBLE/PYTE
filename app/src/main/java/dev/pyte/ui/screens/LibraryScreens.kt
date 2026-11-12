@@ -1,5 +1,8 @@
 package dev.pyte.ui.screens
 
+import dev.pyte.ui.components.TactileIconButton as IconButton
+import dev.pyte.ui.components.feedbackClick
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -21,7 +24,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -122,8 +124,8 @@ fun SearchScreen(
         ScreenHeading(stringResource(R.string.search_title), stringResource(if (onlineMode) R.string.search_online_hint else R.string.search_local_hint),
             onSettings = onSettings)
         Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(selected = onlineMode, onClick = { onlineMode = true }, label = { Text("YouTube Music") })
-            FilterChip(selected = !onlineMode, onClick = { onlineMode = false }, label = { Text(stringResource(R.string.library)) })
+            FilterChip(selected = onlineMode, onClick = feedbackClick { onlineMode = true }, label = { Text("YouTube Music") })
+            FilterChip(selected = !onlineMode, onClick = feedbackClick { onlineMode = false }, label = { Text(stringResource(R.string.library)) })
         }
         OutlinedTextField(
             value = query,
@@ -150,7 +152,7 @@ fun SearchScreen(
         if (onlineMode && online.loading) LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 8.dp))
         if (onlineMode && online.error != null) {
             Text(online.error!!, Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error)
-            TextButton(onClick = { musicViewModel.submit(loadMore = online.tracks.isNotEmpty()) }) { Text(stringResource(R.string.retry)) }
+            TextButton(onClick = feedbackClick { musicViewModel.submit(loadMore = online.tracks.isNotEmpty()) }) { Text(stringResource(R.string.retry)) }
         }
         when {
             query.isBlank() && onlineMode -> dev.pyte.ui.components.SearchSuggestionsContent(
@@ -219,7 +221,7 @@ private fun TrackList(
             )
         }
         if (onLoadMore != null) item(key = "load-more") {
-            TextButton(onClick = onLoadMore, enabled = !loading, modifier = Modifier.fillMaxWidth()) {
+            TextButton(onClick = feedbackClick(onLoadMore), enabled = !loading, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(if (loading) R.string.loading else R.string.load_more))
             }
         }

@@ -25,22 +25,22 @@ fun MixAction(
     val padding = PaddingValues(horizontal = 12.dp)
     Box(modifier) {
         when {
-            state.loading -> FilledTonalButton(onClick = onCancel, modifier = buttonModifier, shape = MaterialTheme.shapes.medium, contentPadding = padding) {
+            state.loading -> FilledTonalButton(onClick = feedbackClick(onCancel), modifier = buttonModifier, shape = MaterialTheme.shapes.medium, contentPadding = padding) {
                 CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                 Text(stringResource(R.string.cancel), Modifier.padding(start = 8.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            state.title == null -> FilledTonalButton(onClick = onStart, enabled = !isPreview, modifier = buttonModifier, shape = MaterialTheme.shapes.medium, contentPadding = padding) {
+            state.title == null -> FilledTonalButton(onClick = feedbackClick(onStart), enabled = !isPreview, modifier = buttonModifier, shape = MaterialTheme.shapes.medium, contentPadding = padding) {
                 Text(stringResource(R.string.mix_start), maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             else -> Box(Modifier.fillMaxWidth()) {
-                FilledTonalButton(onClick = { menuOpen = true }, modifier = buttonModifier, shape = MaterialTheme.shapes.medium, contentPadding = padding) {
+                FilledTonalButton(onClick = feedbackClick { menuOpen = true }, modifier = buttonModifier, shape = MaterialTheme.shapes.medium, contentPadding = padding) {
                     Text(stringResource(R.string.mix_active), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     DropdownMenuItem(text = { Text(stringResource(R.string.mix_new)) }, enabled = !isPreview,
-                        onClick = { menuOpen = false; onStart() })
+                        onClick = feedbackClick { menuOpen = false; onStart() })
                     DropdownMenuItem(text = { Text(stringResource(R.string.mix_restore)) },
-                        onClick = { menuOpen = false; onRestore() })
+                        onClick = feedbackClick { menuOpen = false; onRestore() })
                 }
             }
         }

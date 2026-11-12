@@ -1,5 +1,7 @@
 package dev.pyte.ui.components
 
+import dev.pyte.ui.components.TactileIconButton as IconButton
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -53,7 +55,7 @@ fun ScreenHeading(title: String, subtitle: String, modifier: Modifier = Modifier
             Image(painterResource(R.drawable.pyte_wordmark), contentDescription = "PYTE",
                 modifier = Modifier.width(108.dp).height(24.dp))
             Spacer(Modifier.weight(1f))
-            if (onSettings != null) androidx.compose.material3.IconButton(onClick = onSettings,
+            if (onSettings != null) IconButton(onClick = onSettings,
                 modifier = Modifier.semantics { contentDescription = "Einstellungen" }) {
                 Icon(androidx.compose.material.icons.Icons.Default.Settings, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             } else Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = RoundedCornerShape(50)) {
@@ -76,7 +78,7 @@ fun ScreenHeading(title: String, subtitle: String, modifier: Modifier = Modifier
 fun BrandButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, icon: ImageVector? = null) {
     val shape = RoundedCornerShape(18.dp)
     val interaction = remember { MutableInteractionSource() }
-    Button(onClick = onClick, enabled = enabled, interactionSource = interaction,
+    Button(onClick = feedbackClick(onClick), enabled = enabled, interactionSource = interaction,
         modifier = modifier.pressMotion(interaction).clip(shape).touchBloom(interaction).alpha(if (enabled) 1f else 0.45f).background(Brush.linearGradient(listOf(
             MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary)), shape),
         shape = shape,
@@ -102,7 +104,7 @@ fun LibraryWelcome(onImport: () -> Unit, modifier: Modifier = Modifier, onSearch
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(28.dp))
         BrandButton(stringResource(R.string.search), onSearch, Modifier.fillMaxWidth(), icon = Icons.Default.Add)
-        androidx.compose.material3.TextButton(onClick = onImport) { Text(stringResource(R.string.import_playlist)) }
+        androidx.compose.material3.TextButton(onClick = feedbackClick(onImport)) { Text(stringResource(R.string.import_playlist)) }
         Spacer(Modifier.height(18.dp))
         Text(stringResource(R.string.welcome_badge), style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.primary, letterSpacing = 1.sp, textAlign = TextAlign.Center)

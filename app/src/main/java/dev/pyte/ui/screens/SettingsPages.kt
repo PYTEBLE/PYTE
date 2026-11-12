@@ -1,5 +1,8 @@
 package dev.pyte.ui.screens
 
+import dev.pyte.ui.components.TactileIconButton as IconButton
+import dev.pyte.ui.components.feedbackClick
+
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -16,7 +19,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -100,6 +102,10 @@ internal fun AppearancePage(
                 settings.hapticFeedback, !busy, onHaptics)
             SettingsSwitch(stringResource(R.string.ui_sounds), stringResource(R.string.ui_sounds_help),
                 settings.uiSounds, !busy, onUiSounds)
+            TextButton(onClick = feedbackClick {}, enabled = settings.uiSounds && !busy,
+                modifier = Modifier.padding(start = 8.dp)) {
+                Text(stringResource(R.string.ui_sounds_preview))
+            }
         }
     }
 }
@@ -112,7 +118,7 @@ private fun EffectLevelPicker(selected: EffectLevel, enabled: Boolean, onSelect:
         levels.forEachIndexed { index, level ->
             SegmentedButton(
                 selected = selected == level,
-                onClick = { onSelect(level) },
+                onClick = feedbackClick { onSelect(level) },
                 enabled = enabled,
                 shape = SegmentedButtonDefaults.itemShape(index, levels.size),
                 label = { Text(level.label) },
@@ -171,7 +177,7 @@ internal fun HistoryPage(settings: AppSettings, busy: Boolean, onRecordHistory: 
                 settings.recordHistory, !busy, onRecordHistory)
         }
         SettingsSection {
-            TextButton(onClick = { confirmClear = true }, enabled = !busy, modifier = Modifier.fillMaxWidth().padding(8.dp),
+            TextButton(onClick = feedbackClick { confirmClear = true }, enabled = !busy, modifier = Modifier.fillMaxWidth().padding(8.dp),
                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
                 Text(stringResource(R.string.clear_history))
             }
@@ -182,8 +188,8 @@ internal fun HistoryPage(settings: AppSettings, busy: Boolean, onRecordHistory: 
             onDismissRequest = { confirmClear = false },
             title = { Text(stringResource(R.string.clear_history_title)) },
             text = { Text(stringResource(R.string.clear_history_body)) },
-            confirmButton = { TextButton(onClick = { confirmClear = false; onClearHistory() }, enabled = !busy) { Text(stringResource(R.string.delete)) } },
-            dismissButton = { TextButton(onClick = { confirmClear = false }) { Text(stringResource(R.string.cancel)) } },
+            confirmButton = { TextButton(onClick = feedbackClick { confirmClear = false; onClearHistory() }, enabled = !busy) { Text(stringResource(R.string.delete)) } },
+            dismissButton = { TextButton(onClick = feedbackClick { confirmClear = false }) { Text(stringResource(R.string.cancel)) } },
         )
     }
 }
@@ -201,7 +207,7 @@ internal fun DataPage(busy: Boolean, onExport: (Uri) -> Unit, onImport: (Uri) ->
         SettingsSection(stringResource(R.string.data_export_title)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(stringResource(R.string.data_export_help), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Button(onClick = { exportLauncher.launch(backupFileName()) }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+                Button(onClick = feedbackClick { exportLauncher.launch(backupFileName()) }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.data_export_action))
                 }
             }
@@ -209,7 +215,7 @@ internal fun DataPage(busy: Boolean, onExport: (Uri) -> Unit, onImport: (Uri) ->
         SettingsSection(stringResource(R.string.data_import_title)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(stringResource(R.string.data_import_help), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                OutlinedButton(onClick = { importLauncher.launch(arrayOf("application/json", "application/octet-stream", "text/plain")) },
+                OutlinedButton(onClick = feedbackClick { importLauncher.launch(arrayOf("application/json", "application/octet-stream", "text/plain")) },
                     enabled = !busy, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.data_import_action))
                 }
@@ -223,8 +229,8 @@ internal fun DataPage(busy: Boolean, onExport: (Uri) -> Unit, onImport: (Uri) ->
             onDismissRequest = { pendingImport = null },
             title = { Text(stringResource(R.string.data_import_confirm_title)) },
             text = { Text(stringResource(R.string.data_import_confirm_body)) },
-            confirmButton = { TextButton(onClick = { pendingImport = null; onImport(uri) }, enabled = !busy) { Text(stringResource(R.string.data_import_confirm_action)) } },
-            dismissButton = { TextButton(onClick = { pendingImport = null }) { Text(stringResource(R.string.cancel)) } },
+            confirmButton = { TextButton(onClick = feedbackClick { pendingImport = null; onImport(uri) }, enabled = !busy) { Text(stringResource(R.string.data_import_confirm_action)) } },
+            dismissButton = { TextButton(onClick = feedbackClick { pendingImport = null }) { Text(stringResource(R.string.cancel)) } },
         )
     }
 }

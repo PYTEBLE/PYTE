@@ -1,5 +1,7 @@
 package dev.pyte.ui.components
 
+import dev.pyte.ui.components.TactileIconButton as IconButton
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -138,13 +140,13 @@ private fun ChooseStep(
         }
         Text(stringResource(R.string.playlist_privacy), style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
-        TextButton(onClick = onCancel, enabled = !saving, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.cancel)) }
+        TextButton(onClick = feedbackClick(onCancel), enabled = !saving, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.cancel)) }
     }
 }
 
 @Composable
 private fun CreateRow(enabled: Boolean, onClick: () -> Unit) {
-    Surface(onClick = onClick, enabled = enabled, shape = MaterialTheme.shapes.large,
+    Surface(onClick = feedbackClick(onClick), enabled = enabled, shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.fillMaxWidth()) {
         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             Box(Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(MaterialTheme.colorScheme.primary),
@@ -159,7 +161,7 @@ private fun CreateRow(enabled: Boolean, onClick: () -> Unit) {
 
 @Composable
 private fun PlaylistChoice(playlist: PlaylistSummary, recent: Boolean, enabled: Boolean, onClick: () -> Unit) {
-    Surface(onClick = onClick, enabled = enabled, shape = MaterialTheme.shapes.large,
+    Surface(onClick = feedbackClick(onClick), enabled = enabled, shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = Modifier.fillMaxWidth()) {
         Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             Artwork(playlist.thumbnailUrl, Modifier.size(52.dp), shape = RoundedCornerShape(14.dp))
@@ -192,7 +194,7 @@ private fun CreateStep(title: String, onTitle: (String) -> Unit, saving: Boolean
         }
         OutlinedTextField(value = title, onValueChange = { onTitle(it.take(100)) }, singleLine = true, enabled = !saving,
             label = { Text(stringResource(R.string.new_playlist_name)) }, modifier = Modifier.fillMaxWidth())
-        Button(onClick = onCreate, enabled = title.isNotBlank() && !saving, modifier = Modifier.fillMaxWidth()) {
+        Button(onClick = feedbackClick(onCreate), enabled = title.isNotBlank() && !saving, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.create_and_add))
         }
         Text(stringResource(R.string.playlist_privacy), style = MaterialTheme.typography.bodySmall,

@@ -1,5 +1,7 @@
 package dev.pyte.ui.screens
 
+import dev.pyte.ui.components.feedbackClick
+
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
@@ -84,8 +86,8 @@ internal fun BatteryModePage(settings: BatterySettings, busy: Boolean, onSave: (
         Text(stringResource(R.string.battery_apply_help), style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.cancel)) }
-            Button(enabled = !busy, modifier = Modifier.weight(1f), onClick = {
+            OutlinedButton(onClick = feedbackClick(onBack), modifier = Modifier.weight(1f)) { Text(stringResource(R.string.cancel)) }
+            Button(enabled = !busy, modifier = Modifier.weight(1f), onClick = feedbackClick {
                 onSave(BatterySettings(enabled, lowData, buffer, eq, effects, updates, downloads, prefetch, timer))
                 onBack()
             }) { Text(stringResource(R.string.apply)) }
@@ -101,7 +103,7 @@ private fun TimerPicker(minutes: Int, enabled: Boolean, onSelect: (Int) -> Unit)
         options.forEachIndexed { index, value ->
             SegmentedButton(
                 selected = minutes == value,
-                onClick = { onSelect(value) },
+                onClick = feedbackClick { onSelect(value) },
                 enabled = enabled,
                 shape = SegmentedButtonDefaults.itemShape(index, options.size),
                 label = { Text(if (value == 0) stringResource(R.string.off) else stringResource(R.string.minutes, value)) },

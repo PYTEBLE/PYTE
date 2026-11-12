@@ -1,5 +1,9 @@
 package dev.pyte.ui.screens
 
+import dev.pyte.ui.components.TactileIconButton as IconButton
+import dev.pyte.ui.components.feedbackClick
+import dev.pyte.ui.components.feedbackToggle
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,7 +35,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -119,15 +122,15 @@ fun PlaylistScreen(
                             Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.playlist_options))
                         }
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                            DropdownMenuItem(text = { Text(stringResource(R.string.playlist_rename)) }, onClick = {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.playlist_rename)) }, onClick = feedbackClick {
                                 menuOpen = false
                                 renameText = (detail as PlaylistUiState.Loaded).summary.title
                                 renameOpen = true
                             })
-                            if (!(detail as PlaylistUiState.Loaded).summary.isLocal) DropdownMenuItem(text = { Text(stringResource(R.string.playlist_refresh)) }, onClick = {
+                            if (!(detail as PlaylistUiState.Loaded).summary.isLocal) DropdownMenuItem(text = { Text(stringResource(R.string.playlist_refresh)) }, onClick = feedbackClick {
                                 menuOpen = false; viewModel.refresh()
                             })
-                            DropdownMenuItem(text = { Text(stringResource(R.string.playlist_delete)) }, onClick = {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.playlist_delete)) }, onClick = feedbackClick {
                                 menuOpen = false; deleteOpen = true
                             })
                         }
@@ -167,12 +170,12 @@ fun PlaylistScreen(
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     BrandButton(stringResource(R.string.play), { viewModel.play(tracks, 0) },
                                         modifier = Modifier.weight(1f), enabled = tracks.isNotEmpty(), icon = Icons.Default.PlayArrow)
-                                    FilledTonalButton(onClick = { viewModel.shuffleAll(tracks) }, enabled = tracks.isNotEmpty(),
+                                    FilledTonalButton(onClick = feedbackClick { viewModel.shuffleAll(tracks) }, enabled = tracks.isNotEmpty(),
                                         modifier = Modifier.height(56.dp), shape = MaterialTheme.shapes.medium) {
                                         Icon(Icons.Default.Shuffle, stringResource(R.string.shuffle))
                                     }
                                 }
-                                FilledTonalButton(onClick = { onDiscover(playlist.id, playlist.title) },
+                                FilledTonalButton(onClick = feedbackClick { onDiscover(playlist.id, playlist.title) },
                                     enabled = tracks.isNotEmpty(), modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
                                     Icon(Icons.Default.AutoAwesome, null, Modifier.size(20.dp))
                                     Text(stringResource(R.string.discover_similar), Modifier.padding(start = 8.dp))
@@ -198,7 +201,7 @@ fun PlaylistScreen(
                                     if (enabled) CircularProgressIndicator(progress = { ring }, strokeWidth = 3.dp,
                                         modifier = Modifier.padding(horizontal = 8.dp).size(32.dp)
                                             .semantics { contentDescription = progressLabel })
-                                    Switch(checked = enabled, onCheckedChange = viewModel::offlineEnabled, enabled = !action.busy,
+                                    Switch(checked = enabled, onCheckedChange = feedbackToggle(viewModel::offlineEnabled), enabled = !action.busy,
                                         modifier = Modifier.semantics { contentDescription = offlineLabel })
                                 }
                                 if (enabled) {
@@ -209,7 +212,7 @@ fun PlaylistScreen(
                                             progress = { (download.bytes.toFloat() / download.total).coerceIn(0f, 1f) },
                                             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp))
                                     }
-                                    if (complete < tracks.size) TextButton(onClick = viewModel::retryDownloads) { Text(stringResource(R.string.download_retry)) }
+                                    if (complete < tracks.size) TextButton(onClick = feedbackClick(viewModel::retryDownloads)) { Text(stringResource(R.string.download_retry)) }
                                 }
                                 Text(stringResource(R.string.actions_hint), Modifier.padding(top = 12.dp),
                                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -242,17 +245,17 @@ fun PlaylistScreen(
             OutlinedTextField(renameText, { renameText = it.take(100) }, singleLine = true,
                 label = { Text(stringResource(R.string.playlist_name)) }, supportingText = { Text(stringResource(R.string.playlist_name_hint, renameText.length)) })
         }, confirmButton = {
-            TextButton(onClick = { viewModel.rename(renameText); renameOpen = false }, enabled = renameText.isNotBlank() && !action.busy) {
+            TextButton(onClick = feedbackClick { viewModel.rename(renameText); renameOpen = false }, enabled = renameText.isNotBlank() && !action.busy) {
                 Text(stringResource(R.string.save))
             }
-        }, dismissButton = { TextButton(onClick = { renameOpen = false }) { Text(stringResource(R.string.cancel)) } })
+        }, dismissButton = { TextButton(onClick = feedbackClick { renameOpen = false }) { Text(stringResource(R.string.cancel)) } })
     }
     if (deleteOpen) {
         AlertDialog(onDismissRequest = { deleteOpen = false }, title = { Text(stringResource(R.string.playlist_delete_title)) },
             text = { Text(stringResource(R.string.playlist_delete_body)) },
             confirmButton = {
-                TextButton(onClick = { deleteOpen = false; viewModel.deletePlaylist(onBack) }, enabled = !action.busy) { Text(stringResource(R.string.delete)) }
-            }, dismissButton = { TextButton(onClick = { deleteOpen = false }) { Text(stringResource(R.string.cancel)) } })
+                TextButton(onClick = feedbackClick { deleteOpen = false; viewModel.deletePlaylist(onBack) }, enabled = !action.busy) { Text(stringResource(R.string.delete)) }
+            }, dismissButton = { TextButton(onClick = feedbackClick { deleteOpen = false }) { Text(stringResource(R.string.cancel)) } })
     }
 }
 

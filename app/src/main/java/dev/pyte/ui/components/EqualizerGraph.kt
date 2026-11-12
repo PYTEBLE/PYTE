@@ -1,6 +1,8 @@
 package dev.pyte.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -21,6 +23,7 @@ import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
 import dev.pyte.playback.EqPoint
 import dev.pyte.playback.EqualizerCurves
+import dev.pyte.ui.theme.LocalLivingUi
 import kotlin.math.*
 import dev.pyte.R
 import androidx.compose.ui.res.stringResource
@@ -35,6 +38,11 @@ fun EqualizerGraph(points: List<EqPoint>, spectrum: List<Float>, enabled: Boolea
     val current by rememberUpdatedState(points)
     val preview by rememberUpdatedState(onPreview)
     val commit by rememberUpdatedState(onCommit)
+    val tactile by rememberUpdatedState(rememberSliderFeedback(36, setOf(0, 24, 36)))
+    var activeBand by remember { mutableStateOf<Int?>(null) }
+    val policy = LocalLivingUi.current
+    val focus by animateFloatAsState(if (activeBand != null && policy.animate) 1f else 0f,
+        tween(policy.duration(110)), label = "eqGraphTouch")
     val accent = MaterialTheme.colorScheme.primary
     val secondary = MaterialTheme.colorScheme.tertiary
     val grid = MaterialTheme.colorScheme.onSurface.copy(alpha = .12f)
@@ -58,15 +66,19 @@ fun EqualizerGraph(points: List<EqPoint>, spectrum: List<Float>, enabled: Boolea
                     var dragged = emptyList<EqPoint>()
                     fun update(y: Float) {
                         val next = current.mapIndexed { i, p -> if (i == selected) p.copy(gainMb = graphGain(y, size.height.toFloat())) else p }
+                        next.getOrNull(selected)?.let { tactile.move((it.gainMb + 1200) / 1800f) }
                         dragged = next
                         preview(next)
                     }
                     detectDragGestures(onDragStart = { down ->
                         original = current
                         selected = current.indices.minByOrNull { abs(x(current[it].hz) * size.width - down.x) } ?: 0
+                        activeBand = selected
+                        tactile.start((current.getOrNull(selected)?.gainMb?.plus(1200) ?: 1200) / 1800f)
                         update(down.y)
                     }, onDrag = { change, _ -> change.consume(); update(change.position.y) },
-                        onDragEnd = { commit(dragged) }, onDragCancel = { preview(original) })
+                        onDragEnd = { activeBand = null; commit(dragged) },
+                        onDragCancel = { activeBand = null; preview(original) })
                 }) {
                 repeat(4) { line ->
                     val y = size.height * line / 3
@@ -89,9 +101,10 @@ fun EqualizerGraph(points: List<EqPoint>, spectrum: List<Float>, enabled: Boolea
                 }
                 drawPath(path, accent.copy(alpha = .14f), style = Stroke(10.dp.toPx()))
                 drawPath(path, accent, style = Stroke(2.5.dp.toPx()))
-                points.forEach { p ->
+                points.forEachIndexed { index, p ->
                     val center = Offset(x(p.hz) * size.width, (600 - p.gainMb) / 1800f * size.height)
-                    drawCircle(accent, 4.dp.toPx(), center)
+                    if (index == activeBand) drawCircle(accent.copy(alpha = .16f * focus), 18.dp.toPx(), center)
+                    drawCircle(accent, (4 + if (index == activeBand) 2 * focus else 0f).dp.toPx(), center)
                     drawCircle(Color.Black.copy(alpha = .65f), 1.5.dp.toPx(), center)
                 }
             }
@@ -109,6 +122,17 @@ fun BandFader(point: EqPoint, enabled: Boolean, onPreview: (Int) -> Unit, onComm
     val current by rememberUpdatedState(point)
     val preview by rememberUpdatedState(onPreview)
     val commit by rememberUpdatedState(onCommit)
+    val tactile by rememberUpdatedState(rememberSliderFeedback(36, setOf(0, 24, 36)))
+    var dragging by remember { mutableStateOf(false) }
+    val policy = LocalLivingUi.current
+    val focus by animateFloatAsState(if (dragging && policy.animate) 1f else 0f,
+        tween(policy.duration(110)), label = "eqFaderTouch")
+    fun adjust(value: Int) {
+        tactile.start((current.gainMb + 1200) / 1800f)
+        tactile.move((value + 1200) / 1800f)
+        preview(value)
+        commit()
+    }
     Column(Modifier.width(64.dp), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
         Text(if (point.hz < 1000) "${point.hz}" else "${point.hz / 1000f}k", style = MaterialTheme.typography.labelMedium)
         Text(String.format(java.util.Locale.ROOT, "%+.1f", point.gainMb / 100f), color = accent, style = MaterialTheme.typography.labelSmall)
@@ -118,29 +142,39 @@ fun BandFader(point: EqPoint, enabled: Boolean, onPreview: (Int) -> Unit, onComm
                 progressBarRangeInfo = ProgressBarRangeInfo(point.gainMb / 100f, -12f..6f, 35)
                 if (!enabled) disabled()
                 setProgress { value ->
-                    if (enabled) { preview((value * 2).roundToInt().times(50).coerceIn(-1200, 600)); commit() }
+                    if (enabled) adjust((value * 2).roundToInt().times(50).coerceIn(-1200, 600))
                     enabled
                 }
             }.onKeyEvent { event ->
                 if (!enabled || event.type != KeyEventType.KeyDown || event.key !in listOf(Key.DirectionUp, Key.DirectionDown)) false
-                else { preview((point.gainMb + if (event.key == Key.DirectionUp) 50 else -50).coerceIn(-1200, 600)); commit(); true }
+                else { adjust((point.gainMb + if (event.key == Key.DirectionUp) 50 else -50).coerceIn(-1200, 600)); true }
             }.focusable(enabled).pointerInput(enabled) {
-                if (enabled) detectTapGestures { preview(graphGain(it.y, size.height.toFloat())); commit() }
+                if (enabled) detectTapGestures { adjust(graphGain(it.y, size.height.toFloat())) }
             }.pointerInput(enabled) {
                 if (!enabled) return@pointerInput
                 var original = 0
-                detectDragGestures(onDragStart = { original = current.gainMb },
-                    onDrag = { change, _ -> change.consume(); preview(graphGain(change.position.y, size.height.toFloat())) },
-                    onDragEnd = { commit() }, onDragCancel = { preview(original) })
+                detectDragGestures(onDragStart = {
+                    original = current.gainMb
+                    dragging = true
+                    tactile.start((original + 1200) / 1800f)
+                }, onDrag = { change, _ ->
+                    change.consume()
+                    val gain = graphGain(change.position.y, size.height.toFloat())
+                    tactile.move((gain + 1200) / 1800f)
+                    preview(gain)
+                }, onDragEnd = { dragging = false; commit() },
+                    onDragCancel = { dragging = false; preview(original) })
             }) {
             val center = size.width / 2
             drawLine(track, Offset(center, 8.dp.toPx()), Offset(center, size.height - 8.dp.toPx()), 4.dp.toPx())
             val y = (600 - point.gainMb) / 1800f * size.height
             val zero = size.height / 3
+            drawCircle(accent.copy(alpha = .14f * focus), 22.dp.toPx(), Offset(center, y))
             drawLine(accent.copy(alpha = if (enabled) .8f else .25f), Offset(center, zero), Offset(center, y), 4.dp.toPx())
             drawLine(track, Offset(center - 12.dp.toPx(), zero), Offset(center + 12.dp.toPx(), zero), 1.dp.toPx())
-            drawRoundRect(if (enabled) accent else track, Offset(center - 13.dp.toPx(), y.coerceIn(8.dp.toPx(), size.height - 8.dp.toPx()) - 6.dp.toPx()),
-                androidx.compose.ui.geometry.Size(26.dp.toPx(), 12.dp.toPx()), androidx.compose.ui.geometry.CornerRadius(4.dp.toPx()))
+            val halfWidth = (13 + 2 * focus).dp.toPx()
+            drawRoundRect(if (enabled) accent else track, Offset(center - halfWidth, y.coerceIn(8.dp.toPx(), size.height - 8.dp.toPx()) - 6.dp.toPx()),
+                androidx.compose.ui.geometry.Size(halfWidth * 2, 12.dp.toPx()), androidx.compose.ui.geometry.CornerRadius(4.dp.toPx()))
         }
     }
 }

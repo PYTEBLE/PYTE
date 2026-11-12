@@ -1,5 +1,7 @@
 package dev.pyte.ui.components
 
+import dev.pyte.ui.components.TactileIconButton as IconButton
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -33,7 +35,7 @@ fun SongFeedbackBanner() {
             Icon(if (feedback.error) Icons.Default.ErrorOutline else Icons.Default.CheckCircle, null,
                 tint = if (feedback.error) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
             Text(feedback.message, Modifier.weight(1f).padding(horizontal = 10.dp), style = MaterialTheme.typography.bodySmall)
-            feedback.undo?.let { undo -> TextButton(onClick = undo) { Text(stringResource(R.string.undo)) } }
+            feedback.undo?.let { undo -> TextButton(onClick = feedbackClick(undo)) { Text(stringResource(R.string.undo)) } }
         }
     }
 }
@@ -75,7 +77,7 @@ fun SongActionsSheet(track: Track, favorite: Boolean, onDismiss: () -> Unit,
 @Composable
 private fun ActionTile(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: () -> Unit) {
     val interaction = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-    Surface(onClick = onClick, shape = MaterialTheme.shapes.large,
+    Surface(onClick = feedbackClick(onClick), shape = MaterialTheme.shapes.large,
         interactionSource = interaction,
         color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = Modifier.fillMaxWidth().pressMotion(interaction)
             .clip(MaterialTheme.shapes.large).touchBloom(interaction)) {

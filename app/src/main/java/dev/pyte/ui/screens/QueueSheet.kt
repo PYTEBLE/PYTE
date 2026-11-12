@@ -1,5 +1,8 @@
 package dev.pyte.ui.screens
 
+import dev.pyte.ui.components.TactileIconButton as IconButton
+import dev.pyte.ui.components.feedbackClick
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -28,7 +31,6 @@ import androidx.compose.ui.unit.dp
 import dev.pyte.playback.PlayerUiState
 import dev.pyte.ui.components.Artwork
 import dev.pyte.domain.Track
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlaylistAdd
@@ -88,7 +90,7 @@ fun QueueContent(
                     placementSpec = if (motion.animate) tween(motion.duration(260)) else null,
                     fadeOutSpec = if (motion.animate) tween(motion.duration(160)) else null,
                 ).fillMaxWidth().padding(vertical = 6.dp)) {
-                    Row(Modifier.fillMaxWidth().clickable { onPlay(index) }.padding(vertical = 8.dp),
+                    Row(Modifier.fillMaxWidth().clickable(onClick = feedbackClick { onPlay(index) }).padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically) {
                         Artwork(track.thumbnailUrl, Modifier.size(44.dp), videoId = track.videoId)
                         Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
@@ -108,9 +110,9 @@ fun QueueContent(
                             stringResource(R.string.song_options, track.title)) } }
                     }
                     FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        TextButton(onClick = { onMove(index, index - 1) }, enabled = index > 0) { Text(stringResource(R.string.move_up)) }
-                        TextButton(onClick = { onMove(index, index + 1) }, enabled = index < state.queue.lastIndex) { Text(stringResource(R.string.move_down)) }
-                        TextButton(onClick = { onRemove(index) }) { Text(stringResource(R.string.remove)) }
+                        TextButton(onClick = feedbackClick { onMove(index, index - 1) }, enabled = index > 0) { Text(stringResource(R.string.move_up)) }
+                        TextButton(onClick = feedbackClick { onMove(index, index + 1) }, enabled = index < state.queue.lastIndex) { Text(stringResource(R.string.move_down)) }
+                        TextButton(onClick = feedbackClick { onRemove(index) }) { Text(stringResource(R.string.remove)) }
                     }
                 }
             }

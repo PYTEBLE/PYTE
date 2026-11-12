@@ -1,7 +1,17 @@
 package dev.pyte.ui.screens
 
+import dev.pyte.ui.components.TactileIconButton as IconButton
+import dev.pyte.ui.components.feedbackClick
+
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsDraggedAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.ui.graphics.graphicsLayer
+import dev.pyte.ui.components.rememberSliderFeedback
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,7 +43,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -194,7 +203,7 @@ private fun PlayerSegments(selected: PlayerPanel, onSelect: (PlayerPanel) -> Uni
                 Modifier.weight(panel.weight).heightIn(min = 48.dp)
                     .clip(RoundedCornerShape(50))
                     .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = .22f) else Color.Transparent)
-                    .selectable(selected = isSelected, role = Role.Tab, onClick = { onSelect(panel) })
+                    .selectable(selected = isSelected, role = Role.Tab, onClick = feedbackClick { onSelect(panel) })
                     .padding(horizontal = 4.dp),
                 contentAlignment = Alignment.Center,
             ) {
@@ -249,7 +258,7 @@ private fun PlayerActionBar(
         if (isPreview) Text(stringResource(R.string.mix_preview_hint), style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(bottom = 8.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Button(onClick = { viewModel.selectForPlaylist(track) },
+            Button(onClick = feedbackClick { viewModel.selectForPlaylist(track) },
                 modifier = Modifier.weight(1.1f).heightIn(min = 56.dp), shape = MaterialTheme.shapes.medium,
                 contentPadding = PaddingValues(horizontal = 12.dp)) {
                 Icon(Icons.Default.PlaylistAdd, null, Modifier.size(20.dp))
@@ -263,10 +272,10 @@ private fun PlayerActionBar(
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     DropdownMenuItem(text = { Text(stringResource(R.string.discover_similar)) },
-                        onClick = { menuOpen = false; onDiscover(track) })
+                        onClick = feedbackClick { menuOpen = false; onDiscover(track) })
                     songActions?.let { actions ->
                         DropdownMenuItem(text = { Text(stringResource(R.string.song_options, track.title)) },
-                            onClick = { menuOpen = false; actions.open(track) })
+                            onClick = feedbackClick { menuOpen = false; actions.open(track) })
                     }
                 }
             }
@@ -309,11 +318,19 @@ private fun PlaybackDeck(state: PlayerUiState, viewModel: PlayerViewModel) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SeekBar(positionMs: Long, durationMs: Long, onSeek: (Long) -> Unit) {
     val seekLabel = stringResource(R.string.playback_position)
     var dragging by remember { mutableStateOf(false) }
     var dragFraction by remember { mutableFloatStateOf(0f) }
+    val tactile = rememberSliderFeedback(80)
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val dragged by interaction.collectIsDraggedAsState()
+    val policy = LocalLivingUi.current
+    val thumbScale by animateFloatAsState(if ((pressed || dragged) && policy.animate) 1.18f else 1f,
+        tween(policy.duration(110)), label = "seekThumbPress")
 
     val fraction = if (durationMs > 0) positionMs.toFloat() / durationMs else 0f
     val shown = if (dragging) dragFraction else fraction.coerceIn(0f, 1f)
@@ -322,7 +339,15 @@ internal fun SeekBar(positionMs: Long, durationMs: Long, onSeek: (Long) -> Unit)
         Slider(
             modifier = Modifier.semantics { contentDescription = seekLabel },
             value = shown,
+            enabled = durationMs > 0,
+            interactionSource = interaction,
+            thumb = {
+                SliderDefaults.Thumb(interaction, enabled = durationMs > 0,
+                    modifier = Modifier.graphicsLayer { scaleX = thumbScale; scaleY = thumbScale })
+            },
             onValueChange = {
+                if (!dragging) tactile.start(shown)
+                tactile.move(it)
                 dragging = true
                 dragFraction = it
             },

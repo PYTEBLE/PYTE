@@ -82,7 +82,7 @@ private fun CatalogHeading(title: String, subtitle: String, onRetry: (() -> Unit
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.catalog_source), Modifier.weight(1f), style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary)
-            onRetry?.let { TextButton(onClick = it, enabled = !loading) { Text(stringResource(R.string.discovery_refresh)) } }
+            onRetry?.let { TextButton(onClick = feedbackClick(it), enabled = !loading) { Text(stringResource(R.string.discovery_refresh)) } }
         }
         Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -92,7 +92,7 @@ private fun CatalogHeading(title: String, subtitle: String, onRetry: (() -> Unit
 @Composable
 private fun FeaturedChartCard(playlist: CatalogPlaylist, saved: Boolean, onClick: () -> Unit) {
     val label = stringResource(R.string.catalog_open, playlist.title)
-    ElevatedCard(onClick = onClick, modifier = Modifier.fillMaxWidth().semantics { contentDescription = label },
+    ElevatedCard(onClick = feedbackClick(onClick), modifier = Modifier.fillMaxWidth().semantics { contentDescription = label },
         shape = RoundedCornerShape(28.dp), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
         Box(Modifier.fillMaxWidth().heightIn(min = 228.dp)) {
             Artwork(playlist.thumbnailUrl, Modifier.matchParentSize(), shape = RoundedCornerShape(28.dp))
@@ -119,7 +119,7 @@ private fun FeaturedChartCard(playlist: CatalogPlaylist, saved: Boolean, onClick
 @Composable
 private fun CatalogGridCard(playlist: CatalogPlaylist, saved: Boolean, onClick: () -> Unit) {
     val label = stringResource(R.string.catalog_open, playlist.title)
-    ElevatedCard(onClick = onClick, modifier = Modifier.fillMaxWidth().semantics { contentDescription = label },
+    ElevatedCard(onClick = feedbackClick(onClick), modifier = Modifier.fillMaxWidth().semantics { contentDescription = label },
         shape = RoundedCornerShape(22.dp), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)) {
         Artwork(playlist.thumbnailUrl, Modifier.fillMaxWidth().aspectRatio(1f), shape = RoundedCornerShape(0.dp))
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -140,7 +140,7 @@ private fun CatalogGridCard(playlist: CatalogPlaylist, saved: Boolean, onClick: 
 
 @Composable
 fun LibraryCollectionCard(playlist: PlaylistSummary, onClick: () -> Unit, onArtworkError: () -> Unit) {
-    ElevatedCard(onClick = onClick, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp),
+    ElevatedCard(onClick = feedbackClick(onClick), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)) {
         Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -171,7 +171,7 @@ fun PlaylistImportDialog(state: CatalogImportState, onConfirm: () -> Unit, onDis
                 if (state.error) Text(stringResource(R.string.catalog_import_error), color = MaterialTheme.colorScheme.error)
             }
         },
-        confirmButton = { TextButton(onClick = onConfirm, enabled = !state.importing) { Text(stringResource(R.string.catalog_import_confirm)) } },
-        dismissButton = { TextButton(onClick = onDismiss, enabled = !state.importing) { Text(stringResource(R.string.cancel)) } },
+        confirmButton = { TextButton(onClick = feedbackClick(onConfirm), enabled = !state.importing) { Text(stringResource(R.string.catalog_import_confirm)) } },
+        dismissButton = { TextButton(onClick = feedbackClick(onDismiss), enabled = !state.importing) { Text(stringResource(R.string.cancel)) } },
     )
 }

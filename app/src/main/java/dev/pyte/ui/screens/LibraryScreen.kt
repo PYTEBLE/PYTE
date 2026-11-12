@@ -1,5 +1,8 @@
 package dev.pyte.ui.screens
 
+import dev.pyte.ui.components.TactileIconButton as IconButton
+import dev.pyte.ui.components.feedbackClick
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -89,11 +92,11 @@ fun LibraryScreen(
                     Text(stringResource(R.string.library_subtitle_text),
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(filter == "playlists", { filter = "playlists" },
+                        FilterChip(filter == "playlists", feedbackClick { filter = "playlists" },
                             label = { Text(stringResource(R.string.library_filter_playlists)) })
-                        FilterChip(filter == "favorites", { filter = "favorites" },
+                        FilterChip(filter == "favorites", feedbackClick { filter = "favorites" },
                             label = { Text(stringResource(R.string.favorites)) })
-                        FilterChip(filter == "offline", { filter = "offline" },
+                        FilterChip(filter == "offline", feedbackClick { filter = "offline" },
                             label = { Text(stringResource(R.string.library_filter_offline)) })
                     }
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -169,8 +172,8 @@ fun LibraryScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
-            confirmButton = { TextButton(onClick = { homeViewModel.createPlaylist(title); createOpen = false },
+            confirmButton = { TextButton(onClick = feedbackClick { homeViewModel.createPlaylist(title); createOpen = false },
                 enabled = title.isNotBlank()) { Text(stringResource(R.string.library_create_confirm)) } },
-            dismissButton = { TextButton(onClick = { createOpen = false }) { Text(stringResource(R.string.cancel)) } })
+            dismissButton = { TextButton(onClick = feedbackClick { createOpen = false }) { Text(stringResource(R.string.cancel)) } })
     }
 }

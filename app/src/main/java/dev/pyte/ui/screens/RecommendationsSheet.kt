@@ -1,5 +1,9 @@
 package dev.pyte.ui.screens
 
+import dev.pyte.ui.components.TactileIconButton as IconButton
+import dev.pyte.ui.components.TactileFilledIconButton as FilledIconButton
+import dev.pyte.ui.components.feedbackClick
+
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.InfiniteTransition
@@ -127,7 +131,7 @@ fun RecommendationsSheet(
             if (state.error != null) {
                 Column(Modifier.padding(20.dp)) {
                     Text(state.error, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    TextButton(onClick = onRetry, enabled = !state.loading) { Text(stringResource(R.string.retry)) }
+                    TextButton(onClick = feedbackClick(onRetry), enabled = !state.loading) { Text(stringResource(R.string.retry)) }
                 }
             }
             LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 32.dp),
@@ -203,7 +207,7 @@ private fun PreviewPanel(playback: PlayerUiState, animate: Boolean, onToggle: ()
             }
             LinearProgressIndicator(progress = { animatedFraction }, Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 2.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = onReturn) { Text(stringResource(R.string.discover_return)) }
+                TextButton(onClick = feedbackClick(onReturn)) { Text(stringResource(R.string.discover_return)) }
             }
             playback.errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
         }
@@ -264,7 +268,7 @@ private fun RecommendationCard(
                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = onListen, modifier = Modifier.semantics {
+                TextButton(onClick = feedbackClick(onListen), modifier = Modifier.semantics {
                     contentDescription = "$previewLabel: ${song.title}"
                 }) {
                     Icon(if (playing) Icons.Default.Pause else Icons.Default.PlayArrow,
@@ -272,7 +276,7 @@ private fun RecommendationCard(
                     Spacer(Modifier.width(6.dp))
                     Text(previewLabel)
                 }
-                FilledTonalButton(onClick = onAdd, enabled = canAdd,
+                FilledTonalButton(onClick = feedbackClick(onAdd), enabled = canAdd,
                     colors = ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary),
                     modifier = Modifier.graphicsLayer { scaleX = scale; scaleY = scale }.semantics {

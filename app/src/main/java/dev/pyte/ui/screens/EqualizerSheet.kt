@@ -1,5 +1,8 @@
 package dev.pyte.ui.screens
 
+import dev.pyte.ui.components.feedbackClick
+import dev.pyte.ui.components.feedbackToggle
+
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -69,7 +72,7 @@ internal fun EqualizerContent(
                 Text(stringResource(R.string.eq_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Text(stringResource(R.string.eq_subtitle), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Switch(checked = settings?.enabled == true, onCheckedChange = onEnabled,
+            Switch(checked = settings?.enabled == true, onCheckedChange = feedbackToggle(onEnabled),
                 enabled = settings != null && device.available,
                 modifier = Modifier.semantics { contentDescription = enableLabel })
         }
@@ -79,18 +82,18 @@ internal fun EqualizerContent(
                 Text(stringResource(R.string.eq_limiter_help), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Switch(settings?.limiter != false, onCheckedChange = onLimiter, enabled = settings != null,
+            Switch(settings?.limiter != false, onCheckedChange = feedbackToggle(onLimiter), enabled = settings != null,
                 modifier = Modifier.semantics { contentDescription = limiterLabel })
         }
         if (settings == null) CircularProgressIndicator()
         if (!device.available) {
             Text(device.message, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            TextButton(onClick = onRetry) { Text(stringResource(R.string.retry)) }
+            TextButton(onClick = feedbackClick(onRetry)) { Text(stringResource(R.string.retry)) }
         }
         Text(stringResource(R.string.eq_presets), style = MaterialTheme.typography.titleSmall)
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             EqualizerCurves.presets.forEach { profile ->
-                FilterChip(selected = settings?.selectedId == profile.id, onClick = { onSelect(profile.id) },
+                FilterChip(selected = settings?.selectedId == profile.id, onClick = feedbackClick { onSelect(profile.id) },
                     enabled = settings != null, label = { Text(profile.name) })
             }
         }
@@ -122,18 +125,18 @@ internal fun EqualizerContent(
             Text(stringResource(R.string.eq_saved_profiles), style = MaterialTheme.typography.titleSmall)
             settings.profiles.forEach { profile ->
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    FilterChip(selected = settings.selectedId == profile.id, onClick = { onSelect(profile.id) },
+                    FilterChip(selected = settings.selectedId == profile.id, onClick = feedbackClick { onSelect(profile.id) },
                         label = { Text(profile.name) }, modifier = Modifier.weight(1f))
-                    TextButton(onClick = { profileName = profile.name; saveOpen = true }) { Text(stringResource(R.string.eq_replace)) }
-                    TextButton(onClick = { deleteId = profile.id }) { Text(stringResource(R.string.delete)) }
+                    TextButton(onClick = feedbackClick { profileName = profile.name; saveOpen = true }) { Text(stringResource(R.string.eq_replace)) }
+                    TextButton(onClick = feedbackClick { deleteId = profile.id }) { Text(stringResource(R.string.delete)) }
                 }
             }
         }
         Text(stringResource(R.string.eq_help),
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            TextButton(onClick = { onSelect("neutral") }, enabled = settings != null) { Text(stringResource(R.string.eq_reset)) }
-            Button(onClick = { profileName = ""; saveOpen = true }, enabled = settings != null && device.available) { Text(stringResource(R.string.eq_save_profile)) }
+            TextButton(onClick = feedbackClick { onSelect("neutral") }, enabled = settings != null) { Text(stringResource(R.string.eq_reset)) }
+            Button(onClick = feedbackClick { profileName = ""; saveOpen = true }, enabled = settings != null && device.available) { Text(stringResource(R.string.eq_save_profile)) }
         }
         error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     }
@@ -141,12 +144,12 @@ internal fun EqualizerContent(
         text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(profileName, { profileName = it.take(48) }, label = { Text(stringResource(R.string.eq_profile_name)) }, singleLine = true)
             Text(stringResource(R.string.eq_replace_hint))
-        } }, confirmButton = { TextButton(onClick = { onSave(profileName, draft); saveOpen = false }, enabled = profileName.isNotBlank()) { Text(stringResource(R.string.save)) } },
-        dismissButton = { TextButton(onClick = { saveOpen = false }) { Text(stringResource(R.string.cancel)) } })
+        } }, confirmButton = { TextButton(onClick = feedbackClick { onSave(profileName, draft); saveOpen = false }, enabled = profileName.isNotBlank()) { Text(stringResource(R.string.save)) } },
+        dismissButton = { TextButton(onClick = feedbackClick { saveOpen = false }) { Text(stringResource(R.string.cancel)) } })
     deleteId?.let { id -> AlertDialog(onDismissRequest = { deleteId = null }, title = { Text(stringResource(R.string.eq_delete_title)) },
         text = { Text(stringResource(R.string.eq_delete_body)) },
-        confirmButton = { TextButton(onClick = { onDelete(id); deleteId = null }) { Text(stringResource(R.string.delete)) } },
-        dismissButton = { TextButton(onClick = { deleteId = null }) { Text(stringResource(R.string.cancel)) } }) }
+        confirmButton = { TextButton(onClick = feedbackClick { onDelete(id); deleteId = null }) { Text(stringResource(R.string.delete)) } },
+        dismissButton = { TextButton(onClick = feedbackClick { deleteId = null }) { Text(stringResource(R.string.cancel)) } }) }
 }
 
 private fun frequencyLabel(hz: Int): String = if (hz >= 1000) String.format(Locale.ROOT, "%.1f kHz", hz / 1000f) else "$hz Hz"
