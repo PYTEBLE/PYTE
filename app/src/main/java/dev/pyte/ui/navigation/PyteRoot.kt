@@ -1,5 +1,7 @@
 package dev.pyte.ui.navigation
 
+import dev.pyte.ui.components.feedbackClick
+
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.tween
@@ -118,6 +120,7 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel(), recommendations
     val appearance by playerViewModel.appearance.collectAsStateWithLifecycle()
     val motion = rememberLivingUiPolicy(appearance)
     val uiSounds = dev.pyte.ui.components.rememberUiSoundPlayer()
+    val uiFeedback = dev.pyte.ui.components.rememberUiFeedback(motion, uiSounds::play)
     val report by playerViewModel.diagnosticReport.collectAsStateWithLifecycle()
     val playlistSave by playerViewModel.playlistSave.collectAsStateWithLifecycle()
     val favorites by playerViewModel.favoriteIds.collectAsStateWithLifecycle()
@@ -182,7 +185,7 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel(), recommendations
     val feedback = playlistSave.message?.let { message -> SongFeedback(message,
         playlistSave.undo?.let { addition -> { playerViewModel.undoSave(addition) } }, playlistSave.messageIsError) }
     CompositionLocalProvider(LocalLivingUi provides motion, LocalPlayerMorph provides morph, LocalSongActions provides songActions,
-        LocalSongFeedback provides feedback, dev.pyte.ui.components.LocalUiSounds provides uiSounds) {
+        LocalSongFeedback provides feedback, dev.pyte.ui.components.LocalUiFeedback provides uiFeedback) {
     AppCoverTheme(coverColors) {
     AppBackground(playerState.isPlaying, onNowPlaying) {
     Box(Modifier.fillMaxSize().onGloballyPositioned { morph.rootBounds(it.boundsInWindow()) }) {
@@ -192,13 +195,13 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel(), recommendations
             title = { Text("Wiedergabe-Diagnose") },
             text = { SelectionContainer { Text(details) } },
             confirmButton = {
-                TextButton(onClick = {
+                TextButton(onClick = feedbackClick {
                     context.getSystemService(ClipboardManager::class.java)
                         .setPrimaryClip(ClipData.newPlainText("PYTE Diagnose", details))
                 }) { Text("Kopieren") }
             },
             dismissButton = {
-                TextButton(onClick = playerViewModel::dismissDiagnostics) { Text("Schließen") }
+                TextButton(onClick = feedbackClick(playerViewModel::dismissDiagnostics)) { Text("Schließen") }
             },
         )
     }
@@ -246,7 +249,7 @@ fun PyteRoot(playerViewModel: PlayerViewModel = hiltViewModel(), recommendations
                                     unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                     unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                 ),
-                                onClick = {
+                                onClick = feedbackClick {
                                     if (route?.startsWith(Routes.SETTINGS) == true) nav.popBackStack(Routes.SETTINGS, inclusive = true)
                                     nav.navigate(tab.route) {
                                         popUpTo(Routes.HOME)

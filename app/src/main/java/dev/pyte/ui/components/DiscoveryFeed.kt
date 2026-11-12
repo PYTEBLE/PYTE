@@ -24,7 +24,6 @@ import dev.pyte.data.remote.SongRecommendation
 import dev.pyte.domain.Track
 import dev.pyte.playback.PlayerUiState
 import dev.pyte.ui.theme.CoverColors
-import dev.pyte.ui.theme.LocalLivingUi
 import dev.pyte.ui.viewmodels.SearchSuggestionsState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.remember
@@ -67,7 +66,7 @@ fun SearchSuggestionsContent(
             item(key = "recent-cards") {
                 LazyRow(contentPadding = PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     itemsIndexed(state.recent.take(6), key = { _, track -> track.videoId }) { index, track ->
-                        Surface(onClick = { onPlay(state.recent, index) }, shape = RoundedCornerShape(18.dp),
+                        Surface(onClick = feedbackClick { onPlay(state.recent, index) }, shape = RoundedCornerShape(18.dp),
                             color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = Modifier.width(156.dp)) {
                             Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Artwork(track.thumbnailUrl, Modifier.size(64.dp), videoId = track.videoId)
@@ -104,7 +103,7 @@ fun SearchSuggestionsContent(
             item(key = "suggestion-refresh") {
                 Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.discover_similar), Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
-                    TextButton(onClick = onRetry) { Text(stringResource(R.string.discovery_refresh)) }
+                    TextButton(onClick = feedbackClick(onRetry)) { Text(stringResource(R.string.discovery_refresh)) }
                 }
             }
             if (state.partial) item(key = "suggestion-partial") { DiscoveryNotice(stringResource(R.string.discovery_partial), onRetry) }
@@ -127,11 +126,8 @@ fun SearchSuggestionsContent(
 @Composable
 private fun FeaturedSuggestion(featured: SongRecommendation, colors: CoverColors?, onClick: () -> Unit) {
     val interaction = remember { MutableInteractionSource() }
-    val policy = LocalLivingUi.current
-    val sounds = LocalUiSounds.current
     val accent = colors?.accent ?: MaterialTheme.colorScheme.primary
-    Surface(onClick = {
-            if (policy.sounds) sounds?.play(UiSound.TAP)
+    Surface(onClick = feedbackClick {
             onClick()
         }, shape = RoundedCornerShape(28.dp), interactionSource = interaction,
         color = colors?.background ?: MaterialTheme.colorScheme.primaryContainer,
@@ -157,6 +153,6 @@ private fun FeaturedSuggestion(featured: SongRecommendation, colors: CoverColors
 internal fun DiscoveryNotice(message: String, onRetry: (() -> Unit)? = null) {
     Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        onRetry?.let { TextButton(onClick = it) { Text(stringResource(R.string.retry)) } }
+        onRetry?.let { TextButton(onClick = feedbackClick(it)) { Text(stringResource(R.string.retry)) } }
     }
 }

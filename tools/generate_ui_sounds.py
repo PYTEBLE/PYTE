@@ -19,31 +19,32 @@ def write(name: str, samples: list[float]) -> None:
         wav.writeframes(b"".join(struct.pack("<h", int(max(-1, min(1, s)) * 32767)) for s in samples))
 
 
-def sweep(start: float, end: float, seconds: float, decay: float, gain: float) -> list[float]:
+def click(seed: int, seconds: float, body_hz: float, gain: float) -> list[float]:
+    """Dry mechanical impulse: high-passed noise + rapidly damped fixed resonances.
+
+    No pitch sweep, chime or reverb. A tiny attack and zero-ended tail avoid a DC pop.
+    """
+    rng = random.Random(seed)
+    samples, previous = [], 0.0
     count = int(RATE * seconds)
-    out, phase = [], 0.0
     for i in range(count):
-        t = i / count
-        freq = start + (end - start) * t
-        phase += 2 * math.pi * freq / RATE
-        out.append(gain * math.sin(phase) * math.exp(-decay * i / RATE))
-    return out
+        t = i / RATE
+        noise = rng.uniform(-1, 1)
+        edge = (noise - previous) * .5
+        previous = noise
+        attack = min(1.0, i / (RATE * .0002))
+        tail = (1 - i / (count - 1)) ** 2
+        transient = edge * math.exp(-t / .0016) * .8
+        body = math.sin(2 * math.pi * body_hz * t) * math.exp(-t / .0028) * .35
+        snap = math.sin(2 * math.pi * 3200 * t) * math.exp(-t / .0007) * .22
+        samples.append((transient + body + snap) * attack * tail)
+    peak = max(abs(s) for s in samples)
+    return [s * gain / peak for s in samples]
 
 
-def click(seconds: float = 0.045) -> list[float]:
-    rng = random.Random(7)
-    body = sweep(1700, 1100, seconds, 90, .30)
-    transient = [(rng.random() * 2 - 1) * math.exp(-i / 60) * .25 for i in range(int(RATE * .006))]
-    return [a + (transient[i] if i < len(transient) else 0) for i, a in enumerate(body)]
-
-
-def chime() -> list[float]:
-    first = sweep(880, 880, .13, 22, .26)
-    second = sweep(1320, 1320, .22, 16, .26)
-    return first + [0.0] * int(RATE * .02) + second
-
-
-write("ui_tap", click())
-write("ui_on", sweep(600, 1400, .11, 26, .30))
-write("ui_off", sweep(1200, 520, .11, 26, .30))
-write("ui_success", chime())
+write("ui_tap", click(7, .018, 900, .75))
+write("ui_on", click(11, .022, 720, .78))
+write("ui_off", click(13, .020, 650, .72))
+write("ui_success", click(17, .024, 820, .78))
+write("ui_tick", click(23, .009, 1500, .50))
+write("ui_detent", click(29, .014, 1050, .65))

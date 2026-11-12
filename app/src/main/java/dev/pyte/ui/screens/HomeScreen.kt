@@ -1,5 +1,8 @@
 package dev.pyte.ui.screens
 
+import dev.pyte.ui.components.TactileIconButton as IconButton
+import dev.pyte.ui.components.feedbackClick
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -54,8 +57,6 @@ import dev.pyte.ui.components.Artwork
 import dev.pyte.ui.components.ScreenHeading
 import dev.pyte.ui.components.LibraryWelcome
 import dev.pyte.ui.components.pressMotion
-import dev.pyte.ui.components.LocalUiSounds
-import dev.pyte.ui.components.UiSound
 import dev.pyte.ui.components.touchBloom
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import dev.pyte.ui.viewmodels.HomeViewModel
@@ -74,7 +75,6 @@ import androidx.compose.material.icons.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.IconButton
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.pluralStringResource
 import dev.pyte.R
@@ -90,7 +90,6 @@ fun HomeScreen(
 ) {
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
     val motion = LocalLivingUi.current
-    val uiSounds = LocalUiSounds.current
     val songActions = LocalSongActions.current
     val pendingLink by viewModel.pendingLink.collectAsStateWithLifecycle()
     val recent by viewModel.recentTracks.collectAsStateWithLifecycle()
@@ -143,8 +142,8 @@ fun HomeScreen(
                                 Spacer(Modifier.height(8.dp))
                                 Text(stringResource(R.string.library_subtitle, pluralStringResource(R.plurals.playlists_count, playlists.size, playlists.size)), color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Row {
-                                    TextButton(onClick = onSearch) { Icon(Icons.Default.Search, null); Text(stringResource(R.string.search), Modifier.padding(start = 8.dp)) }
-                                    TextButton(onClick = { showImport = true }) { Icon(Icons.Default.Add, null); Text(stringResource(R.string.import_action), Modifier.padding(start = 8.dp)) }
+                                    TextButton(onClick = feedbackClick(onSearch)) { Icon(Icons.Default.Search, null); Text(stringResource(R.string.search), Modifier.padding(start = 8.dp)) }
+                                    TextButton(onClick = feedbackClick { showImport = true }) { Icon(Icons.Default.Add, null); Text(stringResource(R.string.import_action), Modifier.padding(start = 8.dp)) }
                                 }
                             }
                         }
@@ -154,8 +153,7 @@ fun HomeScreen(
                             val track = recent.first()
                             val interaction = remember { MutableInteractionSource() }
                             Reveal("continue") {
-                                Surface(onClick = {
-                                    if (motion.sounds) uiSounds?.play(UiSound.TAP)
+                                Surface(onClick = feedbackClick {
                                     viewModel.playRecent(recent, 0)
                                 }, shape = RoundedCornerShape(28.dp),
                                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -186,8 +184,8 @@ fun HomeScreen(
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp),
                                     contentPadding = PaddingValues(horizontal = 8.dp)) {
                                     itemsIndexed(recent, key = { _, track -> track.videoId }) { index, track ->
-                                        Column(Modifier.width(156.dp).combinedClickable(onClick = { viewModel.playRecent(recent, index) },
-                                            onLongClick = { songActions?.open?.invoke(track) }).padding(bottom = 16.dp)) {
+                                        Column(Modifier.width(156.dp).combinedClickable(onClick = feedbackClick { viewModel.playRecent(recent, index) },
+                                            onLongClick = feedbackClick { songActions?.open?.invoke(track) }).padding(bottom = 16.dp)) {
                                             Artwork(track.thumbnailUrl, Modifier.fillMaxWidth().aspectRatio(1f),
                                                 shape = RoundedCornerShape(24.dp), videoId = track.videoId)
                                             Spacer(Modifier.height(8.dp))
@@ -215,7 +213,7 @@ fun HomeScreen(
                             IconButton(onClick = { showImport = true }) {
                                 Icon(Icons.Default.Add, stringResource(R.string.import_playlist))
                             }
-                            TextButton(onClick = onOpenLibrary) { Text(stringResource(R.string.library_all)) }
+                            TextButton(onClick = feedbackClick(onOpenLibrary)) { Text(stringResource(R.string.library_all)) }
                         }
                     }
                     items(playlists.take(6), key = { it.id }) { playlist ->
@@ -298,10 +296,10 @@ internal fun ImportSheet(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TextButton(onClick = onDismiss, enabled = !loading) { Text(stringResource(R.string.cancel)) }
+                TextButton(onClick = feedbackClick(onDismiss), enabled = !loading) { Text(stringResource(R.string.cancel)) }
                 Spacer(Modifier.width(8.dp))
                 Button(
-                    onClick = { onImport(link) },
+                    onClick = feedbackClick { onImport(link) },
                     enabled = link.isNotBlank() && !loading,
                 ) {
                     if (loading) {
