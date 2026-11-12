@@ -7,6 +7,9 @@
   tinted with its cover colors, with its "Passt zu …" reason.
 - Start and Suchen: smaller intro cards, pressable cards with a short scale feedback, and
   a shimmer skeleton while suggestions load.
+- Optional short UI sounds (Einstellungen → Darstellung → "Klänge bei Bedienung"). Off by
+  default; play, pause, favorites and the top cards use them. Power saver silences them.
+  Touch feedback on the top cards adds a soft bloom.
 
 ## 1.0.1 — discovery, library and playback fixes
 
