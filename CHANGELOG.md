@@ -7,8 +7,15 @@
   tinted with its cover colors, with its "Passt zu …" reason.
 - Start and Suchen: smaller intro cards, pressable cards with a short scale feedback, and
   a shimmer skeleton while suggestions load.
-- Optional short UI sounds (Einstellungen → Darstellung → "Klänge bei Bedienung"). Off by
-  default; play, pause, favorites and the top cards use them. Power saver silences them.
+- Bedienklänge: trockene, knackige mechanische Klicks statt Sweeps und Chimes, jetzt auch
+  für Navigation, Songzeilen, Menüs, Dialoge, Schalter und die übrigen App-Tasten.
+  Optional unter Einstellungen → Darstellung, standardmäßig aus; dort gibt es „Klick testen“.
+- Seekbar und Equalizer: fein gerasterte Ticks mit leichter Haptik nur bei Bedienung,
+  deutlicher an Endanschlägen und der Equalizer-Nullstellung. Keine Ticks durch laufende Musik.
+- Icon-Tasten reagieren mit federndem Druckfeedback; Reglergriffe werden beim Ziehen betont.
+  Klang und Haptik sind unabhängig schaltbar, reduzierte Bewegung wird respektiert.
+  Im Hintergrund und Energiesparmodus bleibt das Feedback stumm.
+- Die Klang-Einstellung wird mitgesichert und wiederhergestellt; ältere Backups bleiben lesbar.
   Touch feedback on the top cards adds a soft bloom.
 
 ## 1.0.1 — discovery, library and playback fixes
