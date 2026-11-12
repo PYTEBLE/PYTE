@@ -1,5 +1,13 @@
 # APK signing from alpha.7
 
+## Current release identity (1.0.1 and later)
+
+Version 1.0.2 (versionCode 20) uses the same certificate as published 1.0.1:
+`285fc88b841b9dd23a3ae1a188271f854bf173989acad955b5a9c71c32d2bf4b`.
+It can update 1.0.1 in place, without uninstalling or clearing app data.
+The 1.0.0 certificate is different; users of that version must export a backup before
+uninstalling, then install the current version and restore the backup.
+
 ## 1.0.1 signature change (explicitly approved)
 
 Version 1.0.1 (versionCode 19) is signed with the local release key in
@@ -10,11 +18,11 @@ Users must export their data (Einstellungen → Daten sichern), uninstall 1.0.0,
 1.0.1 and import the backup. `tools/sign-apk.sh` now pins this fingerprint. Future updates
 must use this certificate. Release notes must state this before installation instructions.
 
-## 1.0.0 dedicated release key
+## Historical 1.0.0 signing identity (key unavailable here)
 
-Version 1.0.0 (versionCode 18) is signed with a dedicated PYTE release key. It is the
-identity for all future releases. Releases can be built on any machine that has the key
-and its password file, without reinstalling.
+Version 1.0.0 (versionCode 18) was signed with the certificate below. Its key is no longer
+available on this machine. The historical paths describe the original setup, not the
+certificate currently stored there. Do not use this section to claim update compatibility.
 
 - Keystore: `~/.android/pyte-release.keystore` (PKCS12, alias `pyte-release`, RSA 4096)
 - Password file: `~/.android/pyte-release.keystore.password` (mode 600)

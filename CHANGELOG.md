@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased — livelier Start and Suchen
+## 1.0.2 — mechanische Klicks, Haptik und lebendigere Bedienung
+
+- Update über 1.0.1 ohne Deinstallation möglich; Signaturschlüssel unverändert.
+  Bei 1.0.0 zuerst ein Backup exportieren: Dessen Signatur ist nicht kompatibel.
 
 - Start: "Weiterhören" shows the most recent song as a large card; one tap resumes it.
 - Suchen: the top personal suggestion is featured above recent cards and compact song rows,
@@ -32,7 +35,6 @@
 - Shuffle covers the full playlist before repeating and starts at the beginning.
 - Songs can be removed from their playlist while it plays; removals survive refreshes and backups.
 - System back closes the full player with its normal animation.
-- Installs over 1.0.0 in place with the same dedicated signing key; no data is cleared.
 
 ## 1.0.0 — first full version
 

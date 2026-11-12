@@ -1,5 +1,19 @@
 # Playback verification
 
+## Release 1.0.2 (versionCode 20)
+
+- `:app:assembleRelease`, `:app:lintRelease`, `:app:testDebugUnitTest` erfolgreich:
+  optimierter R8-/Resource-Shrinker-Build, keine Release-Lint-Errors; 197 Unit-Tests
+  insgesamt, davon 4 übersprungen und keine Fehler.
+- Finale APK mit `tools/sign-apk.sh` signiert; v2/v3-Signatur und gepinntes Zertifikat
+  `285fc88b841b9dd23a3ae1a188271f854bf173989acad955b5a9c71c32d2bf4b` verifiziert.
+  APK-Metadaten bestätigen `dev.pyte`, Version 1.0.2 / 20.
+- Genau diese APK per `adb install -r` über die vorhandene App installiert, Start via
+  `am start -W` mit Status `ok`; Prozess danach weiterhin vorhanden. Keine Deinstallation
+  oder Datenlöschung. Kein vollständiger neuer UI-/Audio-Durchlauf mit dem minifizierten
+  Build; die 26 unten genannten Gerätetests liefen mit dem vorherigen Testbuild.
+- APK-SHA256: `13cc81b624985325e5947bb24514dda38ca86934001731451f27bcb18c399220`.
+
 ## Mechanische Klicks, Regler-Ticks und Haptik (unreleased)
 
 - `:app:testDebugUnitTest`, `:app:assembleDebug`, `:app:assembleDebugAndroidTest` und
